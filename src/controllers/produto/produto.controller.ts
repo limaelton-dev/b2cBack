@@ -6,7 +6,7 @@ export class ProdutoController {
   constructor(private readonly produtoService: ProdutoService) {}
 
   @Get()
-  async buscarProdutos(@Query('descricao') descricao: string) {
-    return this.produtoService.buscarProduto(descricao);
+  async buscarProdutos(@Query('s') s: string) {
+    return this.produtoService.buscarProduto(s);
   }
 }
