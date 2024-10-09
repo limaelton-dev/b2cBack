@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { ILike, In, Repository } from 'typeorm';
 import { Produto } from 'src/models/produto/produto';
 
 @Injectable()
@@ -10,14 +10,16 @@ export class ProdutoService {
         private produtoRepository: Repository<Produto>,
     ) {}
 
-    async getProduto(id: number): Promise<Produto> {
-        const product = this.produtoRepository.findOne({where: {pro_codigo: id}});
-        
-        if (!product) {
-            throw new NotFoundException(`Produto com id '${id}' não encontrado`);
-        }
+    async getProduto(ids: string): Promise<Produto[]> {
 
-        return product;
+        if(ids.includes(',')) {
+            const prods = ids.split(',').map(Number);
+            return await this.produtoRepository.find({where: {pro_codigo: In(prods)}})
+        }
+        else {
+            const product = this.produtoRepository.find({where: {pro_codigo: parseInt(ids)}});
+            return product;
+        }
     }
 
     async buscarProduto(s: string): Promise<Produto[]> {

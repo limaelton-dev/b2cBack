@@ -6,9 +6,9 @@ import { ProdutoService } from 'src/services/produto/produto.service';
 export class ProdutoController {
     constructor(private readonly produtoService: ProdutoService) {}
 
-    @Get(':id')
-    async getProductByCodigo(@Param('id') id: number): Promise<Produto> {
-        return this.produtoService.getProduto(id);
+    @Get(':ids')
+    async getProductByCodigo(@Param('ids') ids: string): Promise<Produto[]> {
+        return this.produtoService.getProduto(ids);
     }
 
     @Get()

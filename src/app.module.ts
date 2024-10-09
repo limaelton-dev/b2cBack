@@ -1,3 +1,4 @@
+import { CartService } from 'src/services/cart/cart.service';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
@@ -7,9 +8,11 @@ import { AppService } from './app.service';
 import { ProdutoController } from './controllers/produto/produto.controller';
 import { ProdutoService } from './services/produto/produto.service';
 import { Produto } from './models/produto/produto';
-import { User } from './models/user/user';
+import { User } from 'src/models/user/user';
 import { UserController } from './controllers/user/user.controller';
 import { UserService } from './services/user/user.service';
+import { CartController } from './controllers/cart/cart.controller';
+import { Cart } from 'src/models/cart/cart';
 
 @Module({
   imports: [
@@ -26,7 +29,7 @@ import { UserService } from './services/user/user.service';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
-        entities: [Produto, User],
+        entities: [Produto, User, Cart],
         synchronize: true,
       }),
     }),
@@ -38,9 +41,9 @@ import { UserService } from './services/user/user.service';
         signOptions: { expiresIn: '60m' },
       }),
     }),
-    TypeOrmModule.forFeature([Produto, User])
+    TypeOrmModule.forFeature([Produto, User, Cart])
   ],
-  controllers: [AppController, ProdutoController, UserController],
-  providers: [AppService, ProdutoService, UserService],
+  controllers: [AppController, ProdutoController, UserController, CartController],
+  providers: [AppService, ProdutoService, UserService, CartService],
 })
 export class AppModule {}
