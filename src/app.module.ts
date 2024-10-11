@@ -13,6 +13,7 @@ import { UserController } from './controllers/user/user.controller';
 import { UserService } from './services/user/user.service';
 import { CartController } from './controllers/cart/cart.controller';
 import { Cart } from 'src/models/cart/cart';
+import { CartModule } from './cart.module';
 
 @Module({
   imports: [
@@ -41,9 +42,10 @@ import { Cart } from 'src/models/cart/cart';
         signOptions: { expiresIn: '60m' },
       }),
     }),
-    TypeOrmModule.forFeature([Produto, User, Cart])
+    CartModule,
+    TypeOrmModule.forFeature([Produto, User])
   ],
-  controllers: [AppController, ProdutoController, UserController, CartController],
-  providers: [AppService, ProdutoService, UserService, CartService],
+  controllers: [AppController, ProdutoController, UserController],
+  providers: [AppService, ProdutoService, UserService],
 })
 export class AppModule {}
