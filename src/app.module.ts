@@ -14,6 +14,7 @@ import { UserService } from './services/user/user.service';
 import { CartController } from './controllers/cart/cart.controller';
 import { Cart } from 'src/models/cart/cart';
 import { CartModule } from './cart.module';
+import { Cores } from 'src/models/cores/cores';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { CartModule } from './cart.module';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
-        entities: [Produto, User, Cart],
+        entities: [Produto, User, Cart, Cores],
         synchronize: true,
       }),
     }),
@@ -43,7 +44,7 @@ import { CartModule } from './cart.module';
       }),
     }),
     CartModule,
-    TypeOrmModule.forFeature([Produto, User])
+    TypeOrmModule.forFeature([Produto, User, Cores])
   ],
   controllers: [AppController, ProdutoController, UserController],
   providers: [AppService, ProdutoService, UserService],

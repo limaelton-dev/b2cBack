@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToMany } from 'typeorm';
+import { Cores } from '../cores/cores';
 
 @Entity()
 export class Produto {
@@ -526,4 +527,7 @@ export class Produto {
 
     @Column({ type: 'varchar', length: 20, nullable: true })
     pro_certnumerohml: string;
+
+    @ManyToMany(() => Cores, cores => cores.produtos)
+    cores: Cores[];
 }

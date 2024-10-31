@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, UpdateDateColumn, CreateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, UpdateDateColumn, CreateDateColumn, OneToOne } from 'typeorm';
 import { User } from 'src/models/user/user';
 
 @Entity('cart')
@@ -6,7 +6,7 @@ export class Cart {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => User, user => user.carts, { onDelete: 'CASCADE' })
+    @OneToOne(() => User, (user) => user.cart)
     @JoinColumn({ name: 'user_id' })
     user: User;
 

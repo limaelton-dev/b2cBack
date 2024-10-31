@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne } from 'typeorm';
 import { Cart } from 'src/models/cart/cart';
 
 @Entity('user')
@@ -24,6 +24,6 @@ export class User {
     @UpdateDateColumn({ type: 'timestamp' })
     updated_at: Date;
 
-    @OneToMany(() => Cart, cart => cart.user, { lazy: false })
-    carts: Cart[];
+    @OneToOne(() => Cart, (cart) => cart.user, { cascade: true })
+    cart: Cart;
 }

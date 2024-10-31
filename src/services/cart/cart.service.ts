@@ -26,24 +26,25 @@ export class CartService {
     }
 
     async updateCarrinhoUser(id: number, updateCartDto: UpdateCartDto): Promise<CartDataDto> {
-        const user = await this.userRepository.findOneBy({ id: id });
-        const cart = await this.cartRepository.findOne({ where: { user: user } });
+        const user = await this.userRepository.findOneBy({ id });
+        if (!user) throw new NotFoundException('Usuário não encontrado.');
+    
+        const cart = await this.cartRepository.findOne({ where: { user: { id: user.id } } });
+        
         if (!cart) {
-            const c = this.cartRepository.create({
-                user: user,
+            const cartCreate = this.cartRepository.create({
+                user,
                 cart_data: updateCartDto.cart_data,
             });
-            const response = await this.cartRepository.save(c);
-            if(response) {
-                return { cart_data: updateCartDto.cart_data }
-            }
-            else {
+            const response = await this.cartRepository.save(cartCreate);
+            if (response) {
+                return { cart_data: response.cart_data };
+            } else {
                 throw new InternalServerErrorException('Erro ao adicionar carrinho');
             }
         }
     
-        Object.assign(cart, updateCartDto);
-        const savedCart = await this.cartRepository.save(cart);
-        return { cart_data: savedCart.cart_data };
-      }
+        await this.cartRepository.update(cart.id, { cart_data: updateCartDto.cart_data });
+        return { cart_data: updateCartDto.cart_data };
+    }
 }
