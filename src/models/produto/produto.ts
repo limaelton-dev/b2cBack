@@ -12,14 +12,14 @@ export class Produto {
     @Column({ type: 'integer' }) fam_codigo: number;
     @Column({ type: 'integer' }) pgr_codigo: number;
     @Column({ type: 'integer' }) pmo_codigo: number;
-    @Column({ type: 'varchar', length: 100, nullable: true }) pro_referencia: string;
+    @Column({ type: 'text', nullable: true }) pro_referencia: string;
     @Column({ type: 'text', nullable: true }) pro_descricao: string;
-    @Column({ type: 'varchar', length: 50, nullable: true }) pro_codigobarra: string;
-    @Column({ type: 'varchar', length: 10, nullable: true }) pro_unidade: string;
+    @Column({ type: 'text', nullable: true }) pro_codigobarra: string;
+    @Column({ type: 'text', nullable: true }) pro_unidade: string;
     @Column({ type: 'integer', nullable: true }) pro_prazogarantia: number;
     @Column({ type: 'boolean', default: true }) pro_ativo: boolean;
-    @Column({ type: 'varchar', length: 255, nullable: true }) pro_conteudo_emb: string;
-    @Column({ type: 'varchar', length: 255, nullable: true }) pro_partnum_sku: string;
+    @Column({ type: 'text', nullable: true }) pro_conteudo_emb: string;
+    @Column({ type: 'text', nullable: true }) pro_partnum_sku: string;
     @Column({ type: 'text', nullable: true }) pro_software: string;
     @Column({ type: 'text', nullable: true }) pro_manual: string;
     @Column({ type: 'text', nullable: true }) pro_keyword: string;
@@ -28,6 +28,6 @@ export class Produto {
     @Column({ type: 'text', nullable: true }) pro_url_fichatec: string;
     @Column({ type: 'text', nullable: true }) pro_url_dropbox: string;
     @Column({ type: 'text', nullable: true }) pro_conteudo_emb2: string;
-    @Column({ type: 'varchar', length: 255, nullable: true }) pro_modelo_com: string;
-    @Column({ type: 'varchar', length: 255, nullable: true }) pro_desc_tecnica: string;
+    @Column({ type: 'text', nullable: true }) pro_modelo_com: string;
+    @Column({ type: 'text', nullable: true }) pro_desc_tecnica: string;
 }
