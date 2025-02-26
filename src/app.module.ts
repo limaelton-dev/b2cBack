@@ -14,7 +14,6 @@ import { UserService } from './services/user/user.service';
 import { CartController } from './controllers/cart/cart.controller';
 import { Cart } from 'src/models/cart/cart';
 import { CartModule } from './cart.module';
-import { Cores } from 'src/models/cores/cores';
 
 @Module({
   imports: [
@@ -26,12 +25,12 @@ import { Cores } from 'src/models/cores/cores';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
+        host: '10.0.0.25',
         port: configService.get<number>('DB_PORT'),
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
-        entities: [Produto, User, Cart, Cores],
+        entities: [Produto, User, Cart],
         synchronize: true,
       }),
     }),
@@ -44,7 +43,7 @@ import { Cores } from 'src/models/cores/cores';
       }),
     }),
     CartModule,
-    TypeOrmModule.forFeature([Produto, User, Cores])
+    TypeOrmModule.forFeature([Produto, User])
   ],
   controllers: [AppController, ProdutoController, UserController],
   providers: [AppService, ProdutoService, UserService],

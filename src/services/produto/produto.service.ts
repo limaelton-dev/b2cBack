@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, In, Repository } from 'typeorm';
 import { Produto } from 'src/models/produto/produto';
-import { Cores } from 'src/models/cores/cores';
 
 @Injectable()
 export class ProdutoService {
@@ -15,10 +14,10 @@ export class ProdutoService {
 
         if(ids.includes(',')) {
             const prods = ids.split(',').map(Number);
-            return await this.produtoRepository.find({where: {pro_codigo: In(prods)}, relations: ['cores']})
+            return await this.produtoRepository.find({where: {pro_codigo: In(prods)}})
         }
         else {
-            const product = this.produtoRepository.find({where: {pro_codigo: parseInt(ids)}, relations: ['cores']});
+            const product = this.produtoRepository.find({where: {pro_codigo: parseInt(ids)}});
             return product;
         }
     }
