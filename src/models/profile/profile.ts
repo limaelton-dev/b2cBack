@@ -4,6 +4,8 @@ import { ProfilePF } from '../profile_pf/profile_pf';
 import { ProfilePJ } from '../profile_pj/profile_pj';
 import { Address } from '../address/address';
 import { Card } from '../card/card';
+import { Phone } from '../phone/phone';
+import { Order } from '../order/order';
 
 @Entity('profile')
 export class Profile {
@@ -37,4 +39,10 @@ export class Profile {
 
     @OneToMany(() => Card, card => card.profile, { cascade: true })
     cards: Card[];
+
+    @OneToMany(() => Phone, phone => phone.profile, { cascade: true })
+    phones: Phone[];
+
+    @OneToMany(() => Order, order => order.profile, { cascade: true })
+    orders: Order[];
 } 

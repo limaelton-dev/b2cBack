@@ -24,6 +24,11 @@ import { AddressModule } from './address.module';
 import { CardModule } from './card.module';
 import { Address } from './models/address/address';
 import { Card } from './models/card/card';
+import { PhoneModule } from './phone.module';
+import { Phone } from './models/phone/phone';
+import { OrderModule } from './order.module';
+import { Order } from './models/order/order';
+import { OrderItem } from './models/order_item/order_item';
 
 @Module({
   imports: [
@@ -40,7 +45,7 @@ import { Card } from './models/card/card';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
-        entities: [Produto, User, Cart, Profile, ProfilePF, ProfilePJ, Address, Card],
+        entities: [Produto, User, Cart, Profile, ProfilePF, ProfilePJ, Address, Card, Phone, Order, OrderItem],
         synchronize: true,
       }),
     }),
@@ -58,6 +63,8 @@ import { Card } from './models/card/card';
     ProfilePJModule,
     AddressModule,
     CardModule,
+    PhoneModule,
+    OrderModule,
     TypeOrmModule.forFeature([Produto, User])
   ],
   controllers: [AppController, ProdutoController, UserController],
