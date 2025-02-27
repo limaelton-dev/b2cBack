@@ -14,6 +14,12 @@ import { UserService } from './services/user/user.service';
 import { CartController } from './controllers/cart/cart.controller';
 import { Cart } from 'src/models/cart/cart';
 import { CartModule } from './cart.module';
+import { ProfileModule } from './profile.module';
+import { Profile } from './models/profile/profile';
+import { ProfilePFModule } from './profile_pf.module';
+import { ProfilePJModule } from './profile_pj.module';
+import { ProfilePF } from './models/profile_pf/profile_pf';
+import { ProfilePJ } from './models/profile_pj/profile_pj';
 
 @Module({
   imports: [
@@ -30,7 +36,7 @@ import { CartModule } from './cart.module';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
-        entities: [Produto, User, Cart],
+        entities: [Produto, User, Cart, Profile, ProfilePF, ProfilePJ],
         synchronize: true,
       }),
     }),
@@ -43,6 +49,9 @@ import { CartModule } from './cart.module';
       }),
     }),
     CartModule,
+    ProfileModule,
+    ProfilePFModule,
+    ProfilePJModule,
     TypeOrmModule.forFeature([Produto, User])
   ],
   controllers: [AppController, ProdutoController, UserController],
