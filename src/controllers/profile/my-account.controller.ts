@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Request, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, UseGuards, Request, Param, ParseIntPipe, ForbiddenException } from '@nestjs/common';
 import { ProfileService } from '../../services/profile/profile.service';
 import { OrderService } from '../../services/order/order.service';
 import { AddressService } from '../../services/address/address.service';
@@ -82,7 +82,18 @@ export class MyAccountController {
   }
 
   @Get('orders/:id')
-  async getOrderDetails(@Param('id', ParseIntPipe) id: number) {
+  async getOrderDetails(@Request() req, @Param('id', ParseIntPipe) id: number) {
+    const userId = req.user.id;
+    const profile = await this.profileService.findByUserId(userId);
+    
+    // Obter o pedido
+    const order = await this.orderService.findOne(id);
+    
+    // Verificar se o pedido pertence ao usuário autenticado
+    if (order.profile_id !== profile.id) {
+      throw new ForbiddenException('Você não tem permissão para acessar este pedido');
+    }
+    
     return this.orderService.getOrderDetails(id);
   }
 } 
