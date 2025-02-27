@@ -9,8 +9,8 @@ export class User {
     @Column({ length: 80 })
     name: string;
 
-    @Column({ length: 80 })
-    lastname: string;
+    @Column({ unique: true, length: 255 })
+    username: string;
 
     @Column({ unique: true, length: 100 })
     email: string;

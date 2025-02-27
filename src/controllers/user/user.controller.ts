@@ -27,6 +27,7 @@ export class UserController {
             user: {
                 id: usuario.id,
                 name: usuario.name,
+                username: usuario.username,
                 email: usuario.email,
             },
         };

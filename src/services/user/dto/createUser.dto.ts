@@ -5,7 +5,7 @@ export class CreateUserDto {
   name: string;
 
   @IsNotEmpty()
-  lastname: string;
+  username: string;
 
   @IsEmail()
   email: string;
