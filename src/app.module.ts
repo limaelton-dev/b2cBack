@@ -20,6 +20,10 @@ import { ProfilePFModule } from './profile_pf.module';
 import { ProfilePJModule } from './profile_pj.module';
 import { ProfilePF } from './models/profile_pf/profile_pf';
 import { ProfilePJ } from './models/profile_pj/profile_pj';
+import { AddressModule } from './address.module';
+import { CardModule } from './card.module';
+import { Address } from './models/address/address';
+import { Card } from './models/card/card';
 
 @Module({
   imports: [
@@ -36,7 +40,7 @@ import { ProfilePJ } from './models/profile_pj/profile_pj';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
-        entities: [Produto, User, Cart, Profile, ProfilePF, ProfilePJ],
+        entities: [Produto, User, Cart, Profile, ProfilePF, ProfilePJ, Address, Card],
         synchronize: true,
       }),
     }),
@@ -52,6 +56,8 @@ import { ProfilePJ } from './models/profile_pj/profile_pj';
     ProfileModule,
     ProfilePFModule,
     ProfilePJModule,
+    AddressModule,
+    CardModule,
     TypeOrmModule.forFeature([Produto, User])
   ],
   controllers: [AppController, ProdutoController, UserController],

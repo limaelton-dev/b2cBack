@@ -24,7 +24,7 @@ export class ProfileService {
     async findById(id: number): Promise<Profile> {
         const profile = await this.profileRepository.findOne({ 
             where: { id },
-            relations: ['user', 'profilePF', 'profilePJ']
+            relations: ['user', 'profilePF', 'profilePJ', 'addresses', 'cards']
         });
         
         if (!profile) {
@@ -37,7 +37,7 @@ export class ProfileService {
     async findByUserId(userId: number): Promise<Profile> {
         const profile = await this.profileRepository.findOne({ 
             where: { user_id: userId },
-            relations: ['user', 'profilePF', 'profilePJ']
+            relations: ['user', 'profilePF', 'profilePJ', 'addresses', 'cards']
         });
         
         if (!profile) {
@@ -68,6 +68,8 @@ export class ProfileService {
             profile_type: profile.profile_type,
             created_at: profile.created_at,
             updated_at: profile.updated_at,
+            addresses: profile.addresses || [],
+            cards: profile.cards || []
         };
         
         if (profile.profile_type === 'PF' && profile.profilePF) {

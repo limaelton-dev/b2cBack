@@ -1,7 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToOne, OneToMany } from 'typeorm';
 import { User } from 'src/models/user/user';
 import { ProfilePF } from '../profile_pf/profile_pf';
 import { ProfilePJ } from '../profile_pj/profile_pj';
+import { Address } from '../address/address';
+import { Card } from '../card/card';
 
 @Entity('profile')
 export class Profile {
@@ -29,4 +31,10 @@ export class Profile {
 
     @OneToOne(() => ProfilePJ, profilePJ => profilePJ.profile, { cascade: true })
     profilePJ: ProfilePJ;
+
+    @OneToMany(() => Address, address => address.profile, { cascade: true })
+    addresses: Address[];
+
+    @OneToMany(() => Card, card => card.profile, { cascade: true })
+    cards: Card[];
 } 
