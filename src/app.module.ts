@@ -1,7 +1,6 @@
 import { CartService } from 'src/services/cart/cart.service';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -29,6 +28,8 @@ import { Phone } from './models/phone/phone';
 import { OrderModule } from './modules/order.module';
 import { Order } from './models/order/order';
 import { OrderItem } from './models/order_item/order_item';
+import { AuthModule } from './modules/auth.module';
+import { MyAccountModule } from './modules/my-account.module';
 
 @Module({
   imports: [
@@ -49,14 +50,6 @@ import { OrderItem } from './models/order_item/order_item';
         synchronize: false,
       }),
     }),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '60m' },
-      }),
-    }),
     CartModule,
     ProfileModule,
     ProfilePFModule,
@@ -65,6 +58,8 @@ import { OrderItem } from './models/order_item/order_item';
     CardModule,
     PhoneModule,
     OrderModule,
+    AuthModule,
+    MyAccountModule,
     TypeOrmModule.forFeature([Produto, User])
   ],
   controllers: [AppController, ProdutoController, UserController],
