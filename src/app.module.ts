@@ -46,7 +46,7 @@ import { OrderItem } from './models/order_item/order_item';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         entities: [Produto, User, Cart, Profile, ProfilePF, ProfilePJ, Address, Card, Phone, Order, OrderItem],
-        synchronize: true,
+        synchronize: false,
       }),
     }),
     JwtModule.registerAsync({
