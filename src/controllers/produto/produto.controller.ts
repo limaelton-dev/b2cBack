@@ -12,6 +12,11 @@ export class ProdutoController {
     }
 
     @Get()
+    async getProductsLimit(@Query('limit') limit: number): Promise<Produto[]> {
+        return this.produtoService.getProdutosLimit(limit);
+    }
+
+    @Get()
     async buscarProdutos(@Query('s') s: string): Promise<Produto[]> {
         return this.produtoService.buscarProduto(s);
     }

@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { ProdutoImagens } from './produtoimagens';
 
 @Entity()
 export class Produto {
@@ -30,4 +31,7 @@ export class Produto {
     @Column({ type: 'text', nullable: true }) pro_conteudo_emb2: string;
     @Column({ type: 'text', nullable: true }) pro_modelo_com: string;
     @Column({ type: 'text', nullable: true }) pro_desc_tecnica: string;
+
+    @OneToMany(() => ProdutoImagens, (imagem) => imagem.produto, { cascade: true })
+    imagens: ProdutoImagens[];
 }

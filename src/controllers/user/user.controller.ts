@@ -8,9 +8,32 @@ import { LoginDto } from 'src/services/user/dto/Login.dto';
 export class UserController {
     constructor(private readonly usersService: UserService) {}
 
-    @Post()
-    async createUser(@Body() createUserDto: CreateUserDto): Promise<User> {
-        return this.usersService.create(createUserDto);
+    @Post('register')
+    async createUser(@Body() createUserDto: CreateUserDto) {
+        const r = await this.usersService.create(createUserDto);
+        console.log(r)
+        if(r) {
+            const { accessToken, usuario } = await this.usersService.validateUser(
+                r.email,
+                createUserDto.password,
+            );
+            return {
+                status: 200,
+                message: 'Cadastro realizado com sucesso!',
+                token: accessToken,
+                user: {
+                    id: usuario.id,
+                    name: usuario.name,
+                    email: usuario.email,
+                },
+            };
+        }
+        else {
+            return {
+                status: 500,
+                message: 'Erro ao criar usuário',
+            };
+        }
     }
 
     @Post('login')
@@ -19,7 +42,7 @@ export class UserController {
             loginDto.email,
             loginDto.password,
         );
-        console.log(usuario)
+
         return {
             status: 200,
             message: 'Login bem-sucedido',

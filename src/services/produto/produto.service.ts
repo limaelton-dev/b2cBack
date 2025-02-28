@@ -22,6 +22,18 @@ export class ProdutoService {
         }
     }
 
+    async getProdutosLimit(limit: number): Promise<Produto[]> {
+        return await this.produtoRepository
+            .createQueryBuilder('produto')
+            .leftJoinAndSelect('produto.imagens', 'imagem')
+            .distinctOn(['produto.pro_codigo'])
+            .orderBy('produto.pro_codigo', 'DESC')
+            .limit(limit)
+            .getMany();
+
+  
+    }
+
     async buscarProduto(s: string): Promise<Produto[]> {
         return this.produtoRepository.find({
             where: {
