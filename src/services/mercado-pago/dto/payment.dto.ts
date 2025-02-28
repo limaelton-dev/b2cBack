@@ -40,7 +40,7 @@ export class PaymentDTO {
   token?: string;
 
   @IsOptional()
-  @IsString()
+  @IsNumber()
   installments?: number;
 
   @IsOptional()

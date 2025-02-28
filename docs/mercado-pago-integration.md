@@ -52,9 +52,63 @@ Este endpoint permite processar um pagamento utilizando o Checkout Transparente 
     "id": 1234567890,
     "status": "approved",
     "status_detail": "accredited",
+    "payment_method_id": "visa",
+    "payment_type_id": "credit_card",
+    "transaction_amount": 100,
+    "installments": 1,
     "external_reference": "123",
-    ...
-  }
+    "card": {
+      "first_six_digits": "423564",
+      "last_four_digits": "5682",
+      "expiration_month": 11,
+      "expiration_year": 2030,
+      "cardholder": {
+        "name": "APRO"
+      }
+    },
+    "transaction_details": {
+      "net_received_amount": 95.02,
+      "total_paid_amount": 100,
+      "installment_amount": 100
+    }
+  },
+  "order_status": "APROVADO",
+  "message": "Pagamento aprovado com sucesso! Obrigado pela sua compra.",
+  "is_approved": true
+}
+```
+
+**Resposta para Pagamento Rejeitado:**
+
+```json
+{
+  "success": true,
+  "payment": {
+    "id": 1234567890,
+    "status": "rejected",
+    "status_detail": "cc_rejected_insufficient_amount",
+    // ... outros detalhes do pagamento ...
+  },
+  "order_status": "REJEITADO",
+  "message": "Seu cartão não possui saldo suficiente. Por favor, use outro cartão ou entre em contato com o emissor.",
+  "is_approved": false
+}
+```
+
+**Resposta para Pagamento Pendente:**
+
+```json
+{
+  "success": true,
+  "payment": {
+    "id": 1234567890,
+    "status": "in_process",
+    "status_detail": "pending_contingency",
+    // ... outros detalhes do pagamento ...
+  },
+  "order_status": "EM_PROCESSAMENTO",
+  "message": "Estamos processando seu pagamento. Em até 2 dias úteis informaremos por e-mail o resultado.",
+  "is_approved": false
 }
 ```
 
@@ -100,7 +154,10 @@ Este endpoint permite criar uma preferência de pagamento para utilizar o Checko
     "id": "123456789-abcdefghijklmnopqrst",
     "init_point": "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=123456789-abcdefghijklmnopqrst",
     "sandbox_init_point": "https://sandbox.mercadopago.com.br/checkout/v1/redirect?pref_id=123456789-abcdefghijklmnopqrst",
-    ...
+    "date_created": "2023-01-01T12:00:00.000-04:00",
+    "items": [...],
+    "external_reference": "123",
+    "back_urls": {...}
   }
 }
 ```
@@ -169,7 +226,7 @@ Este endpoint permite obter informações detalhadas sobre um pagamento específ
 3. O frontend envia o token e os dados do pagamento para o backend
 4. O backend chama o endpoint `/mercado-pago/process-payment` para processar o pagamento
 5. O backend atualiza o status do pedido com base na resposta do Mercado Pago
-6. O frontend exibe o resultado do pagamento para o cliente
+6. O frontend exibe o resultado do pagamento para o cliente, utilizando a mensagem amigável fornecida na resposta
 
 ### Checkout Redirect
 
@@ -194,6 +251,29 @@ Os status de pagamento do Mercado Pago são mapeados para os status do sistema d
 - `cancelled` -> `CANCELADO`
 - `in_mediation` -> `EM_DISPUTA`
 - `charged_back` -> `ESTORNADO`
+
+## Mensagens Amigáveis ao Usuário
+
+A API retorna mensagens amigáveis em português para cada status de pagamento, facilitando a comunicação com o usuário final. Estas mensagens estão incluídas no campo `message` da resposta.
+
+### Exemplos de Mensagens por Status
+
+#### Pagamento Aprovado
+- "Pagamento aprovado com sucesso! Obrigado pela sua compra."
+
+#### Pagamento Rejeitado
+- Cartão com dados incorretos: "Algum dado do cartão está incorreto. Por favor, verifique e tente novamente."
+- Saldo insuficiente: "Seu cartão não possui saldo suficiente. Por favor, use outro cartão ou entre em contato com o emissor."
+- Cartão bloqueado: "Seu cartão está desativado. Por favor, entre em contato com o emissor para ativá-lo ou use outro cartão."
+
+#### Pagamento Pendente ou Em Processamento
+- Contingência: "Estamos processando seu pagamento. Em até 2 dias úteis informaremos por e-mail o resultado."
+- Revisão manual: "Estamos analisando seu pagamento. Em até 2 dias úteis informaremos por e-mail se foi aprovado ou se precisamos de mais informações."
+- Aguardando pagamento: "Aguardando pagamento. Assim que for confirmado, atualizaremos o status do seu pedido."
+
+### Uso no Frontend
+
+O frontend pode utilizar diretamente o campo `message` para exibir ao usuário, sem necessidade de implementar lógica adicional para traduzir os códigos de status. Além disso, o campo `is_approved` facilita a verificação se o pagamento foi aprovado ou não.
 
 ## Cartões de Teste
 

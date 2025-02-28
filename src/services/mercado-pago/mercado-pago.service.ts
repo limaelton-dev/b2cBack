@@ -41,14 +41,33 @@ export class MercadoPagoService {
   async createPayment(paymentData: PaymentDTO): Promise<any> {
     try {
       this.logger.log(`Criando pagamento: ${JSON.stringify(paymentData)}`);
-      const response = await this.payment.create({ body: paymentData });
-      this.logger.log(`Pagamento criado com sucesso: ${JSON.stringify(response.status)}`);
+      
+      // Garantir que installments seja um número
+      const paymentDataWithNumericInstallments = {
+        ...paymentData,
+        installments: Number(paymentData.installments)
+      };
+      
+      // Log dos dados que serão enviados para a API
+      this.logger.log(`Dados formatados para envio: ${JSON.stringify(paymentDataWithNumericInstallments)}`);
+      
+      const response = await this.payment.create({ body: paymentDataWithNumericInstallments });
+      this.logger.log(`Pagamento criado com sucesso: ${JSON.stringify(response)}`);
       return response;
     } catch (error) {
       this.logger.error(`Erro ao processar pagamento: ${error.message}`, error.stack);
+      
+      // Log detalhado do erro
       if (error.cause) {
         this.logger.error(`Detalhes do erro: ${JSON.stringify(error.cause)}`);
+        
+        // Extrair informações mais detalhadas do erro
+        if (Array.isArray(error.cause) && error.cause.length > 0) {
+          const errorDetails = error.cause.map(e => `${e.code}: ${e.description}`).join(', ');
+          throw new BadRequestException(`Erro ao processar pagamento: ${errorDetails}`);
+        }
       }
+      
       throw new BadRequestException(`Erro ao processar pagamento: ${error.message}`);
     }
   }
