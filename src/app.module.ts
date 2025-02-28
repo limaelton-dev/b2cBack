@@ -59,7 +59,7 @@ import { JwtModule } from '@nestjs/jwt';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         entities: [
-          Produto, 
+          Produto,
           ProdutoCusto,
           ProdutoDimensao,
           ProdutoEmbalagemDimensao,
@@ -72,6 +72,14 @@ import { JwtModule } from '@nestjs/jwt';
           ProdutoSubgrupo,
           ProdutoTipo,
           User,
+          Profile,
+          ProfilePF,
+          ProfilePJ,
+          Address,
+          Card,
+          Phone,
+          Order,
+          OrderItem,
           Cart
         ],
         synchronize: false,
