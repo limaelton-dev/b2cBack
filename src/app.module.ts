@@ -42,6 +42,7 @@ import { OrderItem } from './models/order_item/order_item';
 import { AuthModule } from './modules/auth.module';
 import { MyAccountModule } from './modules/my-account.module';
 import { JwtModule } from '@nestjs/jwt';
+import { MercadoPagoModule } from './modules/mercado-pago.module';
 
 @Module({
   imports: [
@@ -97,6 +98,7 @@ import { JwtModule } from '@nestjs/jwt';
     OrderModule,
     AuthModule,
     MyAccountModule,
+    MercadoPagoModule,
     TypeOrmModule.forFeature([Produto, User])
   ],
   controllers: [AppController, ProdutoController, UserController],
