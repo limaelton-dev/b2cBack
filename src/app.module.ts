@@ -60,7 +60,7 @@ import { MercadoPagoModule } from './modules/mercado-pago.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         entities: [
-          Produto, 
+          Produto,
           ProdutoCusto,
           ProdutoDimensao,
           ProdutoEmbalagemDimensao,
@@ -73,6 +73,14 @@ import { MercadoPagoModule } from './modules/mercado-pago.module';
           ProdutoSubgrupo,
           ProdutoTipo,
           User,
+          Profile,
+          ProfilePF,
+          ProfilePJ,
+          Address,
+          Card,
+          Phone,
+          Order,
+          OrderItem,
           Cart
         ],
         synchronize: false,
