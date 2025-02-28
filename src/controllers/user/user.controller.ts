@@ -11,7 +11,6 @@ export class UserController {
     @Post('register')
     async createUser(@Body() createUserDto: CreateUserDto) {
         const r = await this.usersService.create(createUserDto);
-        console.log(r)
         if(r) {
             const { accessToken, usuario } = await this.usersService.validateUser(
                 r.email,
@@ -50,6 +49,7 @@ export class UserController {
             user: {
                 id: usuario.id,
                 name: usuario.name,
+                username: usuario.username,
                 email: usuario.email,
             },
         };
