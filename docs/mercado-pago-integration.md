@@ -1,371 +1,356 @@
 # Integração com Mercado Pago
 
-Este documento descreve como utilizar a integração com o Mercado Pago implementada neste projeto.
+Este documento detalha a integração da API de e-commerce com o Mercado Pago, incluindo configuração, implementação e testes.
 
-## Configuração
+## Configuração Inicial
 
-Antes de utilizar a integração, é necessário configurar as credenciais do Mercado Pago no arquivo `.env`:
+### Pré-requisitos
+
+1. Conta no Mercado Pago (você pode criar uma em [https://www.mercadopago.com.br](https://www.mercadopago.com.br))
+2. Credenciais de acesso (Access Token e Public Key)
+3. Node.js e npm instalados
+
+### Instalação da SDK
+
+```bash
+npm install mercadopago
+```
+
+### Configuração das Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
 
 ```
-MERCADO_PAGO_ACCESS_TOKEN=SEU_ACCESS_TOKEN
-MERCADO_PAGO_PUBLIC_KEY=SUA_PUBLIC_KEY
+MERCADO_PAGO_ACCESS_TOKEN=TEST-1234567890123456-012345-abcdef1234567890abcdef1234567890-123456789
+MERCADO_PAGO_PUBLIC_KEY=TEST-12345678-abcd-efgh-ijkl-1234567890ab
 ```
 
-Você pode obter essas credenciais no [Dashboard do Mercado Pago](https://www.mercadopago.com.br/developers/panel/credentials).
+> **Importante**: Nunca compartilhe ou cometa suas credenciais no controle de versão.
 
-## Endpoints Disponíveis
+## Implementação do Serviço
 
-### 1. Processar Pagamento (Checkout Transparente)
+O serviço `MercadoPagoService` é responsável por encapsular a integração com o Mercado Pago.
 
-**Endpoint:** `POST /mercado-pago/process-payment`
+### Estrutura do Serviço
 
-Este endpoint permite processar um pagamento utilizando o Checkout Transparente do Mercado Pago.
+```typescript
+import { Injectable } from '@nestjs/common';
+import * as mercadopago from 'mercadopago';
+import { ConfigService } from '@nestjs/config';
 
-**Exemplo de Requisição:**
+@Injectable()
+export class MercadoPagoService {
+  constructor(private configService: ConfigService) {
+    // Configuração do SDK com o Access Token
+    mercadopago.configure({
+      access_token: this.configService.get<string>('MERCADO_PAGO_ACCESS_TOKEN'),
+    });
+  }
 
-```json
-{
-  "transaction_amount": 100.0,
-  "description": "Compra de produtos",
-  "payment_method_id": "visa",
-  "token": "ff8080814c11e237014c1ff593b57b4d",
-  "installments": 1,
-  "external_reference": "123",
-  "payer": {
-    "email": "test_user_123@testuser.com",
-    "identification": {
-      "type": "CPF",
-      "number": "19119119100"
-    },
-    "first_name": "Test",
-    "last_name": "User"
+  // Métodos para interagir com a API do Mercado Pago
+  // ...
+}
+```
+
+### Métodos Principais
+
+#### Criação de Pagamento
+
+```typescript
+async createPayment(paymentData: any): Promise<any> {
+  try {
+    const response = await mercadopago.payment.create(paymentData);
+    return response.body;
+  } catch (error) {
+    throw new Error(`Erro ao criar pagamento: ${error.message}`);
   }
 }
 ```
 
-**Resposta de Sucesso:**
+#### Consulta de Pagamento
 
-```json
-{
-  "success": true,
-  "payment": {
-    "id": 1234567890,
-    "status": "approved",
-    "status_detail": "accredited",
-    "payment_method_id": "visa",
-    "payment_type_id": "credit_card",
-    "transaction_amount": 100,
-    "installments": 1,
-    "external_reference": "123",
-    "card": {
-      "first_six_digits": "423564",
-      "last_four_digits": "5682",
-      "expiration_month": 11,
-      "expiration_year": 2030,
-      "cardholder": {
-        "name": "APRO"
+```typescript
+async getPayment(paymentId: number): Promise<any> {
+  try {
+    const response = await mercadopago.payment.get(paymentId);
+    return response.body;
+  } catch (error) {
+    throw new Error(`Erro ao consultar pagamento: ${error.message}`);
+  }
+}
+```
+
+#### Cancelamento de Pagamento
+
+```typescript
+async cancelPayment(paymentId: number): Promise<any> {
+  try {
+    const response = await mercadopago.payment.cancel(paymentId);
+    return response.body;
+  } catch (error) {
+    throw new Error(`Erro ao cancelar pagamento: ${error.message}`);
+  }
+}
+```
+
+#### Reembolso de Pagamento
+
+```typescript
+async refundPayment(paymentId: number): Promise<any> {
+  try {
+    const response = await mercadopago.refund.create({ payment_id: paymentId });
+    return response.body;
+  } catch (error) {
+    throw new Error(`Erro ao reembolsar pagamento: ${error.message}`);
+  }
+}
+```
+
+## Estrutura de Dados para Pagamentos
+
+### Pagamento com Cartão de Crédito
+
+```typescript
+const paymentData = {
+  transaction_amount: 100.0,
+  token: 'ff8080814c11e237014c1ff593b57b4d',
+  description: 'Descrição do produto',
+  installments: 1,
+  payment_method_id: 'visa',
+  payer: {
+    email: 'test_user_123456@testuser.com',
+    identification: {
+      type: 'CPF',
+      number: '12345678909'
+    }
+  },
+  additional_info: {
+    items: [
+      {
+        id: 'PR001',
+        title: 'Produto de Teste',
+        description: 'Descrição do Produto',
+        picture_url: 'https://www.mercadopago.com/org-img/MP3/home/logomp3.gif',
+        category_id: 'electronics',
+        quantity: 1,
+        unit_price: 100.0
       }
+    ],
+    shipments: {
+      receiver_address: {
+        zip_code: '12345678',
+        street_name: 'Rua Exemplo',
+        street_number: 123,
+        floor: '4',
+        apartment: '2'
+      }
+    }
+  }
+};
+```
+
+### Pagamento com PIX
+
+```typescript
+const paymentData = {
+  transaction_amount: 100.0,
+  description: 'Descrição do produto',
+  payment_method_id: 'pix',
+  payer: {
+    email: 'test_user_123456@testuser.com',
+    first_name: 'Test',
+    last_name: 'User',
+    identification: {
+      type: 'CPF',
+      number: '12345678909'
+    }
+  },
+  additional_info: {
+    items: [
+      {
+        id: 'PR001',
+        title: 'Produto de Teste',
+        description: 'Descrição do Produto',
+        category_id: 'electronics',
+        quantity: 1,
+        unit_price: 100.0
+      }
+    ]
+  }
+};
+```
+
+### Pagamento com Boleto
+
+```typescript
+const paymentData = {
+  transaction_amount: 100.0,
+  description: 'Descrição do produto',
+  payment_method_id: 'bolbradesco',
+  payer: {
+    email: 'test_user_123456@testuser.com',
+    first_name: 'Test',
+    last_name: 'User',
+    identification: {
+      type: 'CPF',
+      number: '12345678909'
     },
-    "transaction_details": {
-      "net_received_amount": 95.02,
-      "total_paid_amount": 100,
-      "installment_amount": 100
+    address: {
+      zip_code: '12345678',
+      street_name: 'Rua Exemplo',
+      street_number: '123',
+      neighborhood: 'Bairro',
+      city: 'Cidade',
+      federal_unit: 'SP'
     }
   },
-  "order_status": "APROVADO",
-  "message": "Pagamento aprovado com sucesso! Obrigado pela sua compra.",
-  "is_approved": true
-}
-```
-
-**Resposta para Pagamento Rejeitado:**
-
-```json
-{
-  "success": true,
-  "payment": {
-    "id": 1234567890,
-    "status": "rejected",
-    "status_detail": "cc_rejected_insufficient_amount",
-    // ... outros detalhes do pagamento ...
-  },
-  "order_status": "REJEITADO",
-  "message": "Seu cartão não possui saldo suficiente. Por favor, use outro cartão ou entre em contato com o emissor.",
-  "is_approved": false
-}
-```
-
-**Resposta para Pagamento Pendente:**
-
-```json
-{
-  "success": true,
-  "payment": {
-    "id": 1234567890,
-    "status": "in_process",
-    "status_detail": "pending_contingency",
-    // ... outros detalhes do pagamento ...
-  },
-  "order_status": "EM_PROCESSAMENTO",
-  "message": "Estamos processando seu pagamento. Em até 2 dias úteis informaremos por e-mail o resultado.",
-  "is_approved": false
-}
-```
-
-### 2. Criar Preferência (Checkout Redirect)
-
-**Endpoint:** `POST /mercado-pago/create-preference`
-
-Este endpoint permite criar uma preferência de pagamento para utilizar o Checkout Redirect do Mercado Pago.
-
-**Exemplo de Requisição:**
-
-```json
-{
-  "items": [
-    {
-      "id": "item-1",
-      "title": "Produto 1",
-      "quantity": 1,
-      "unit_price": 100.0,
-      "description": "Descrição do produto 1",
-      "currency_id": "BRL"
-    }
-  ],
-  "external_reference": "123",
-  "back_urls": {
-    "success": "https://www.seu-site.com.br/success",
-    "failure": "https://www.seu-site.com.br/failure",
-    "pending": "https://www.seu-site.com.br/pending"
-  },
-  "notification_url": "https://www.seu-site.com.br/mercado-pago/webhook",
-  "auto_return": "approved"
-}
-```
-
-> **Nota:** O campo `id` é obrigatório para cada item. Se não for fornecido, o sistema gerará um ID único automaticamente.
-
-**Resposta de Sucesso:**
-
-```json
-{
-  "success": true,
-  "preference": {
-    "id": "123456789-abcdefghijklmnopqrst",
-    "init_point": "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=123456789-abcdefghijklmnopqrst",
-    "sandbox_init_point": "https://sandbox.mercadopago.com.br/checkout/v1/redirect?pref_id=123456789-abcdefghijklmnopqrst",
-    "date_created": "2023-01-01T12:00:00.000-04:00",
-    "items": [...],
-    "external_reference": "123",
-    "back_urls": {...}
+  additional_info: {
+    items: [
+      {
+        id: 'PR001',
+        title: 'Produto de Teste',
+        description: 'Descrição do Produto',
+        category_id: 'electronics',
+        quantity: 1,
+        unit_price: 100.0
+      }
+    ]
   }
-}
+};
 ```
 
-### 3. Webhook para Notificações
+## Implementação do Webhook
 
-**Endpoint:** `POST /mercado-pago/webhook`
+O webhook é responsável por receber notificações do Mercado Pago sobre mudanças no status dos pagamentos.
 
-Este endpoint recebe as notificações do Mercado Pago sobre mudanças no status dos pagamentos.
+### Controlador de Webhook
 
-**Exemplo de Requisição (enviada pelo Mercado Pago):**
+```typescript
+import { Controller, Post, Body, HttpStatus, HttpCode } from '@nestjs/common';
+import { MercadoPagoService } from './mercado-pago.service';
+import { OrderService } from '../order/order.service';
 
-```json
-{
-  "action": "payment.updated",
-  "type": "payment",
-  "data": {
-    "id": "1234567890"
-  }
-}
-```
+@Controller('mercado-pago')
+export class MercadoPagoController {
+  constructor(
+    private mercadoPagoService: MercadoPagoService,
+    private orderService: OrderService,
+  ) {}
 
-**Resposta de Sucesso:**
-
-```json
-{
-  "success": true,
-  "result": {
-    "success": true,
-    "payment": {
-      "id": 1234567890,
-      "status": "approved",
-      ...
-    }
-  }
-}
-```
-
-### 4. Obter Informações de um Pagamento
-
-**Endpoint:** `GET /mercado-pago/payment/:id`
-
-Este endpoint permite obter informações detalhadas sobre um pagamento específico.
-
-**Resposta de Sucesso:**
-
-```json
-{
-  "success": true,
-  "payment": {
-    "id": 1234567890,
-    "status": "approved",
-    "status_detail": "accredited",
-    "external_reference": "123",
-    ...
-  }
-}
-```
-
-## Fluxo de Integração
-
-### Checkout Transparente
-
-1. O cliente seleciona os produtos e finaliza a compra
-2. O frontend captura os dados do cartão e gera um token usando o SDK do Mercado Pago
-3. O frontend envia o token e os dados do pagamento para o backend
-4. O backend chama o endpoint `/mercado-pago/process-payment` para processar o pagamento
-5. O backend atualiza o status do pedido com base na resposta do Mercado Pago
-6. O frontend exibe o resultado do pagamento para o cliente, utilizando a mensagem amigável fornecida na resposta
-
-### Checkout Redirect
-
-1. O cliente seleciona os produtos e finaliza a compra
-2. O backend chama o endpoint `/mercado-pago/create-preference` para criar uma preferência de pagamento
-3. O backend retorna o `init_point` para o frontend
-4. O frontend redireciona o cliente para o `init_point`
-5. O cliente realiza o pagamento no site do Mercado Pago
-6. O Mercado Pago redireciona o cliente de volta para o site (usando as `back_urls`)
-7. O Mercado Pago envia uma notificação para o `notification_url`
-8. O backend processa a notificação e atualiza o status do pedido
-
-## Tratamento de Status de Pagamento
-
-Os status de pagamento do Mercado Pago são mapeados para os status do sistema da seguinte forma:
-
-- `approved` -> `APROVADO`
-- `pending` -> `PENDENTE`
-- `in_process` -> `EM_PROCESSAMENTO`
-- `rejected` -> `REJEITADO`
-- `refunded` -> `REEMBOLSADO`
-- `cancelled` -> `CANCELADO`
-- `in_mediation` -> `EM_DISPUTA`
-- `charged_back` -> `ESTORNADO`
-
-## Mensagens Amigáveis ao Usuário
-
-A API retorna mensagens amigáveis em português para cada status de pagamento, facilitando a comunicação com o usuário final. Estas mensagens estão incluídas no campo `message` da resposta.
-
-### Exemplos de Mensagens por Status
-
-#### Pagamento Aprovado
-- "Pagamento aprovado com sucesso! Obrigado pela sua compra."
-
-#### Pagamento Rejeitado
-- Cartão com dados incorretos: "Algum dado do cartão está incorreto. Por favor, verifique e tente novamente."
-- Saldo insuficiente: "Seu cartão não possui saldo suficiente. Por favor, use outro cartão ou entre em contato com o emissor."
-- Cartão bloqueado: "Seu cartão está desativado. Por favor, entre em contato com o emissor para ativá-lo ou use outro cartão."
-
-#### Pagamento Pendente ou Em Processamento
-- Contingência: "Estamos processando seu pagamento. Em até 2 dias úteis informaremos por e-mail o resultado."
-- Revisão manual: "Estamos analisando seu pagamento. Em até 2 dias úteis informaremos por e-mail se foi aprovado ou se precisamos de mais informações."
-- Aguardando pagamento: "Aguardando pagamento. Assim que for confirmado, atualizaremos o status do seu pedido."
-
-### Uso no Frontend
-
-O frontend pode utilizar diretamente o campo `message` para exibir ao usuário, sem necessidade de implementar lógica adicional para traduzir os códigos de status. Além disso, o campo `is_approved` facilita a verificação se o pagamento foi aprovado ou não.
-
-## Cartões de Teste
-
-Para testar diferentes cenários de pagamento, você pode usar os seguintes cartões de teste:
-
-| Cartão | Número | CVV | Data | Status |
-|--------|--------|-----|------|--------|
-| Mastercard | 5031 4332 1540 6351 | 123 | 11/30 | Aprovado (APRO) |
-| Visa | 4235 6477 2802 5682 | 123 | 11/30 | Rejeitado por erro geral (OTHE) |
-| American Express | 3753 651535 56885 | 1234 | 11/30 | Pendente (CONT) |
-| Elo Débito | 5067 7667 8388 8311 | 123 | 11/30 | Rejeitado com validação (CALL) |
-
-Para testar outros cenários, use o nome do titular correspondente ao status desejado:
-- FUND: Rejeitado por fundos insuficientes
-- SECU: Rejeitado por código de segurança inválido
-
-## Gerando Token de Cartão para Testes
-
-Para testar o checkout transparente, você precisa gerar um token de cartão. Você pode fazer isso de duas maneiras:
-
-### 1. Usando o SDK JavaScript
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Gerar Token Mercado Pago</title>
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
-</head>
-<body>
-    <h1>Gerar Token de Cartão</h1>
-    <div id="result"></div>
-
-    <script>
-        const mp = new MercadoPago('SUA_PUBLIC_KEY');
+  @Post('webhook')
+  @HttpCode(HttpStatus.OK)
+  async handleWebhook(@Body() body: any): Promise<any> {
+    try {
+      if (body.type === 'payment' && body.action === 'payment.updated') {
+        const paymentId = body.data.id;
+        const payment = await this.mercadoPagoService.getPayment(paymentId);
         
-        const cardData = {
-            cardNumber: "5031432154063511",
-            cardholderName: "APRO",
-            cardExpirationMonth: "11",
-            cardExpirationYear: "30",
-            securityCode: "123",
-            identificationType: "CPF",
-            identificationNumber: "12345678909"
-        };
-
-        mp.createCardToken(cardData)
-            .then(token => {
-                document.getElementById('result').innerHTML = 
-                    `<p>Token gerado com sucesso: ${token.id}</p>
-                     <pre>${JSON.stringify(token, null, 2)}</pre>`;
-            })
-            .catch(error => {
-                document.getElementById('result').innerHTML = 
-                    `<p>Erro ao gerar token: ${error.message}</p>
-                     <pre>${JSON.stringify(error, null, 2)}</pre>`;
-            });
-    </script>
-</body>
-</html>
-```
-
-### 2. Usando a API do Mercado Pago (não recomendado para produção)
-
-```
-POST https://api.mercadopago.com/v1/card_tokens
-```
-
-**Headers:**
-```
-Content-Type: application/json
-Authorization: Bearer PUBLIC_KEY
-```
-
-**Body:**
-```json
-{
-  "card_number": "5031432154063511",
-  "expiration_month": 11,
-  "expiration_year": 2030,
-  "security_code": "123",
-  "cardholder": {
-    "name": "APRO",
-    "identification": {
-      "type": "CPF",
-      "number": "12345678909"
+        // Atualiza o status do pedido com base no status do pagamento
+        const orderId = payment.external_reference;
+        const paymentStatus = payment.status;
+        
+        await this.orderService.updateStatus(orderId, this.mapPaymentStatus(paymentStatus));
+        
+        return { success: true, message: 'Webhook processado com sucesso' };
+      }
+      
+      return { success: true, message: 'Webhook recebido, mas não processado' };
+    } catch (error) {
+      console.error('Erro ao processar webhook:', error);
+      return { success: false, error: error.message };
     }
+  }
+  
+  private mapPaymentStatus(paymentStatus: string): string {
+    const statusMap = {
+      'approved': 'APROVADO',
+      'pending': 'PENDENTE',
+      'in_process': 'EM_PROCESSAMENTO',
+      'rejected': 'REJEITADO',
+      'cancelled': 'CANCELADO',
+      'refunded': 'REEMBOLSADO',
+    };
+    
+    return statusMap[paymentStatus] || 'PENDENTE';
   }
 }
 ```
 
-## Referências
+### Configuração do Webhook no Mercado Pago
 
-- [Documentação do Mercado Pago](https://www.mercadopago.com.br/developers/pt/docs/checkout-api/)
-- [SDK do Mercado Pago para Node.js](https://github.com/mercadopago/sdk-nodejs) 
+1. Acesse o [Dashboard do Mercado Pago](https://www.mercadopago.com.br/developers/panel)
+2. Vá para "Webhooks"
+3. Adicione uma nova URL de webhook: `https://seu-dominio.com/mercado-pago/webhook`
+4. Selecione os eventos que deseja receber (pelo menos "payment.updated")
+
+## Testes
+
+### Ambiente de Teste
+
+O Mercado Pago fornece um ambiente de teste (sandbox) para testar a integração sem realizar pagamentos reais.
+
+### Usuários de Teste
+
+Para criar usuários de teste:
+
+1. Acesse o [Dashboard do Mercado Pago](https://www.mercadopago.com.br/developers/panel)
+2. Vá para "Usuários de teste"
+3. Crie um usuário vendedor e um usuário comprador
+
+### Cartões de Teste
+
+Utilize os cartões de teste fornecidos pelo Mercado Pago para simular diferentes cenários:
+
+| Tipo | Número | CVV | Data de Expiração | Status |
+|------|--------|-----|-------------------|--------|
+| Mastercard | 5031 4332 1540 6351 | 123 | 11/25 | Aprovado |
+| Visa | 4235 6477 2802 5682 | 123 | 11/25 | Aprovado |
+| American Express | 3753 651535 56885 | 1234 | 11/25 | Aprovado |
+| Mastercard | 5031 1111 1111 1111 | 123 | 11/25 | Recusado |
+
+### Testando o Checkout
+
+Para testar o checkout completo:
+
+1. Crie um pedido através da API
+2. Utilize o SDK do Mercado Pago para gerar um token de cartão (no frontend)
+3. Envie o token para o backend junto com os demais dados do pagamento
+4. Verifique se o pagamento foi processado corretamente
+5. Confirme se o webhook foi recebido e processado
+
+### Testando Webhooks Localmente
+
+Para testar webhooks em ambiente local, você pode utilizar ferramentas como [ngrok](https://ngrok.com/) para expor seu servidor local à internet:
+
+```bash
+ngrok http 3000
+```
+
+Utilize a URL gerada pelo ngrok para configurar o webhook no Mercado Pago.
+
+## Considerações de Produção
+
+### Segurança
+
+1. **Utilize HTTPS** para todas as comunicações
+2. **Valide a autenticidade dos webhooks** verificando a assinatura
+3. **Nunca armazene dados sensíveis de cartão**
+4. **Implemente rate limiting** para evitar abusos
+
+### Monitoramento
+
+1. Configure alertas para falhas de pagamento
+2. Monitore o tempo de resposta da API do Mercado Pago
+3. Implemente logs detalhados para facilitar a depuração
+
+### Tratamento de Erros
+
+1. Implemente retentativas para falhas temporárias
+2. Crie um sistema de notificação para erros críticos
+3. Mantenha um registro detalhado de erros para análise posterior
+
+## Recursos Adicionais
+
+- [Documentação oficial do Mercado Pago](https://www.mercadopago.com.br/developers/pt/docs/checkout-api/landing)
+- [Referência da API](https://www.mercadopago.com.br/developers/pt/reference)
+- [Guia de integração](https://www.mercadopago.com.br/developers/pt/docs/checkout-api/integration-configuration/integrate) 

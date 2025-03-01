@@ -19,8 +19,6 @@ import { UserService } from '../services/user/user.service';
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: { 
           expiresIn: '1d',
-          audience: 'https://b2c-ecommerce.com',
-          issuer: 'b2c-api'
         },
       }),
     }),

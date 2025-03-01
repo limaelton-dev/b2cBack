@@ -26,11 +26,7 @@ export class AuthService {
       throw new UnauthorizedException('Credenciais inválidas');
     }
     
-    const payload = { 
-      sub: user.id, 
-      email: user.email,
-      username: user.username
-    };
+    const payload = { sub: user.id };
     
     const accessToken = this.jwtService.sign(payload);
     
@@ -41,11 +37,7 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { 
-      sub: user.id, 
-      email: user.email,
-      username: user.username
-    };
+    const payload = { sub: user.id };
     
     return {
       accessToken: this.jwtService.sign(payload),
@@ -65,11 +57,7 @@ export class AuthService {
       throw new UnauthorizedException('Usuário não encontrado');
     }
     
-    const payload = { 
-      sub: user.id, 
-      email: user.email,
-      username: user.username
-    };
+    const payload = { sub: user.id };
     
     return {
       accessToken: this.jwtService.sign(payload),

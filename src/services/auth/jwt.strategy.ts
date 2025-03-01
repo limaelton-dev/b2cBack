@@ -17,13 +17,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('JWT_SECRET'),
-      audience: 'https://b2c-ecommerce.com',
-      issuer: 'b2c-api',
     });
   }
 
   async validate(payload: any) {
-    const { sub: userId } = payload;
+    const userId = payload.sub;
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
