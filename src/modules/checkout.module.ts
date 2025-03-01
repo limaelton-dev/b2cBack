@@ -17,6 +17,8 @@ import { AddressService } from 'src/services/address/address.service';
 import { CardService } from 'src/services/card/card.service';
 import { MercadoPagoService } from 'src/services/mercado-pago/mercado-pago.service';
 import { User } from 'src/models/user/user';
+import { OrderPaymentService } from 'src/services/order_payment/order_payment.service';
+import { OrderPayment } from 'src/models/order_payment/order_payment';
 
 @Module({
   imports: [
@@ -28,7 +30,8 @@ import { User } from 'src/models/user/user';
       Profile,
       Address,
       Card,
-      User
+      User,
+      OrderPayment
     ]),
   ],
   controllers: [CheckoutController],
@@ -36,6 +39,7 @@ import { User } from 'src/models/user/user';
     CheckoutValidationService,
     ProdutoService,
     OrderService,
+    OrderPaymentService,
     CartService,
     ProfileService,
     AddressService,

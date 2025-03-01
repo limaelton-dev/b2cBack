@@ -45,6 +45,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { ProdutoTipoModule } from './modules/produtotipo.module';
 import { MercadoPagoModule } from './modules/mercado-pago.module';
 import { CheckoutModule } from './modules/checkout.module';
+import { OrderPayment } from './models/order_payment/order_payment';
+import { OrderPaymentService } from './services/order_payment/order_payment.service';
 
 @Module({
   imports: [
@@ -83,7 +85,8 @@ import { CheckoutModule } from './modules/checkout.module';
           Phone,
           Order,
           OrderItem,
-          Cart
+          Cart,
+          OrderPayment
         ],
         synchronize: false,
       }),
@@ -94,7 +97,7 @@ import { CheckoutModule } from './modules/checkout.module';
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: { expiresIn: '60m' },
-        entities: [Produto, ProdutoTipo, User, Cart, Profile, ProfilePF, ProfilePJ, Address, Card, Phone, Order, OrderItem],
+        entities: [Produto, ProdutoTipo, User, Cart, Profile, ProfilePF, ProfilePJ, Address, Card, Phone, Order, OrderItem, OrderPayment],
         synchronize: false,
       }),
     }),
@@ -111,9 +114,9 @@ import { CheckoutModule } from './modules/checkout.module';
     ProdutoTipoModule,
     MercadoPagoModule,
     CheckoutModule,
-    TypeOrmModule.forFeature([Produto, User])
+    TypeOrmModule.forFeature([Produto, User, Order, OrderItem, OrderPayment])
   ],
   controllers: [AppController, ProdutoController, UserController],
-  providers: [AppService, ProdutoService, UserService],
+  providers: [AppService, ProdutoService, UserService, OrderPaymentService],
 })
 export class AppModule {}

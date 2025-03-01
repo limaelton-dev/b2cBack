@@ -1,14 +1,14 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, UpdateDateColumn, CreateDateColumn, OneToOne } from 'typeorm';
-import { User } from 'src/models/user/user';
+import { Profile } from 'src/models/profile/profile';
 
 @Entity('cart')
 export class Cart {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @OneToOne(() => User, (user) => user.cart)
-    @JoinColumn({ name: 'user_id' })
-    user: User;
+    @OneToOne(() => Profile)
+    @JoinColumn({ name: 'profile_id' })
+    profile: Profile;
 
     @Column({ type: 'jsonb' })
     cart_data: any;

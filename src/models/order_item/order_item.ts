@@ -1,5 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Order } from '../order/order';
+import { Produto } from '../produto/produto';
 
 @Entity('order_item')
 export class OrderItem {
@@ -9,8 +10,8 @@ export class OrderItem {
     @Column()
     order_id: number;
 
-    @Column({ length: 100 })
-    product_name: string;
+    @Column()
+    produto_id: number;
 
     @Column()
     quantity: number;
@@ -27,4 +28,8 @@ export class OrderItem {
     @ManyToOne(() => Order, order => order.items, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'order_id' })
     order: Order;
+
+    @ManyToOne(() => Produto)
+    @JoinColumn({ name: 'produto_id' })
+    produto: Produto;
 } 

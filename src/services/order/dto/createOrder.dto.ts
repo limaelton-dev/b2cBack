@@ -2,9 +2,9 @@ import { IsNotEmpty, IsNumber, IsString, IsArray, ValidateNested, Min, ArrayMinS
 import { Type } from 'class-transformer';
 
 export class CreateOrderItemDto {
-  @IsString()
+  @IsNumber()
   @IsNotEmpty()
-  product_name: string;
+  produto_id: number;
 
   @IsNumber()
   @IsNotEmpty()
@@ -24,11 +24,7 @@ export class CreateOrderDto {
 
   @IsNumber()
   @IsNotEmpty()
-  shipping_address_id: number;
-
-  @IsString()
-  @IsNotEmpty()
-  payment_method: string;
+  address_id: number;
 
   @IsArray()
   @ArrayMinSize(1, { message: 'O pedido deve ter pelo menos um item' })

@@ -1,5 +1,6 @@
-import { IsNotEmpty, IsNumber, IsString, IsOptional, IsObject, ValidateNested, IsEmail } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsEnum, IsOptional, IsObject, ValidateNested, IsEmail } from 'class-validator';
 import { Type } from 'class-transformer';
+import { PaymentMethod } from 'src/models/order_payment/order_payment';
 
 export class PayerIdentificationDTO {
   @IsString()
@@ -36,9 +37,9 @@ export class PaymentProcessDTO {
   @IsNotEmpty()
   order_id: number;
 
-  @IsString()
+  @IsEnum(PaymentMethod)
   @IsNotEmpty()
-  payment_method: string;
+  payment_method: PaymentMethod;
 
   @IsString()
   @IsNotEmpty()

@@ -5,6 +5,7 @@ import { Produto } from 'src/models/produto/produto';
 import { Address } from 'src/models/address/address';
 import { Card } from 'src/models/card/card';
 import { Profile } from 'src/models/profile/profile';
+import { PaymentMethod } from 'src/models/order_payment/order_payment';
 import { CreateOrderDto } from '../order/dto/createOrder.dto';
 import { CartDataDto } from '../cart/dto/updateCart.dto';
 import { ProdutoService } from '../produto/produto.service';
@@ -29,15 +30,15 @@ export class CheckoutValidationService {
    * Valida todos os aspectos do checkout antes de processar o pagamento
    * @param profileId ID do perfil do usuário
    * @param cartData Dados do carrinho
-   * @param shippingAddressId ID do endereço de entrega
+   * @param addressId ID do endereço de entrega
    * @param paymentMethod Método de pagamento
    * @param cardId ID do cartão (opcional, apenas para pagamentos com cartão)
    */
   async validateCheckout(
     profileId: number,
     cartData: CartDataDto,
-    shippingAddressId: number,
-    paymentMethod: string,
+    addressId: number,
+    paymentMethod: PaymentMethod,
     cardId?: number,
   ): Promise<{ valid: boolean; orderDto?: CreateOrderDto; errors?: string[] }> {
     const errors = [];
@@ -92,7 +93,7 @@ export class CheckoutValidationService {
 
     // Validar se o endereço de entrega existe e pertence ao perfil
     try {
-      const address = await this.addressService.findOne(shippingAddressId);
+      const address = await this.addressService.findOne(addressId);
       if (address.profile_id !== profileId) {
         errors.push('O endereço de entrega não pertence ao perfil informado');
         return { valid: false, errors };
@@ -103,14 +104,13 @@ export class CheckoutValidationService {
     }
 
     // Validar método de pagamento
-    const validPaymentMethods = ['credit_card', 'debit_card', 'pix', 'boleto'];
-    if (!validPaymentMethods.includes(paymentMethod)) {
+    if (!Object.values(PaymentMethod).includes(paymentMethod)) {
       errors.push('Método de pagamento inválido');
       return { valid: false, errors };
     }
 
-    // Validar cartão se o método de pagamento for cartão de crédito ou débito
-    if ((paymentMethod === 'credit_card' || paymentMethod === 'debit_card') && cardId) {
+    // Validar cartão se o método de pagamento for cartão
+    if (paymentMethod === PaymentMethod.CARD && cardId) {
       try {
         const card = await this.cardService.findOne(cardId);
         if (card.profile_id !== profileId) {
@@ -183,16 +183,15 @@ export class CheckoutValidationService {
         const product = availableProducts.find(p => p.pro_codigo === productCode);
         
         return {
-          product_name: product.pro_descricao,
+          produto_id: product.id,
           quantity: quantity,
-          unit_price: price || 0, // Usar o preço do item ou um valor padrão
+          unit_price: price || product.pro_precovenda || 0, // Usar o preço do item, do produto ou um valor padrão
         };
       });
       
       const orderDto: CreateOrderDto = {
         profile_id: profileId,
-        shipping_address_id: shippingAddressId,
-        payment_method: paymentMethod,
+        address_id: addressId,
         items: orderItems,
       };
       
@@ -206,27 +205,26 @@ export class CheckoutValidationService {
   }
   
   /**
-   * Valida se um pedido pode ser processado pelo Mercado Pago
+   * Valida se um pedido pode ser processado para pagamento
    * @param orderId ID do pedido
    * @param paymentMethod Método de pagamento
    * @param cardId ID do cartão (opcional)
    */
   async validateOrderForPayment(
     orderId: number,
-    paymentMethod: string,
+    paymentMethod: PaymentMethod,
     cardId?: number,
   ): Promise<{ valid: boolean; errors?: string[] }> {
     const errors = [];
     
     // Validar método de pagamento
-    const validPaymentMethods = ['credit_card', 'debit_card', 'pix', 'boleto'];
-    if (!validPaymentMethods.includes(paymentMethod)) {
+    if (!Object.values(PaymentMethod).includes(paymentMethod)) {
       errors.push('Método de pagamento inválido');
       return { valid: false, errors };
     }
     
-    // Validar cartão se o método de pagamento for cartão de crédito ou débito
-    if ((paymentMethod === 'credit_card' || paymentMethod === 'debit_card') && cardId) {
+    // Validar cartão se o método de pagamento for cartão
+    if (paymentMethod === PaymentMethod.CARD && cardId) {
       try {
         await this.cardService.findOne(cardId);
       } catch (error) {

@@ -22,6 +22,18 @@ export class ProdutoService {
         }
     }
 
+    async findById(id: number): Promise<Produto> {
+        const produto = await this.produtoRepository.findOne({
+            where: { id }
+        });
+        
+        if (!produto) {
+            throw new NotFoundException(`Produto com ID ${id} não encontrado`);
+        }
+        
+        return produto;
+    }
+
     async getProdutosLimit(limit: number, categoria?: string): Promise<Produto[]> {
         const query = this.produtoRepository
             .createQueryBuilder('produto')

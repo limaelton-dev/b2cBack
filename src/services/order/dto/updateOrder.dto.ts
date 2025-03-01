@@ -1,15 +1,11 @@
-import { IsOptional, IsString, IsNumber } from 'class-validator';
+import { IsOptional, IsNumber, IsString } from 'class-validator';
 
 export class UpdateOrderDto {
+  @IsNumber()
+  @IsOptional()
+  address_id?: number;
+
   @IsString()
   @IsOptional()
   status?: string;
-
-  @IsString()
-  @IsOptional()
-  payment_method?: string;
-
-  @IsNumber()
-  @IsOptional()
-  shipping_address_id?: number;
 } 

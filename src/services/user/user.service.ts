@@ -5,17 +5,25 @@ import { User } from 'src/models/user/user';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/createUser.dto';
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, Logger, NotFoundException } from '@nestjs/common';
+import { CartService } from '../cart/cart.service';
+import { ProfileService } from '../profile/profile.service';
 
 @Injectable()
 export class UserService {
+    private readonly logger = new Logger(UserService.name);
+
     constructor(
         @InjectRepository(User)
         private readonly usersRepository: Repository<User>,
         private readonly jwtService: JwtService,
+        private readonly cartService: CartService,
+        private readonly profileService: ProfileService,
     ) {}
 
     async create(createUserDto: CreateUserDto): Promise<User> {
+        this.logger.log(`Criando novo usuário: ${createUserDto.email}`);
+        
         const { name, lastname, username, email, password } = createUserDto;
     
         const salt = await bcrypt.genSalt();
@@ -29,7 +37,13 @@ export class UserService {
             password: hashedPassword,
         });
     
-        return this.usersRepository.save(user);
+        const savedUser = await this.usersRepository.save(user);
+        
+        // Não criamos mais o carrinho diretamente aqui
+        // O carrinho será criado quando o perfil for criado
+        // ou quando o usuário acessar o carrinho pela primeira vez
+        
+        return savedUser;
     }
 
     async getUserById(id: number): Promise<User> {
@@ -48,8 +62,8 @@ export class UserService {
           };
         }
       
-        throw new UnauthorizedException('Email ou senha incorretos');
-      }
+        throw new UnauthorizedException('Credenciais inválidas');
+    }
 }
 
 //teste

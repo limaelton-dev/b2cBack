@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany, OneToOne } from 'typeorm';
 import { Profile } from '../profile/profile';
 import { Address } from '../address/address';
 import { OrderItem } from '../order_item/order_item';
@@ -17,11 +17,8 @@ export class Order {
     @Column({ length: 20 })
     status: string;
 
-    @Column({ length: 50 })
-    payment_method: string;
-
     @Column()
-    shipping_address_id: number;
+    address_id: number;
 
     @CreateDateColumn({ type: 'timestamp' })
     created_at: Date;
@@ -34,8 +31,8 @@ export class Order {
     profile: Profile;
 
     @ManyToOne(() => Address)
-    @JoinColumn({ name: 'shipping_address_id' })
-    shipping_address: Address;
+    @JoinColumn({ name: 'address_id' })
+    address: Address;
 
     @OneToMany(() => OrderItem, orderItem => orderItem.order, { cascade: true })
     items: OrderItem[];

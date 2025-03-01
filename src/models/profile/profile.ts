@@ -6,6 +6,7 @@ import { Address } from '../address/address';
 import { Card } from '../card/card';
 import { Phone } from '../phone/phone';
 import { Order } from '../order/order';
+import { Cart } from '../cart/cart';
 
 @Entity('profile')
 export class Profile {
@@ -45,4 +46,7 @@ export class Profile {
 
     @OneToMany(() => Order, order => order.profile, { cascade: true })
     orders: Order[];
+    
+    @OneToOne(() => Cart, cart => cart.profile, { cascade: true })
+    cart: Cart;
 } 

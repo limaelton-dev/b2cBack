@@ -4,10 +4,12 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CheckoutValidationService } from 'src/services/checkout/checkout-validation.service';
 import { CartService } from 'src/services/cart/cart.service';
 import { OrderService } from 'src/services/order/order.service';
+import { OrderPaymentService } from 'src/services/order_payment/order_payment.service';
 import { ProfileService } from 'src/services/profile/profile.service';
 import { MercadoPagoService } from 'src/services/mercado-pago/mercado-pago.service';
 import { CheckoutDto } from './dto/checkout.dto';
 import { PaymentProcessDTO } from './dto/payment-process.dto';
+import { PaymentMethod } from 'src/models/order_payment/order_payment';
 
 @Controller('checkout')
 @UseGuards(JwtAuthGuard)
@@ -18,6 +20,7 @@ export class CheckoutController {
     private readonly checkoutValidationService: CheckoutValidationService,
     private readonly cartService: CartService,
     private readonly orderService: OrderService,
+    private readonly orderPaymentService: OrderPaymentService,
     private readonly profileService: ProfileService,
     private readonly mercadoPagoService: MercadoPagoService,
   ) {}
@@ -42,7 +45,7 @@ export class CheckoutController {
       const validationResult = await this.checkoutValidationService.validateCheckout(
         profile.id,
         cartData,
-        checkoutDto.shipping_address_id,
+        checkoutDto.address_id,
         checkoutDto.payment_method,
         checkoutDto.card_id,
       );
@@ -127,6 +130,24 @@ export class CheckoutController {
       // Atualizar o status do pedido
       const status = this.mapPaymentStatus(paymentResponse.status);
       await this.orderService.updateStatus(order.id, status);
+      
+      // Criar o registro de pagamento
+      const orderPayment = await this.orderPaymentService.create({
+        order_id: order.id,
+        payment_method: paymentData.payment_method,
+        card_id: paymentData.payment_method === PaymentMethod.CARD ? paymentData.card_id : null,
+        amount: order.total_amount,
+        status: paymentResponse.status,
+        // Campos específicos para cada método de pagamento
+        ...(paymentData.payment_method === PaymentMethod.PIX && {
+          pix_txid: paymentResponse.id,
+          pix_qrcode: paymentResponse.point_of_interaction?.transaction_data?.qr_code,
+        }),
+        ...(paymentData.payment_method === PaymentMethod.BOLETO && {
+          boleto_code: paymentResponse.barcode?.content,
+          boleto_url: paymentResponse.transaction_details?.external_resource_url,
+        }),
+      });
       
       // Limpar o carrinho se o pagamento for aprovado
       if (paymentResponse.status === 'approved') {

@@ -8,6 +8,8 @@ import { AuthService } from 'src/services/auth/auth.service';
 import { AuthController } from 'src/controllers/auth/auth.controller';
 import { JwtStrategy } from 'src/services/auth/jwt.strategy';
 import { UserService } from '../services/user/user.service';
+import { CartModule } from '../modules/cart.module';
+import { ProfileModule } from '../modules/profile.module';
 
 @Module({
   imports: [
@@ -22,7 +24,9 @@ import { UserService } from '../services/user/user.service';
         },
       }),
     }),
-    TypeOrmModule.forFeature([User])
+    TypeOrmModule.forFeature([User]),
+    CartModule,
+    ProfileModule
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, UserService],

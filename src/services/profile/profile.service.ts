@@ -1,30 +1,54 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Profile } from 'src/models/profile/profile';
 import { CreateProfileDto } from './dto/createProfile.dto';
+import { Cart } from 'src/models/cart/cart';
 
 @Injectable()
 export class ProfileService {
+    private readonly logger = new Logger(ProfileService.name);
+
     constructor(
         @InjectRepository(Profile)
         private readonly profileRepository: Repository<Profile>,
+        
+        @InjectRepository(Cart)
+        private readonly cartRepository: Repository<Cart>,
     ) {}
 
     async create(createProfileDto: CreateProfileDto): Promise<Profile> {
+        this.logger.log(`Criando novo perfil para o usuário ID: ${createProfileDto.user_id}`);
+        
         // Validar o tipo de perfil
         if (createProfileDto.profile_type !== 'PF' && createProfileDto.profile_type !== 'PJ') {
             throw new BadRequestException('O tipo de perfil deve ser PF ou PJ');
         }
 
         const profile = this.profileRepository.create(createProfileDto);
-        return this.profileRepository.save(profile);
+        const savedProfile = await this.profileRepository.save(profile);
+        
+        // Criar um carrinho vazio para o novo perfil
+        try {
+            this.logger.log(`Criando carrinho para o novo perfil ID: ${savedProfile.id}`);
+            const cartCreate = this.cartRepository.create({
+                profile: savedProfile,
+                cart_data: [],
+            });
+            await this.cartRepository.save(cartCreate);
+            this.logger.log(`Carrinho criado com sucesso para o perfil ID: ${savedProfile.id}`);
+        } catch (error) {
+            this.logger.error(`Erro ao criar carrinho para o perfil: ${error.message}`, error.stack);
+            // Não vamos falhar a criação do perfil se o carrinho falhar
+        }
+        
+        return savedProfile;
     }
 
     async findById(id: number): Promise<Profile> {
         const profile = await this.profileRepository.findOne({ 
             where: { id },
-            relations: ['user', 'profilePF', 'profilePJ', 'addresses', 'cards', 'phones', 'orders']
+            relations: ['user', 'profilePF', 'profilePJ', 'addresses', 'cards', 'phones', 'orders', 'cart']
         });
         
         if (!profile) {
@@ -37,7 +61,7 @@ export class ProfileService {
     async findByUserId(userId: number): Promise<Profile> {
         const profile = await this.profileRepository.findOne({ 
             where: { user_id: userId },
-            relations: ['user', 'profilePF', 'profilePJ', 'addresses', 'cards', 'phones', 'orders']
+            relations: ['user', 'profilePF', 'profilePJ', 'addresses', 'cards', 'phones', 'orders', 'cart']
         });
         
         if (!profile) {

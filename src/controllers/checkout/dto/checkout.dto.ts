@@ -1,13 +1,14 @@
-import { IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsEnum, IsOptional } from 'class-validator';
+import { PaymentMethod } from 'src/models/order_payment/order_payment';
 
 export class CheckoutDto {
   @IsNumber()
   @IsNotEmpty()
-  shipping_address_id: number;
+  address_id: number;
 
-  @IsString()
+  @IsEnum(PaymentMethod)
   @IsNotEmpty()
-  payment_method: string;
+  payment_method: PaymentMethod;
 
   @IsNumber()
   @IsOptional()
