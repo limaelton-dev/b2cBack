@@ -17,7 +17,7 @@ export class CartService {
         private userRepository: Repository<User>,
     ) {}
 
-    async getCarrinhoUser(id: number): Promise<CartDataDto> {
+    async getUserCart(id: number): Promise<CartDataDto> {
         this.logger.log(`Buscando carrinho para o usuário ID: ${id}`);
         
         try {
@@ -67,7 +67,7 @@ export class CartService {
         }
     }
 
-    async updateCarrinhoUser(id: number, updateCartDto: UpdateCartDto): Promise<CartDataDto> {
+    async updateUserCart(id: number, updateCartDto: UpdateCartDto): Promise<CartDataDto> {
         this.logger.log(`Atualizando carrinho para o usuário ID: ${id}`);
         this.logger.log(`Dados para atualização: ${JSON.stringify(updateCartDto)}`);
         

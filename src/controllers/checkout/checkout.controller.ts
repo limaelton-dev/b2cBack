@@ -36,7 +36,7 @@ export class CheckoutController {
       const profile = await this.profileService.findByUserId(req.user.id);
       
       // Obter o carrinho do usuário
-      const cartData = await this.cartService.getCarrinhoUser(req.user.id);
+      const cartData = await this.cartService.getUserCart(req.user.id);
       
       // Validar o checkout
       const validationResult = await this.checkoutValidationService.validateCheckout(
@@ -130,7 +130,7 @@ export class CheckoutController {
       
       // Limpar o carrinho se o pagamento for aprovado
       if (paymentResponse.status === 'approved') {
-        await this.cartService.updateCarrinhoUser(req.user.id, { cart_data: [] });
+        await this.cartService.updateUserCart(req.user.id, { cart_data: [] });
       }
       
       // Retornar a resposta do pagamento

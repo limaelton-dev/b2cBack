@@ -21,7 +21,7 @@ sequenceDiagram
     Note over Cliente,CC: Envia shipping_address_id, payment_method, card_id
     CC->>PS: findByUserId(userId)
     PS-->>CC: Retorna perfil do usuário
-    CC->>CS: getCarrinhoUser(userId)
+    CC->>CS: getUserCart(userId)
     CS-->>CC: Retorna dados do carrinho
     
     CC->>CVS: validateCheckout(profileId, cartData, shippingAddressId, paymentMethod, cardId)
@@ -78,7 +78,7 @@ sequenceDiagram
             OS-->>CC: Atualiza status do pedido
             
             alt Pagamento aprovado
-                CC->>CS: updateCarrinhoUser(userId, { cart_data: [] })
+                CC->>CS: updateUserCart(userId, { cart_data: [] })
                 CS-->>CC: Limpa o carrinho
             end
             
