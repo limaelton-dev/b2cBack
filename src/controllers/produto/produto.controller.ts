@@ -12,8 +12,8 @@ export class ProdutoController {
     }
 
     @Get()
-    async getProductsLimit(@Query('limit') limit: number): Promise<Produto[]> {
-        return this.produtoService.getProdutosLimit(limit);
+    async getProductsLimit(@Query('limit') limit: number, @Query('categoria') categoria: string): Promise<Produto[]> {
+        return this.produtoService.getProdutosLimit(limit, categoria);
     }
 
     @Get()

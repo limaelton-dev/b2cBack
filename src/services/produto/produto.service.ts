@@ -22,16 +22,22 @@ export class ProdutoService {
         }
     }
 
-    async getProdutosLimit(limit: number): Promise<Produto[]> {
-        return await this.produtoRepository
+    async getProdutosLimit(limit: number, categoria?: string): Promise<Produto[]> {
+        const query = this.produtoRepository
             .createQueryBuilder('produto')
             .leftJoinAndSelect('produto.imagens', 'imagem')
+            .leftJoinAndSelect('produto.tipo', 'tipo')
             .distinctOn(['produto.pro_codigo'])
             .orderBy('produto.pro_codigo', 'DESC')
-            .limit(limit)
-            .getMany();
-
-  
+            .addOrderBy('produto.id', 'DESC')
+            .limit(limit);
+    
+        if (categoria) {
+            const categoriasArray = categoria.split(',').map(Number);
+            query.where('produto.tpo_codigo IN (:...tpo_codigo)', { tpo_codigo: categoriasArray });
+        }
+    
+        return await query.getMany();
     }
 
     async buscarProduto(s: string): Promise<Produto[]> {
