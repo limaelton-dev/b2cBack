@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gerar Token Mercado Pago</title>
+    <meta charset="UTF-8">
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            background-color: #009ee3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #007eb5;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .card-option {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .card-option:hover {
+            background-color: #f0f0f0;
+        }
+        .selected {
+            background-color: #e6f7ff;
+            border-color: #1890ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gerar Token de Cartão do Mercado Pago</h1>
+    
+    <div>
+        <h3>Selecione um cartão de teste:</h3>
+        <div class="card-option selected" onclick="selectCard(this, 0)">
+            <strong>Mastercard (Aprovado)</strong><br>
+            Número: 5031 4332 1540 6351<br>
+            CVV: 123<br>
+            Data: 11/30<br>
+            Nome: APRO
+        </div>
+        <div class="card-option" onclick="selectCard(this, 1)">
+            <strong>Visa (Rejeitado)</strong><br>
+            Número: 4235 6477 2802 5682<br>
+            CVV: 123<br>
+            Data: 11/30<br>
+            Nome: OTHE
+        </div>
+        <div class="card-option" onclick="selectCard(this, 2)">
+            <strong>American Express (Pendente)</strong><br>
+            Número: 3753 651535 56885<br>
+            CVV: 1234<br>
+            Data: 11/30<br>
+            Nome: CONT
+        </div>
+    </div>
+    
+    <button onclick="generateToken()">Gerar Token</button>
+    
+    <div id="result">
+        <p>O token gerado aparecerá aqui...</p>
+    </div>
+
+    <script>
+        // Configurar o SDK do Mercado Pago
+        const mp = new MercadoPago('TEST-3353a9b9-b430-4c8f-a664-7fd5bc2a35ba');
+        
+        // Dados dos cartões de teste
+        const testCards = [
+            {
+                cardNumber: "5031433215406351",
+                cardholderName: "APRO",
+                cardExpirationMonth: "11",
+                cardExpirationYear: "30",
+                securityCode: "123",
+                identificationType: "CPF",
+                identificationNumber: "12345678909"
+            },
+            {
+                cardNumber: "4235647728025682",
+                cardholderName: "OTHE",
+                cardExpirationMonth: "11",
+                cardExpirationYear: "30",
+                securityCode: "123",
+                identificationType: "CPF",
+                identificationNumber: "12345678909"
+            },
+            {
+                cardNumber: "375365153556885",
+                cardholderName: "CONT",
+                cardExpirationMonth: "11",
+                cardExpirationYear: "30",
+                securityCode: "1234",
+                identificationType: "CPF",
+                identificationNumber: "12345678909"
+            }
+        ];
+        
+        let selectedCardIndex = 0;
+        
+        function selectCard(element, index) {
+            // Remover a classe 'selected' de todos os elementos
+            document.querySelectorAll('.card-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // Adicionar a classe 'selected' ao elemento clicado
+            element.classList.add('selected');
+            
+            // Atualizar o índice do cartão selecionado
+            selectedCardIndex = index;
+        }
+        
+        function generateToken() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Gerando token...</p>';
+            
+            const cardData = testCards[selectedCardIndex];
+            
+            mp.createCardToken(cardData)
+                .then(token => {
+                    resultDiv.innerHTML = `
+                        <h3>Token gerado com sucesso: ${token.id}</h3>
+                        <pre>${JSON.stringify(token, null, 2)}</pre>
+                        <h3>Dados para o Postman:</h3>
+                        <pre>${JSON.stringify({
+                            transaction_amount: 100.0,
+                            description: "Compra de produtos",
+                            payment_method_id: selectedCardIndex === 0 ? "master" : selectedCardIndex === 1 ? "visa" : "amex",
+                            token: token.id,
+                            installments: 1,
+                            external_reference: "123",
+                            payer: {
+                                email: "test_user_123@testuser.com",
+                                identification: {
+                                    type: "CPF",
+                                    number: "12345678909"
+                                },
+                                first_name: cardData.cardholderName,
+                                last_name: "User"
+                            }
+                        }, null, 2)}</pre>
+                    `;
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = `
+                        <h3>Erro ao gerar token:</h3>
+                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                    `;
+                });
+        }
+    </script>
+</body>
+</html> 

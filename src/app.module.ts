@@ -42,9 +42,8 @@ import { OrderItem } from './models/order_item/order_item';
 import { AuthModule } from './modules/auth.module';
 import { MyAccountModule } from './modules/my-account.module';
 import { JwtModule } from '@nestjs/jwt';
-import { ProdutoTipoController } from './controllers/produtotipo/produtotipo.controller';
-import { ProdutoTipoService } from './services/produtotipo/produtotipo.service';
 import { ProdutoTipoModule } from './modules/produtotipo.module';
+import { MercadoPagoModule } from './modules/mercado-pago.module';
 
 @Module({
   imports: [
@@ -109,6 +108,7 @@ import { ProdutoTipoModule } from './modules/produtotipo.module';
     AuthModule,
     MyAccountModule,
     ProdutoTipoModule,
+    MercadoPagoModule,
     TypeOrmModule.forFeature([Produto, User])
   ],
   controllers: [AppController, ProdutoController, UserController],
