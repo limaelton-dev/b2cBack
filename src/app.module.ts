@@ -41,6 +41,8 @@ import { Order } from './models/order/order';
 import { OrderItem } from './models/order_item/order_item';
 import { AuthModule } from './modules/auth.module';
 import { MyAccountModule } from './modules/my-account.module';
+import { JwtModule } from '@nestjs/jwt';
+import { ProdutoTipoModule } from './modules/produtotipo.module';
 import { MercadoPagoModule } from './modules/mercado-pago.module';
 import { CheckoutModule } from './modules/checkout.module';
 
@@ -86,6 +88,16 @@ import { CheckoutModule } from './modules/checkout.module';
         synchronize: false,
       }),
     }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '60m' },
+        entities: [Produto, ProdutoTipo, User, Cart, Profile, ProfilePF, ProfilePJ, Address, Card, Phone, Order, OrderItem],
+        synchronize: false,
+      }),
+    }),
     CartModule,
     ProfileModule,
     ProfilePFModule,
@@ -96,6 +108,7 @@ import { CheckoutModule } from './modules/checkout.module';
     OrderModule,
     AuthModule,
     MyAccountModule,
+    ProdutoTipoModule,
     MercadoPagoModule,
     CheckoutModule,
     TypeOrmModule.forFeature([Produto, User])
