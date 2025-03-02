@@ -11,13 +11,18 @@ export class ProdutoService {
     ) {}
 
     async getProduto(ids: string): Promise<Produto[]> {
-
         if(ids.includes(',')) {
             const prods = ids.split(',').map(Number);
-            return await this.produtoRepository.find({where: {id: In(prods)}})
+            return await this.produtoRepository.find({
+                where: {id: In(prods)},
+                relations: ['tipo', 'imagens']
+            });
         }
         else {
-            const product = this.produtoRepository.find({where: {id: parseInt(ids)}, relations: ['imagens', 'fabricante']});
+            const product = await this.produtoRepository.find({
+                where: {id: parseInt(ids)},
+                relations: ['tipo', 'imagens', 'fabricante']
+            });
             return product;
         }
     }

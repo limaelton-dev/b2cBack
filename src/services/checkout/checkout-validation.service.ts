@@ -125,69 +125,86 @@ export class CheckoutValidationService {
 
     // Validar disponibilidade dos produtos no carrinho
     try {
-      // Extrair códigos de produto com tratamento para diferentes estruturas
-      const productCodes = cartItems.map(item => {
-        if (item.product && item.product.pro_codigo) {
-          return item.product.pro_codigo;
+      // Extrair IDs de produto com tratamento para diferentes estruturas
+      const productIds = cartItems.map(item => {
+        if (item.produto_id) {
+          return item.produto_id;
+        } else if (item.product && item.product.id) {
+          return item.product.id;
         } else if (item.id) {
-          return item.id; // Formato alternativo
-        } else if (item.pro_codigo) {
-          return item.pro_codigo; // Outro formato possível
+          return item.id;
         }
         return null;
-      }).filter(code => code !== null);
+      }).filter(id => id !== null);
 
-      this.logger.log(`Códigos de produtos encontrados: ${productCodes.join(', ')}`);
+      this.logger.log(`IDs de produtos encontrados: ${productIds.join(', ')}`);
       
-      if (productCodes.length === 0) {
+      if (productIds.length === 0) {
         errors.push('Não foi possível identificar os produtos no carrinho');
         return { valid: false, errors };
       }
 
-      const productCodesStr = productCodes.join(',');
+      const productIdsStr = productIds.join(',');
       
-      const availableProducts = await this.produtoService.getProduto(productCodesStr);
+      const availableProducts = await this.produtoService.getProduto(productIdsStr);
       this.logger.log(`Produtos disponíveis encontrados: ${availableProducts.length}`);
       
       // Verificar se todos os produtos estão disponíveis
-      if (availableProducts.length !== productCodes.length) {
-        const availableCodes = availableProducts.map(p => p.pro_codigo);
-        const missingCodes = productCodes.filter(code => !availableCodes.includes(code));
+      if (availableProducts.length !== productIds.length) {
+        const availableIds = availableProducts.map(p => p.id);
+        this.logger.log(`IDs de produtos disponíveis: ${JSON.stringify(availableIds)}`);
+        this.logger.log(`IDs de produtos no carrinho: ${JSON.stringify(productIds)}`);
         
-        errors.push(`Produtos não disponíveis: ${missingCodes.join(', ')}`);
+        // Converter todos os IDs para números para garantir comparação correta
+        const availableIdsNumbers = availableIds.map(id => Number(id));
+        const productIdsNumbers = productIds.map(id => Number(id));
+        
+        const missingIds = productIdsNumbers.filter(id => !availableIdsNumbers.includes(id));
+        
+        errors.push(`Produtos não disponíveis: ${missingIds.join(', ')}`);
         return { valid: false, errors };
       }
       
       // Verificar se os produtos estão ativos
       const inactiveProducts = availableProducts.filter(p => !p.pro_ativo);
       if (inactiveProducts.length > 0) {
-        const inactiveCodes = inactiveProducts.map(p => p.pro_codigo);
-        errors.push(`Produtos inativos: ${inactiveCodes.join(', ')}`);
+        const inactiveIds = inactiveProducts.map(p => p.id);
+        errors.push(`Produtos inativos: ${inactiveIds.join(', ')}`);
         return { valid: false, errors };
       }
       
       // Criar DTO para o pedido com tratamento para diferentes estruturas
       const orderItems = cartItems.map(item => {
-        let productCode, quantity, price;
+        let productId, quantity, price;
         
-        if (item.product && item.product.pro_codigo) {
-          productCode = item.product.pro_codigo;
+        if (item.produto_id) {
+          productId = Number(item.produto_id);
           quantity = item.quantity || 1;
-          price = item.price || (item.product.price || 0);
-        } else if (item.id || item.pro_codigo) {
-          productCode = item.id || item.pro_codigo;
+          price = item.price || 0;
+        } else if (item.product && item.product.id) {
+          productId = Number(item.product.id);
+          quantity = item.quantity || 1;
+          price = item.price || (item.product.price || item.product.pro_precovenda || 0);
+        } else if (item.id) {
+          productId = Number(item.id);
           quantity = item.quantity || 1;
           price = item.price || 0;
         }
         
-        const product = availableProducts.find(p => p.pro_codigo === productCode);
+        // Converter para número para garantir comparação correta
+        const product = availableProducts.find(p => Number(p.id) === productId);
+        
+        if (!product) {
+          this.logger.error(`Produto com ID ${productId} não encontrado nos produtos disponíveis`);
+          return null;
+        }
         
         return {
           produto_id: product.id,
           quantity: quantity,
           unit_price: price || product.pro_precovenda || 0, // Usar o preço do item, do produto ou um valor padrão
         };
-      });
+      }).filter(item => item !== null);
       
       const orderDto: CreateOrderDto = {
         profile_id: profileId,

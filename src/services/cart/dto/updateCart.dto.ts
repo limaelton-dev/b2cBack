@@ -1,12 +1,14 @@
-import { IsArray, IsOptional, IsNumber, IsObject, ValidateNested, Min, IsString } from 'class-validator';
+import { IsArray, IsOptional, IsNumber, IsObject, ValidateNested, Min, IsString, IsNotEmpty, ArrayNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CartItemDto {
     @IsNumber()
+    @IsNotEmpty({ message: 'O ID do produto é obrigatório' })
     produto_id: number;
 
     @IsNumber()
-    @Min(1)
+    @Min(1, { message: 'A quantidade deve ser pelo menos 1' })
+    @IsNotEmpty({ message: 'A quantidade é obrigatória' })
     quantity: number;
 
     @IsNumber()
@@ -19,11 +21,11 @@ export class CartItemDto {
 }
 
 export class UpdateCartDto {
-    @IsArray()
-    @IsOptional()
+    @IsArray({ message: 'cart_data deve ser um array' })
     @ValidateNested({ each: true })
     @Type(() => CartItemDto)
-    cart_data?: CartItemDto[];
+    @ArrayNotEmpty({ message: 'O carrinho não pode estar vazio' })
+    cart_data: CartItemDto[];
 }
 
 export class CartDataDto {
