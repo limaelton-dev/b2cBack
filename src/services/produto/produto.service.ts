@@ -14,17 +14,17 @@ export class ProdutoService {
 
         if(ids.includes(',')) {
             const prods = ids.split(',').map(Number);
-            return await this.produtoRepository.find({where: {pro_codigo: In(prods)}})
+            return await this.produtoRepository.find({where: {id: In(prods)}})
         }
         else {
-            const product = this.produtoRepository.find({where: {pro_codigo: parseInt(ids)}});
+            const product = this.produtoRepository.find({where: {id: parseInt(ids)}, relations: ['imagens', 'fabricante']});
             return product;
         }
     }
 
     async findById(id: number): Promise<Produto> {
         const produto = await this.produtoRepository.findOne({
-            where: { id }
+            where: { id },
         });
         
         if (!produto) {
@@ -34,7 +34,7 @@ export class ProdutoService {
         return produto;
     }
 
-    async getProdutosLimit(limit: number, categoria?: string): Promise<Produto[]> {
+    async getProdutosLimit(limit: number, categoria?: string, s?: string): Promise<Produto[]> {
         const query = this.produtoRepository
             .createQueryBuilder('produto')
             .leftJoinAndSelect('produto.imagens', 'imagem')
@@ -42,7 +42,11 @@ export class ProdutoService {
             .distinctOn(['produto.pro_codigo'])
             .orderBy('produto.pro_codigo', 'DESC')
             .addOrderBy('produto.id', 'DESC')
-            .limit(limit);
+            .limit(limit)
+
+        if(s) {
+            query.where('produto.pro_desc_tecnica ILIKE :s', { s: `%${s}%` });
+        }
     
         if (categoria) {
             const categoriasArray = categoria.split(',').map(Number);
@@ -51,12 +55,5 @@ export class ProdutoService {
     
         return await query.getMany();
     }
-
-    async buscarProduto(s: string): Promise<Produto[]> {
-        return this.produtoRepository.find({
-            where: {
-                pro_descricao: ILike(`%${s}%`),
-            },
-        });
-    }
+    
 }

@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { ProdutoImagens } from './produtoimagens';
 import { ProdutoTipo } from './produtotipo';
+import { ProdutoFabricante } from './produtofabricante';
 
 @Entity()
 export class Produto {
@@ -33,9 +34,14 @@ export class Produto {
     @Column({ type: 'text', nullable: true }) pro_modelo_com: string;
     @Column({ type: 'text', nullable: true }) pro_desc_tecnica: string;
     @Column({ type: 'decimal', precision: 10, scale: 2 }) pro_precovenda: number;
+    @Column({ type: 'text', nullable: true }) pro_apresentacao: string;
 
     @OneToMany(() => ProdutoImagens, (imagem) => imagem.produto, { cascade: true })
     imagens: ProdutoImagens[];
+
+    @ManyToOne(() => ProdutoFabricante, (fabricante) => fabricante.produtos)
+    @JoinColumn({ name: 'fab_codigo' }) // Define a chave estrangeira
+    fabricante: ProdutoFabricante;
 
     @ManyToOne(() => ProdutoTipo, (tipo) => tipo.produtos)
     @JoinColumn({ name: 'tpo_codigo' })

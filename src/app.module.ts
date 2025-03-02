@@ -89,6 +89,8 @@ import { OrderPaymentService } from './services/order_payment/order_payment.serv
           OrderPayment
         ],
         synchronize: false,
+        cache: false,
+        logging: true   // Ver a SQL que está sendo realizada
       }),
     }),
     JwtModule.registerAsync({
