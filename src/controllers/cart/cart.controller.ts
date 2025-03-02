@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Post, Delete, Body, Param, UseGuards, Request, ParseIntPipe, HttpStatus, HttpCode } from '@nestjs/common';
+import { Controller, Get, Patch, Put, Post, Delete, Body, Param, UseGuards, Request, ParseIntPipe, HttpStatus, HttpCode } from '@nestjs/common';
 import { CartService } from 'src/services/cart/cart.service';
 import { CartDataDto, UpdateCartDto, CartItemDto } from '../../services/cart/dto/updateCart.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -15,7 +15,7 @@ export class CartController {
     }
 
     @UseGuards(JwtAuthGuard)
-    @Patch()
+    @Put()
     async updateUserCart(@Request() req, @Body() updateCartDto: UpdateCartDto): Promise<CartDataDto> {
         const userId = req.user.id;
         return this.cartService.updateUserCart(userId, updateCartDto);

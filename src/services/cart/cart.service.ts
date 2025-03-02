@@ -7,6 +7,7 @@ import { User } from 'src/models/user/user';
 import { Produto } from 'src/models/produto/produto';
 import { Profile } from 'src/models/profile/profile';
 import { ProfileService } from '../profile/profile.service';
+import { In } from 'typeorm';
 
 @Injectable()
 export class CartService {
@@ -130,6 +131,49 @@ export class CartService {
 
     async updateUserCart(userId: number, updateCartDto: UpdateCartDto): Promise<CartDataDto> {
         try {
+            this.logger.log(`Atualizando carrinho do usuário ID: ${userId}`);
+            this.logger.log(`Dados para atualização: ${JSON.stringify(updateCartDto)}`);
+            
+            // Validar se todos os produtos existem
+            if (updateCartDto.cart_data && updateCartDto.cart_data.length > 0) {
+                const produtoIds = updateCartDto.cart_data.map(item => item.produto_id);
+                const produtos = await this.produtoRepository.find({
+                    where: { id: In(produtoIds) }
+                });
+                
+                // Verificar se todos os produtos foram encontrados
+                if (produtos.length !== produtoIds.length) {
+                    const encontradosIds = produtos.map(p => p.id);
+                    const naoEncontradosIds = produtoIds.filter(id => !encontradosIds.includes(id));
+                    
+                    if (naoEncontradosIds.length > 0) {
+                        throw new BadRequestException(`Produtos não encontrados: ${naoEncontradosIds.join(', ')}`);
+                    }
+                }
+                
+                // Verificar se os produtos estão ativos
+                const produtosInativos = produtos.filter(p => !p.pro_ativo);
+                if (produtosInativos.length > 0) {
+                    const inativosIds = produtosInativos.map(p => p.id);
+                    throw new BadRequestException(`Produtos inativos não podem ser adicionados ao carrinho: ${inativosIds.join(', ')}`);
+                }
+                
+                // Atualizar os preços dos produtos com os valores atuais do banco
+                updateCartDto.cart_data = updateCartDto.cart_data.map(item => {
+                    const produto = produtos.find(p => p.id === item.produto_id);
+                    return {
+                        ...item,
+                        price: produto.pro_precovenda,
+                        product: {
+                            pro_codigo: produto.pro_codigo,
+                            pro_descricao: produto.pro_descricao,
+                            pro_precovenda: produto.pro_precovenda,
+                            pro_ativo: produto.pro_ativo
+                        }
+                    };
+                });
+            }
+            
             // Buscar o perfil do usuário
             const profile = await this.profileService.findByUserId(userId);
             return this.updateProfileCart(profile.id, updateCartDto);
@@ -138,7 +182,11 @@ export class CartService {
                 this.logger.error(`Nenhum perfil encontrado para o usuário ID: ${userId}`);
                 throw new NotFoundException(`Usuário com ID ${userId} não possui um perfil. Crie um perfil antes de atualizar o carrinho.`);
             }
-            throw error;
+            if (error instanceof BadRequestException) {
+                throw error;
+            }
+            this.logger.error(`Erro ao atualizar carrinho: ${error.message}`, error.stack);
+            throw new InternalServerErrorException('Erro ao atualizar carrinho');
         }
     }
 
