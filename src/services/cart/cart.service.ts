@@ -136,14 +136,18 @@ export class CartService {
             
             // Validar se todos os produtos existem
             if (updateCartDto.cart_data && updateCartDto.cart_data.length > 0) {
-                const produtoIds = updateCartDto.cart_data.map(item => item.produto_id);
+                const produtoIds = updateCartDto.cart_data.map(item => Number(item.produto_id));
+                this.logger.log(`IDs de produtos para validação: ${JSON.stringify(produtoIds)}`);
+                
                 const produtos = await this.produtoRepository.find({
                     where: { id: In(produtoIds) }
                 });
                 
+                this.logger.log(`Produtos encontrados: ${produtos.length}`);
+                
                 // Verificar se todos os produtos foram encontrados
                 if (produtos.length !== produtoIds.length) {
-                    const encontradosIds = produtos.map(p => p.id);
+                    const encontradosIds = produtos.map(p => Number(p.id));
                     const naoEncontradosIds = produtoIds.filter(id => !encontradosIds.includes(id));
                     
                     if (naoEncontradosIds.length > 0) {
@@ -160,11 +164,12 @@ export class CartService {
                 
                 // Atualizar os preços dos produtos com os valores atuais do banco
                 updateCartDto.cart_data = updateCartDto.cart_data.map(item => {
-                    const produto = produtos.find(p => p.id === item.produto_id);
+                    const produto = produtos.find(p => Number(p.id) === Number(item.produto_id));
                     return {
                         ...item,
                         price: produto.pro_precovenda,
                         product: {
+                            id: produto.id,
                             pro_codigo: produto.pro_codigo,
                             pro_descricao: produto.pro_descricao,
                             pro_precovenda: produto.pro_precovenda,
@@ -198,7 +203,7 @@ export class CartService {
         
         // Verificar se o produto existe
         const produto = await this.produtoRepository.findOne({ 
-            where: { id: item.produto_id } 
+            where: { id: Number(item.produto_id) } 
         });
         
         if (!produto) {
@@ -210,19 +215,20 @@ export class CartService {
         
         // Verificar se o produto já está no carrinho
         const existingItemIndex = currentCart.cart_data.findIndex(
-            cartItem => cartItem.produto_id === item.produto_id
+            cartItem => Number(cartItem.produto_id) === Number(item.produto_id)
         );
         
         if (existingItemIndex >= 0) {
             // Atualizar a quantidade se o produto já estiver no carrinho
-            currentCart.cart_data[existingItemIndex].quantity += item.quantity;
+            currentCart.cart_data[existingItemIndex].quantity += Number(item.quantity);
         } else {
             // Adicionar o novo item ao carrinho
             const newItem: CartItemDto = {
-                produto_id: item.produto_id,
-                quantity: item.quantity,
-                price: item.price || produto.pro_precovenda,
+                produto_id: Number(item.produto_id),
+                quantity: Number(item.quantity),
+                price: Number(item.price || produto.pro_precovenda),
                 product: {
+                    id: produto.id,
                     pro_codigo: produto.pro_codigo,
                     pro_descricao: produto.pro_descricao,
                     pro_precovenda: produto.pro_precovenda,
@@ -248,7 +254,7 @@ export class CartService {
         
         // Filtrar o item a ser removido
         currentCart.cart_data = currentCart.cart_data.filter(
-            item => item.produto_id !== produtoId
+            item => Number(item.produto_id) !== Number(produtoId)
         );
         
         // Atualizar o carrinho
@@ -270,7 +276,7 @@ export class CartService {
         
         // Encontrar o item
         const itemIndex = currentCart.cart_data.findIndex(
-            item => item.produto_id === produtoId
+            item => Number(item.produto_id) === Number(produtoId)
         );
         
         if (itemIndex === -1) {
@@ -278,7 +284,7 @@ export class CartService {
         }
         
         // Atualizar a quantidade
-        currentCart.cart_data[itemIndex].quantity = quantity;
+        currentCart.cart_data[itemIndex].quantity = Number(quantity);
         
         // Atualizar o carrinho
         return this.updateUserCart(userId, currentCart);
@@ -314,26 +320,28 @@ export class CartService {
             let produto_id, quantity, price, product;
             
             if (item.produto_id !== undefined) {
-                produto_id = item.produto_id;
+                produto_id = Number(item.produto_id);
             } else if (item.product && item.product.id !== undefined) {
-                produto_id = item.product.id;
-            } else if (item.product && item.product.pro_codigo !== undefined) {
-                produto_id = item.product.pro_codigo;
+                produto_id = Number(item.product.id);
             } else if (item.id !== undefined) {
-                produto_id = item.id;
+                produto_id = Number(item.id);
+            } else if (item.product && item.product.pro_codigo !== undefined) {
+                // Buscar o produto pelo pro_codigo para obter o ID real
+                this.logger.warn(`Usando pro_codigo em vez de id. Isso deve ser evitado.`);
+                produto_id = Number(item.product.pro_codigo);
             } else {
                 this.logger.warn(`Não foi possível identificar produto_id no item: ${JSON.stringify(item)}`);
                 produto_id = 0;
             }
             
-            quantity = item.quantity || 1;
+            quantity = Number(item.quantity || 1);
             
             if (item.price !== undefined) {
-                price = item.price;
+                price = Number(item.price);
             } else if (item.product && item.product.price !== undefined) {
-                price = item.product.price;
+                price = Number(item.product.price);
             } else if (item.product && item.product.pro_precovenda !== undefined) {
-                price = item.product.pro_precovenda;
+                price = Number(item.product.pro_precovenda);
             } else {
                 price = 0;
             }
