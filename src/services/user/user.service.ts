@@ -5,9 +5,10 @@ import { User } from 'src/models/user/user';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/createUser.dto';
-import { UnauthorizedException, Logger, NotFoundException } from '@nestjs/common';
+import { UnauthorizedException, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CartService } from '../cart/cart.service';
 import { ProfileService } from '../profile/profile.service';
+import { UpdateUserDto } from './dto/updateUser.dto';
 
 @Injectable()
 export class UserService {
@@ -47,7 +48,11 @@ export class UserService {
     }
 
     async getUserById(id: number): Promise<User> {
-        return this.usersRepository.findOne({ where: { id } });
+        const user = await this.usersRepository.findOne({ where: { id } });
+        if (!user) {
+            throw new NotFoundException(`Usuário com ID ${id} não encontrado`);
+        }
+        return user;
     }
 
     
@@ -63,6 +68,39 @@ export class UserService {
         }
       
         throw new UnauthorizedException('Credenciais inválidas');
+    }
+
+    async updateUser(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+        this.logger.log(`Atualizando usuário com ID: ${id}`);
+        
+        const user = await this.getUserById(id);
+        
+        // Verificar se o email já está em uso por outro usuário
+        if (updateUserDto.email && updateUserDto.email !== user.email) {
+            const existingUser = await this.usersRepository.findOne({ where: { email: updateUserDto.email } });
+            if (existingUser && existingUser.id !== id) {
+                throw new BadRequestException('Este email já está em uso');
+            }
+        }
+        
+        // Verificar se o username já está em uso por outro usuário
+        if (updateUserDto.username && updateUserDto.username !== user.username) {
+            const existingUser = await this.usersRepository.findOne({ where: { username: updateUserDto.username } });
+            if (existingUser && existingUser.id !== id) {
+                throw new BadRequestException('Este nome de usuário já está em uso');
+            }
+        }
+        
+        // Atualizar a senha se fornecida
+        if (updateUserDto.password) {
+            const salt = await bcrypt.genSalt();
+            updateUserDto.password = await bcrypt.hash(updateUserDto.password, salt);
+        }
+        
+        // Atualizar os campos do usuário
+        Object.assign(user, updateUserDto);
+        
+        return this.usersRepository.save(user);
     }
 }
 

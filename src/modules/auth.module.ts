@@ -30,6 +30,6 @@ import { ProfileModule } from '../modules/profile.module';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, UserService],
-  exports: [JwtStrategy, PassportModule, AuthService, JwtModule],
+  exports: [JwtStrategy, PassportModule, AuthService, JwtModule, UserService],
 })
 export class AuthModule {} 

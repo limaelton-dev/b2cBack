@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Address } from 'src/models/address/address';
@@ -62,7 +62,21 @@ export class AddressService {
 
     async remove(id: number): Promise<void> {
         const address = await this.findOne(id);
-        await this.addressRepository.remove(address);
+        
+        try {
+            await this.addressRepository.remove(address);
+        } catch (error) {
+            // Verificar se o erro é de violação de chave estrangeira
+            if (error.message && error.message.includes('violates foreign key constraint "fk_order_address"')) {
+                throw new ConflictException(
+                    'Este endereço não pode ser excluído porque está sendo usado em um ou mais pedidos. ' +
+                    'Considere adicionar um novo endereço e definir como padrão em vez de excluir este.'
+                );
+            }
+            
+            // Se for outro tipo de erro, repassar
+            throw error;
+        }
     }
 
     async setDefault(id: number): Promise<Address> {

@@ -6,6 +6,7 @@ import { AddressModule } from './address.module';
 import { CardModule } from './card.module';
 import { PhoneModule } from './phone.module';
 import { AuthModule } from './auth.module';
+import { ProfilePFModule } from './profile_pf.module';
 
 @Module({
   imports: [
@@ -14,7 +15,8 @@ import { AuthModule } from './auth.module';
     AddressModule,
     CardModule,
     PhoneModule,
-    AuthModule
+    AuthModule,
+    ProfilePFModule
   ],
   controllers: [MyAccountController],
 })
