@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, UseGuards, Request, Param } from '@nestjs/common';
 import { ProfileService } from 'src/services/profile/profile.service';
 import { Profile } from 'src/models/profile/profile';
 import { CreateProfileDto } from 'src/services/profile/dto/createProfile.dto';
@@ -22,6 +22,11 @@ export class ProfileController {
     @UseGuards(JwtAuthGuard)
     async getMyProfile(@Request() req): Promise<Profile> {
         return this.profileService.findByUserId(req.user.id);
+    }
+
+    @Get('getProfileByUser/:id')
+    async getProfileByUser(@Param('id') id: number): Promise<Profile> {
+        return this.profileService.getProfileDetails(id);
     }
 
     @Get('details')
