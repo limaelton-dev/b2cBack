@@ -92,16 +92,16 @@ export class CheckoutValidationService {
     }
 
     // Validar se o endereço de entrega existe e pertence ao perfil
-    try {
-      const address = await this.addressService.findOne(addressId);
-      if (address.profile_id !== profileId) {
-        errors.push('O endereço de entrega não pertence ao perfil informado');
-        return { valid: false, errors };
-      }
-    } catch (error) {
-      errors.push('Endereço de entrega não encontrado');
-      return { valid: false, errors };
-    }
+    // try {
+    //   const address = await this.addressService.findOne(addressId);
+    //   if (address.profile_id !== profileId) {
+    //     errors.push('O endereço de entrega não pertence ao perfil informado');
+    //     return { valid: false, errors };
+    //   }
+    // } catch (error) {
+    //   errors.push('Endereço de entrega não encontrado');
+    //   return { valid: false, errors };
+    // }
 
     // Validar método de pagamento
     if (!Object.values(PaymentMethod).includes(paymentMethod)) {
@@ -110,18 +110,18 @@ export class CheckoutValidationService {
     }
 
     // Validar cartão se o método de pagamento for cartão
-    if (paymentMethod === PaymentMethod.CARD && cardId) {
-      try {
-        const card = await this.cardService.findOne(cardId);
-        if (card.profile_id !== profileId) {
-          errors.push('O cartão não pertence ao perfil informado');
-          return { valid: false, errors };
-        }
-      } catch (error) {
-        errors.push('Cartão não encontrado');
-        return { valid: false, errors };
-      }
-    }
+    // if (paymentMethod === PaymentMethod.CARD && cardId) {
+    //   try {
+    //     const card = await this.cardService.findOne(cardId);
+    //     if (card.profile_id !== profileId) {
+    //       errors.push('O cartão não pertence ao perfil informado');
+    //       return { valid: false, errors };
+    //     }
+    //   } catch (error) {
+    //     errors.push('Cartão não encontrado');
+    //     return { valid: false, errors };
+    //   }
+    // }
 
     // Validar disponibilidade dos produtos no carrinho
     try {

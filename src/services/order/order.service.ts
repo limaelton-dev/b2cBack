@@ -28,9 +28,9 @@ export class OrderService {
         
         // Verificar se o endereço existe e pertence ao perfil
         const address = await this.addressService.findOne(createOrderDto.address_id);
-        if (address.profile_id !== createOrderDto.profile_id) {
-            throw new BadRequestException('O endereço de entrega não pertence ao perfil informado');
-        }
+        // if (address.profile_id !== createOrderDto.profile_id) {
+        //     throw new BadRequestException('O endereço de entrega não pertence ao perfil informado');
+        // }
         
         // Calcular o valor total do pedido
         const totalAmount = createOrderDto.items.reduce(
