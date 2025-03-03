@@ -9,6 +9,8 @@ import { UnauthorizedException, Logger, NotFoundException, BadRequestException }
 import { CartService } from '../cart/cart.service';
 import { ProfileService } from '../profile/profile.service';
 import { UpdateUserDto } from './dto/updateUser.dto';
+import { ProfilePFService } from '../profile_pf/profile_pf.service';
+import { CreateProfileDto } from '../profile/dto/createProfile.dto';
 
 @Injectable()
 export class UserService {
@@ -20,6 +22,7 @@ export class UserService {
         private readonly jwtService: JwtService,
         private readonly cartService: CartService,
         private readonly profileService: ProfileService,
+        private readonly profilePFService: ProfilePFService,
     ) {}
 
     async create(createUserDto: CreateUserDto): Promise<User> {
@@ -40,9 +43,24 @@ export class UserService {
     
         const savedUser = await this.usersRepository.save(user);
         
-        // Não criamos mais o carrinho diretamente aqui
-        // O carrinho será criado quando o perfil for criado
-        // ou quando o usuário acessar o carrinho pela primeira vez
+        try {
+            // Criar perfil base do tipo PF automaticamente
+            this.logger.log(`Criando perfil PF para o usuário ID: ${savedUser.id}`);
+            const createProfileDto: CreateProfileDto = {
+                user_id: savedUser.id,
+                profile_type: 'PF'
+            };
+            
+            const profile = await this.profileService.create(createProfileDto);
+            
+            // Criar perfil PF vazio
+            await this.profilePFService.create(profile.id, {});
+            
+            this.logger.log(`Perfil PF criado com sucesso para o usuário ID: ${savedUser.id}`);
+        } catch (error) {
+            this.logger.error(`Erro ao criar perfil para o usuário: ${error.message}`, error.stack);
+            // Não vamos falhar a criação do usuário se o perfil falhar
+        }
         
         return savedUser;
     }

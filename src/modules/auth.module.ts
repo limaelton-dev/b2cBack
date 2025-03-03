@@ -10,6 +10,7 @@ import { JwtStrategy } from 'src/services/auth/jwt.strategy';
 import { UserService } from '../services/user/user.service';
 import { CartModule } from '../modules/cart.module';
 import { ProfileModule } from '../modules/profile.module';
+import { ProfilePFModule } from '../modules/profile_pf.module';
 
 @Module({
   imports: [
@@ -26,7 +27,8 @@ import { ProfileModule } from '../modules/profile.module';
     }),
     TypeOrmModule.forFeature([User]),
     CartModule,
-    ProfileModule
+    ProfileModule,
+    ProfilePFModule
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, UserService],
