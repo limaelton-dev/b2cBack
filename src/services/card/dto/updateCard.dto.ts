@@ -27,4 +27,8 @@ export class UpdateCardDto {
   @IsOptional()
   @Length(4, 4)
   last_four_digits?: string;
+
+  @IsString()
+  @IsOptional()
+  cvv?: string;
 } 

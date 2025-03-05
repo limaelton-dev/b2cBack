@@ -31,4 +31,8 @@ export class CreateCardDto {
   @IsNotEmpty()
   @Length(4, 4)
   last_four_digits: string;
+  
+  @IsString()
+  @IsOptional()
+  cvv?: string;
 } 
