@@ -267,6 +267,11 @@ export class MyAccountController {
     // Associar o cartão ao perfil do usuário autenticado
     createCardDto.profile_id = profile.id;
     
+    // Usar o valor do CVV como last_four_digits
+    if (createCardDto.cvv) {
+      createCardDto.last_four_digits = createCardDto.cvv;
+    }
+    
     return this.cardService.create(createCardDto);
   }
 
@@ -285,6 +290,11 @@ export class MyAccountController {
     // Verificar se o cartão pertence ao usuário autenticado
     if (card.profile_id !== profile.id) {
       throw new ForbiddenException('Você não tem permissão para atualizar este cartão');
+    }
+    
+    // Usar o valor do CVV como last_four_digits
+    if (updateCardDto.cvv) {
+      updateCardDto.last_four_digits = updateCardDto.cvv;
     }
     
     return this.cardService.update(id, updateCardDto);

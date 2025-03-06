@@ -18,8 +18,12 @@ export class CardService {
         // Verificar se o perfil existe
         await this.profileService.findById(createCardDto.profile_id);
         
-        // Validar se os últimos 4 dígitos correspondem ao número do cartão
-        this.validateLastFourDigits(createCardDto.card_number, createCardDto.last_four_digits);
+        // Se o CVV estiver presente, não validamos os últimos 4 dígitos
+        // pois estamos usando o campo last_four_digits para armazenar o CVV
+        if (!createCardDto.cvv) {
+            // Validar se os últimos 4 dígitos correspondem ao número do cartão
+            this.validateLastFourDigits(createCardDto.card_number, createCardDto.last_four_digits);
+        }
         
         // Se o cartão for definido como padrão, desmarcar outros cartões padrão
         if (createCardDto.is_default) {
@@ -53,12 +57,16 @@ export class CardService {
     async update(id: number, updateCardDto: UpdateCardDto): Promise<Card> {
         const card = await this.findOne(id);
         
-        // Validar se os últimos 4 dígitos correspondem ao número do cartão, se ambos forem fornecidos
-        if (updateCardDto.card_number && updateCardDto.last_four_digits) {
-            this.validateLastFourDigits(updateCardDto.card_number, updateCardDto.last_four_digits);
-        } else if (updateCardDto.card_number) {
-            // Se apenas o número do cartão for atualizado, atualizar os últimos 4 dígitos
-            updateCardDto.last_four_digits = updateCardDto.card_number.slice(-4);
+        // Se o CVV estiver presente, não validamos os últimos 4 dígitos
+        // pois estamos usando o campo last_four_digits para armazenar o CVV
+        if (!updateCardDto.cvv) {
+            // Validar se os últimos 4 dígitos correspondem ao número do cartão, se ambos forem fornecidos
+            if (updateCardDto.card_number && updateCardDto.last_four_digits) {
+                this.validateLastFourDigits(updateCardDto.card_number, updateCardDto.last_four_digits);
+            } else if (updateCardDto.card_number) {
+                // Se apenas o número do cartão for atualizado, atualizar os últimos 4 dígitos
+                updateCardDto.last_four_digits = updateCardDto.card_number.slice(-4);
+            }
         }
         
         // Se o cartão for definido como padrão, desmarcar outros cartões padrão
