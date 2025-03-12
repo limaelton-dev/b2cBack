@@ -11,6 +11,11 @@ import { UserService } from '../services/user/user.service';
 import { CartModule } from '../modules/cart.module';
 import { ProfileModule } from '../modules/profile.module';
 import { ProfilePFModule } from '../modules/profile_pf.module';
+import { GoogleAuthService } from '../services/auth/google-auth.service';
+import { GoogleAuthController } from '../controllers/auth/google-auth.controller';
+import { Profile } from '../models/profile/profile';
+import { Cart } from '../models/cart/cart';
+import { ProfileService } from '../services/profile/profile.service';
 
 @Module({
   imports: [
@@ -25,13 +30,13 @@ import { ProfilePFModule } from '../modules/profile_pf.module';
         },
       }),
     }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Profile, Cart]),
     CartModule,
     ProfileModule,
     ProfilePFModule
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, UserService],
-  exports: [JwtStrategy, PassportModule, AuthService, JwtModule, UserService],
+  controllers: [AuthController, GoogleAuthController],
+  providers: [AuthService, JwtStrategy, UserService, GoogleAuthService, ProfileService],
+  exports: [JwtStrategy, PassportModule, AuthService, JwtModule, UserService, GoogleAuthService],
 })
 export class AuthModule {} 
