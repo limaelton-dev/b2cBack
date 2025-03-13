@@ -19,6 +19,10 @@ import { MercadoPagoService } from 'src/services/mercado-pago/mercado-pago.servi
 import { User } from 'src/models/user/user';
 import { OrderPaymentService } from 'src/services/order_payment/order_payment.service';
 import { OrderPayment } from 'src/models/order_payment/order_payment';
+import { ProfilePFService } from 'src/services/profile_pf/profile_pf.service';
+import { ProfilePF } from 'src/models/profile_pf/profile_pf';
+import { UserService } from 'src/services/user/user.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -31,7 +35,9 @@ import { OrderPayment } from 'src/models/order_payment/order_payment';
       Address,
       Card,
       User,
-      OrderPayment
+      OrderPayment,
+      ProfilePF,
+      User
     ]),
   ],
   controllers: [CheckoutController],
@@ -44,7 +50,10 @@ import { OrderPayment } from 'src/models/order_payment/order_payment';
     ProfileService,
     AddressService,
     CardService,
-    MercadoPagoService
+    MercadoPagoService,
+    ProfilePFService,
+    UserService,
+    JwtService
   ],
   exports: [CheckoutValidationService],
 })

@@ -10,6 +10,8 @@ import { MercadoPagoService } from 'src/services/mercado-pago/mercado-pago.servi
 import { CheckoutDto } from './dto/checkout.dto';
 import { PaymentProcessDTO } from './dto/payment-process.dto';
 import { PaymentMethod } from 'src/models/order_payment/order_payment';
+import { CpfDto } from './dto/cpf.dto';
+import { EmailDto } from './dto/email.dto';
 
 @Controller('checkout')
 @UseGuards(JwtAuthGuard)
@@ -73,6 +75,31 @@ export class CheckoutController {
         error: error.message,
       });
     }
+  }
+
+  
+  @UseGuards(JwtAuthGuard)
+  @Post('validacpf')
+  async validaCpf(@Body() cpfDto: CpfDto, @Res() res: Response): Promise<void> {
+    const cpf = cpfDto.cpf;
+    const validationResult = await this.checkoutValidationService.validaCpf(cpf);
+    res.status(validationResult.status).json({
+      success: validationResult.success,
+      status: validationResult.status,
+      message: validationResult.message,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('validaEmail')
+  async validaEmail(@Body() emailDto: EmailDto, @Res() res: Response): Promise<void> {
+    const email = emailDto.email;
+    const validationResult = await this.checkoutValidationService.validaEmail(email);
+    res.status(validationResult.status).json({
+      success: validationResult.success,
+      status: validationResult.status,
+      message: validationResult.message,
+    });
   }
 
   /**

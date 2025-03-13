@@ -12,6 +12,9 @@ import { ProdutoService } from '../produto/produto.service';
 import { AddressService } from '../address/address.service';
 import { CardService } from '../card/card.service';
 import { ProfileService } from '../profile/profile.service';
+import { ProfilePFService } from '../profile_pf/profile_pf.service';
+import { ProfilePF } from '../../models/profile_pf/profile_pf';
+import { User } from 'src/models/user/user';
 
 @Injectable()
 export class CheckoutValidationService {
@@ -24,6 +27,10 @@ export class CheckoutValidationService {
     private readonly addressService: AddressService,
     private readonly cardService: CardService,
     private readonly profileService: ProfileService,
+    @InjectRepository(ProfilePF)
+    private readonly profilePFService: Repository<ProfilePF>,
+    @InjectRepository(User)
+    private readonly userService: Repository<User>
   ) {}
 
   /**
@@ -251,5 +258,41 @@ export class CheckoutValidationService {
     }
     
     return { valid: true };
+  }
+
+  async validaCpf(cpf: string) {
+    const profile = await this.profilePFService.findOne({ where: { cpf: cpf } });
+    if(profile) {
+      return {
+        success: false,
+        status: 409,
+        message: 'Esse cpf já está em uso.',
+      };
+    }
+    else {
+      return {
+        success: true,
+        status: 200,
+        message: 'Cpf validado com sucesso!',
+      };
+    }
+  }
+
+  async validaEmail(email: string) {
+    const user = await this.userService.findOne({ where: { email: email } });
+    if(user) {
+      return {
+        success: false,
+        status: 409,
+        message: 'Esse email já está em uso.',
+      };
+    }
+    else {
+      return {
+        success: true,
+        status: 200,
+        message: 'Email validado com sucesso!',
+      };
+    }
   }
 } 

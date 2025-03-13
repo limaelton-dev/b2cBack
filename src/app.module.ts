@@ -86,7 +86,7 @@ import { OrderPaymentService } from './services/order_payment/order_payment.serv
           Order,
           OrderItem,
           Cart,
-          OrderPayment
+          OrderPayment,
         ],
         synchronize: false,
         cache: false,
