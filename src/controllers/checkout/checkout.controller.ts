@@ -14,7 +14,6 @@ import { CpfDto } from './dto/cpf.dto';
 import { EmailDto } from './dto/email.dto';
 
 @Controller('checkout')
-@UseGuards(JwtAuthGuard)
 export class CheckoutController {
   private readonly logger = new Logger(CheckoutController.name);
 
@@ -31,6 +30,7 @@ export class CheckoutController {
    * Endpoint para validar e iniciar o processo de checkout
    */
   @Post('validate')
+  @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   async validateCheckout(@Request() req, @Body() checkoutDto: CheckoutDto, @Res() res: Response) {
     try {
@@ -78,7 +78,6 @@ export class CheckoutController {
   }
 
   
-  @UseGuards(JwtAuthGuard)
   @Post('validacpf')
   async validaCpf(@Body() cpfDto: CpfDto, @Res() res: Response): Promise<void> {
     const cpf = cpfDto.cpf;
@@ -90,7 +89,6 @@ export class CheckoutController {
     });
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post('validaEmail')
   async validaEmail(@Body() emailDto: EmailDto, @Res() res: Response): Promise<void> {
     const email = emailDto.email;
@@ -106,6 +104,7 @@ export class CheckoutController {
    * Endpoint para processar o pagamento após a validação do checkout
    */
   @Post('process-payment')
+  @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   async processPayment(@Request() req, @Body() paymentData: PaymentProcessDTO, @Res() res: Response) {
     try {

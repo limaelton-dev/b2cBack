@@ -4,13 +4,14 @@ import { Repository } from 'typeorm';
 import { User } from 'src/models/user/user';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { CreateUserDto } from './dto/createUser.dto';
+import { CreateUserDto, CreateUserWithoutPassDto } from './dto/createUser.dto';
 import { UnauthorizedException, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CartService } from '../cart/cart.service';
 import { ProfileService } from '../profile/profile.service';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { ProfilePFService } from '../profile_pf/profile_pf.service';
 import { CreateProfileDto } from '../profile/dto/createProfile.dto';
+import { ProfilePJService } from '../profile_pj/profile_pj.service';
 
 @Injectable()
 export class UserService {
@@ -23,6 +24,7 @@ export class UserService {
         private readonly cartService: CartService,
         private readonly profileService: ProfileService,
         private readonly profilePFService: ProfilePFService,
+        private readonly profilePJService: ProfilePJService,
     ) {}
 
     async create(createUserDto: CreateUserDto): Promise<User> {
@@ -120,6 +122,50 @@ export class UserService {
         
         return this.usersRepository.save(user);
     }
-}
 
-//teste
+    async createByEmail(createUserWithoutPassDto: CreateUserWithoutPassDto): Promise<boolean> {
+        this.logger.log(`Criando novo usuário: ${createUserWithoutPassDto.email}`);
+        
+        const { name, lastname, email, tipoPessoa } = createUserWithoutPassDto;
+    
+        const user = this.usersRepository.create({
+            name,
+            lastname,
+            email,
+        });
+    
+        const savedUser = await this.usersRepository.save(user);
+
+        if(savedUser) {
+            try {
+                // Criar perfil base do tipo PF automaticamente
+                this.logger.log(`Criando perfil PF para o usuário ID: ${savedUser.id}`);
+                const createProfileDto: CreateProfileDto = {
+                    user_id: savedUser.id,
+                    profile_type: tipoPessoa
+                };
+                
+                const profile = await this.profileService.create(createProfileDto);
+                
+                if(tipoPessoa == 'PF') {
+                    await this.profilePFService.create(profile.id, {cpf: createUserWithoutPassDto.cpf});
+                }
+                else {
+                    await this.profilePJService.create(profile.id, {
+                        cnpj: createUserWithoutPassDto.cnpj, 
+                        company_name: createUserWithoutPassDto.company_name,
+                        state_registration: createUserWithoutPassDto.state_registration
+                    });
+                }
+                
+                this.logger.log(`Perfil PF criado com sucesso para o usuário ID: ${savedUser.id}`);
+            } catch (error) {
+                this.logger.error(`Erro ao criar perfil para o usuário: ${error.message}`, error.stack);
+                // Não vamos falhar a criação do usuário se o perfil falhar
+            }
+        }
+        
+        
+        return true;
+    }
+}

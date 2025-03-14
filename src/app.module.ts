@@ -58,7 +58,7 @@ import { OrderPaymentService } from './services/order_payment/order_payment.serv
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: '10.0.0.25',
+        host: '10.0.0.11',
         port: configService.get<number>('DB_PORT'),
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
@@ -116,7 +116,7 @@ import { OrderPaymentService } from './services/order_payment/order_payment.serv
     ProdutoTipoModule,
     MercadoPagoModule,
     CheckoutModule,
-    TypeOrmModule.forFeature([Produto, User, Order, OrderItem, OrderPayment])
+    TypeOrmModule.forFeature([Produto, User, Order, OrderItem, OrderPayment, ])
   ],
   controllers: [AppController, ProdutoController, UserController],
   providers: [AppService, ProdutoService, UserService, OrderPaymentService],

@@ -16,6 +16,7 @@ import { GoogleAuthController } from '../controllers/auth/google-auth.controller
 import { Profile } from '../models/profile/profile';
 import { Cart } from '../models/cart/cart';
 import { ProfileService } from '../services/profile/profile.service';
+import { ProfilePJModule } from './profile_pj.module';
 
 @Module({
   imports: [
@@ -33,7 +34,8 @@ import { ProfileService } from '../services/profile/profile.service';
     TypeOrmModule.forFeature([User, Profile, Cart]),
     CartModule,
     ProfileModule,
-    ProfilePFModule
+    ProfilePFModule,
+    ProfilePJModule
   ],
   controllers: [AuthController, GoogleAuthController],
   providers: [AuthService, JwtStrategy, UserService, GoogleAuthService, ProfileService],

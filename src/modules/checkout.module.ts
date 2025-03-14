@@ -20,9 +20,11 @@ import { User } from 'src/models/user/user';
 import { OrderPaymentService } from 'src/services/order_payment/order_payment.service';
 import { OrderPayment } from 'src/models/order_payment/order_payment';
 import { ProfilePFService } from 'src/services/profile_pf/profile_pf.service';
+import { ProfilePJService } from 'src/services/profile_pj/profile_pj.service';
 import { ProfilePF } from 'src/models/profile_pf/profile_pf';
 import { UserService } from 'src/services/user/user.service';
 import { JwtService } from '@nestjs/jwt';
+import { ProfilePJ } from 'src/models/profile_pj/profile_pj';
 
 @Module({
   imports: [
@@ -37,6 +39,7 @@ import { JwtService } from '@nestjs/jwt';
       User,
       OrderPayment,
       ProfilePF,
+      ProfilePJ,
       User
     ]),
   ],
@@ -52,6 +55,7 @@ import { JwtService } from '@nestjs/jwt';
     CardService,
     MercadoPagoService,
     ProfilePFService,
+    ProfilePJService,
     UserService,
     JwtService
   ],
