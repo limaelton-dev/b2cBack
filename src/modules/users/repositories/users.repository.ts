@@ -65,4 +65,18 @@ export class UsersRepository {
   async remove(id: number): Promise<void> {
     await this.userRepository.delete(id);
   }
+
+  async findWithDetails(id: number): Promise<User> {
+    return this.userRepository.findOne({
+      where: { id },
+      relations: [
+        'profiles', 
+        'profiles.profilePf', 
+        'profiles.profilePj', 
+        'profiles.addresses', 
+        'profiles.phones', 
+        'profiles.cards'
+      ],
+    });
+  }
 } 
