@@ -33,8 +33,7 @@ export class UsersRepository {
 
   async findOne(id: number): Promise<User> {
     return this.userRepository.findOne({
-      where: { id },
-      relations: ['profiles'],
+      where: { id }
     });
   }
 
@@ -66,7 +65,18 @@ export class UsersRepository {
     await this.userRepository.delete(id);
   }
 
-  async findWithDetails(id: number): Promise<User> {
+  async findWithProfile(id: number): Promise<User> {
+    return this.userRepository.findOne({
+      where: { id },
+      relations: [
+        'profiles',
+        'profiles.profilePf',
+        'profiles.profilePj'
+      ],
+    });
+  }
+
+  async findWithProfileDetails(id: number): Promise<User> {
     return this.userRepository.findOne({
       where: { id },
       relations: [

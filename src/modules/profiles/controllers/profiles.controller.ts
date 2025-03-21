@@ -18,8 +18,10 @@ import { CreateProfilePfDto } from '../dto/create-profile-pf.dto';
 import { CreateProfilePjDto } from '../dto/create-profile-pj.dto';
 import { UpdateProfilePfDto } from '../dto/update-profile-pf.dto';
 import { UpdateProfilePjDto } from '../dto/update-profile-pj.dto';
+import { UserProfileDetailsDto } from 'src/modules/users/dto/user-profile-details.dto';
+import { UserProfileDto } from 'src/modules/users/dto/user-profile.dto';
 
-@Controller('profiles')
+@Controller()
 @UseGuards(JwtAuthGuard)
 export class ProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
@@ -37,8 +39,15 @@ export class ProfilesController {
   }
 
   @Get()
-  async findAll(@Request() req) {
-    return this.profilesService.findAllByUserId(req.user.userId);
+  async findUserWithProfile(@Request() req): Promise<UserProfileDto> {
+    const userId = req.user.userId;
+    return this.profilesService.findUserWithProfile(userId);
+  }
+
+  @Get('details')
+  async findUserWithProfileDetails(@Request() req): Promise<UserProfileDetailsDto> {
+    const userId = req.user.userId;
+    return this.profilesService.findUserProfileDetails(userId);
   }
 
   @Get(':id')

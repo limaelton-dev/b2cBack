@@ -9,12 +9,17 @@ import { CreateProfilePfDto } from '../dto/create-profile-pf.dto';
 import { CreateProfilePjDto } from '../dto/create-profile-pj.dto';
 import { UpdateProfilePfDto } from '../dto/update-profile-pf.dto';
 import { UpdateProfilePjDto } from '../dto/update-profile-pj.dto';
+import { UserService } from 'src/modules/users/services/user.service';
+import { User } from 'src/modules/users/entities/user.entity';
+import { UserProfileDto } from 'src/modules/users/dto/user-profile.dto';
+import { UserProfileDetailsDto } from 'src/modules/users/dto/user-profile-details.dto';
 
 @Injectable()
 export class ProfilesService {
   constructor(
     private readonly profilesRepository: ProfilesRepository,
     private readonly usersRepository: UsersRepository,
+    private readonly userService: UserService
   ) {}
 
   async createProfilePf(userId: number, createProfilePfDto: CreateProfilePfDto): Promise<ProfilePf> {
@@ -78,6 +83,14 @@ export class ProfilesService {
     });
 
     return profilePj;
+  }
+
+  async findUserWithProfile(userId: number): Promise<UserProfileDto> {
+    return await this.userService.findWithProfile(userId);
+  }
+
+  async findUserProfileDetails(userId: number): Promise<UserProfileDetailsDto> {
+    return await this.userService.findWithProfileDetails(userId);
   }
 
   async findAllByUserId(userId: number): Promise<Profile[]> {

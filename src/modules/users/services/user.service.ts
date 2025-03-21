@@ -6,9 +6,11 @@ import { User } from '../entities/user.entity';
 import { UserDetailsDto } from '../dto/user-details.dto';
 import { ProfileType } from '../../../common/enums/profile-type.enum';
 import { plainToClass } from 'class-transformer';
+import { UserProfileDto } from '../dto/user-profile.dto';
+import { UserDto } from '../dto/user.dto';
 
 @Injectable()
-export class UsersService {
+export class UserService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -22,18 +24,16 @@ export class UsersService {
     return this.usersRepository.create(createUserDto);
   }
 
-  async findAll(): Promise<User[]> {
-    return this.usersRepository.findAll();
-  }
-
-  async findOne(id: number): Promise<User> {
+  async findOne(id: number): Promise<UserDto> {
     const user = await this.usersRepository.findOne(id);
     
     if (!user) {
       throw new NotFoundException('Usuário não encontrado');
     }
-    
-    return user;
+
+    return plainToClass(UserDto, user, { 
+      excludeExtraneousValues: false 
+    });
   }
 
   async findByEmail(email: string): Promise<User> {
@@ -74,8 +74,53 @@ export class UsersService {
     await this.usersRepository.remove(id);
   }
 
-  async findUserDetails(id: number): Promise<UserDetailsDto> {
-    const user = await this.usersRepository.findWithDetails(id);
+  async findWithProfile(id: number): Promise<UserProfileDto> {
+    const user = await this.usersRepository.findWithProfile(id);
+    
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+    
+    const userProfile: any = {
+      id: user.id,
+      email: user.email,
+    };
+    
+    if (user.profiles && user.profiles.length > 0) {
+      const profile = user.profiles[0];
+      
+      userProfile.profile_type = profile.profileType;
+      
+      if (profile.profileType === ProfileType.PF && profile.profilePf) {
+        userProfile.profile = {
+          id: profile.id,
+          fullName: profile.profilePf.fullName,
+          cpf: profile.profilePf.cpf,
+          birthDate: profile.profilePf.birthDate,
+          gender: profile.profilePf.gender,
+        };
+      } else if (profile.profileType === ProfileType.PJ && profile.profilePj) {
+        userProfile.profile = {
+          id: profile.id,
+          companyName: profile.profilePj.companyName,
+          cnpj: profile.profilePj.cnpj,
+          tradingName: profile.profilePj.tradingName,
+          stateRegistration: profile.profilePj.stateRegistration,
+          municipalRegistration: profile.profilePj.municipalRegistration,
+        };
+      }
+
+    } else {
+      userProfile.profile = {};
+    }
+    
+    return plainToClass(UserProfileDto, userProfile, { 
+      excludeExtraneousValues: false 
+    });
+  }
+
+  async findWithProfileDetails(id: number): Promise<UserDetailsDto> {
+    const user = await this.usersRepository.findWithProfileDetails(id);
     
     if (!user) {
       throw new NotFoundException('Usuário não encontrado');
@@ -85,6 +130,11 @@ export class UsersService {
       id: user.id,
       email: user.email,
     };
+    
+    // Inicializar arrays vazios para garantir que sempre sejam retornados
+    userDetails.address = [];
+    userDetails.phone = [];
+    userDetails.card = [];
     
     if (user.profiles && user.profiles.length > 0) {
       const profile = user.profiles[0]; // Pega o primeiro perfil
@@ -111,7 +161,7 @@ export class UsersService {
         };
       }
       
-      // Mapear endereços
+      // Mapear endereços - mas já inicializamos como array vazio acima
       if (profile.addresses && profile.addresses.length > 0) {
         userDetails.address = profile.addresses.map(address => ({
           id: address.id,
@@ -126,7 +176,7 @@ export class UsersService {
         }));
       }
       
-      // Mapear telefones
+      // Mapear telefones - mas já inicializamos como array vazio acima
       if (profile.phones && profile.phones.length > 0) {
         userDetails.phone = profile.phones.map(phone => ({
           id: phone.id,
@@ -137,7 +187,7 @@ export class UsersService {
         }));
       }
       
-      // Mapear cartões
+      // Mapear cartões - mas já inicializamos como array vazio acima
       if (profile.cards && profile.cards.length > 0) {
         userDetails.card = profile.cards.map(card => ({
           id: card.id,
@@ -148,10 +198,15 @@ export class UsersService {
           brand: card.brand,
         }));
       }
+    } else {
+      // Se não tem perfis, inicializar um objeto profile vazio
+      userDetails.profile = {};
     }
     
     return plainToClass(UserDetailsDto, userDetails, { 
       excludeExtraneousValues: false 
     });
   }
-} 
+
+
+}

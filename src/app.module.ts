@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { RouterModule } from '@nestjs/core';
 import { UsersModule } from './modules/users/users.module';
-import { ProfilesModule } from './modules/profiles/profiles.module';
+// Remova o ProfilesModule daqui se for usá-lo apenas via RouterModule
+// import { ProfilesModule } from './modules/profiles/profiles.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
 import { PhonesModule } from './modules/phones/phones.module';
 import { CardsModule } from './modules/cards/cards.module';
@@ -11,6 +13,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DatabaseModule } from './database/database.module';
+import { ProfilesModule } from './modules/profiles/profiles.module'; // mantenha a importação para a injeção de dependência
 
 @Module({
   imports: [
@@ -19,7 +22,6 @@ import { DatabaseModule } from './database/database.module';
     }),
     DatabaseModule,
     UsersModule,
-    ProfilesModule,
     AddressesModule,
     PhonesModule,
     CardsModule,
@@ -28,6 +30,19 @@ import { DatabaseModule } from './database/database.module';
     OrdersModule,
     PaymentsModule,
     AuthModule,
+    // Aqui fazemos o aninhamento das rotas
+    RouterModule.register([
+      {
+        path: 'user',
+        module: UsersModule,
+        children: [
+          {
+            path: 'profile',
+            module: ProfilesModule,
+          },
+        ],
+      },
+    ]),
   ],
 })
 export class AppModule {}
