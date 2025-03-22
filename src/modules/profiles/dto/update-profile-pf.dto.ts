@@ -1,5 +1,5 @@
-import { IsString, IsOptional, IsISO8601 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { IsString, IsOptional, IsDate } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateProfilePfDto {
   @IsOptional()
@@ -11,8 +11,8 @@ export class UpdateProfilePfDto {
   cpf?: string;
 
   @IsOptional()
-  @IsISO8601({}, { message: 'Data de nascimento deve estar no formato ISO8601 (YYYY-MM-DD)' })
-  @Transform(({ value }) => value ? new Date(value) : undefined)
+  @Type(() => Date)
+  @IsDate({ message: 'Data de nascimento inválida. Utilize o formato YYYY-MM-DD com valores válidos' })
   birthDate?: Date;
 
   @IsOptional()

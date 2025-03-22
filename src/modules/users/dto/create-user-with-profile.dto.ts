@@ -1,65 +1,26 @@
-import { IsEmail, IsString, IsNotEmpty, IsOptional, ValidateNested, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CreateProfilePfDto } from '../../profiles/dto/create-profile-pf.dto';
-import { CreateProfilePjDto } from '../../profiles/dto/create-profile-pj.dto';
-import { ProfileType } from '../../../common/enums/profile-type.enum';
+import { IsEnum, IsNotEmpty, ValidateNested } from 'class-validator';
+import { ProfileType } from 'src/common/enums';
+import { CreateProfilePfDto } from 'src/modules/profiles/dto/create-profile-pf.dto';
+import { CreateProfilePjDto } from 'src/modules/profiles/dto/create-profile-pj.dto';
+import { CreateUserDto } from './create-user.dto';
 
-// Dados básicos do usuário
-export class CreateUserBaseDto {
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-
-  @IsString()
-  @IsNotEmpty()
-  password: string;
-}
-
-// DTO para criar usuário com perfil PF
-export class CreateUserWithProfilePfDto extends CreateUserBaseDto {
-  @IsEnum(ProfileType)
-  @IsNotEmpty()
-  profileType: ProfileType.PF;
-
-  @ValidateNested()
-  @Type(() => CreateProfilePfDto)
-  @IsNotEmpty()
-  profileData: CreateProfilePfDto;
-}
-
-// DTO para criar usuário com perfil PJ
-export class CreateUserWithProfilePjDto extends CreateUserBaseDto {
-  @IsEnum(ProfileType)
-  @IsNotEmpty()
-  profileType: ProfileType.PJ;
-
-  @ValidateNested()
-  @Type(() => CreateProfilePjDto)
-  @IsNotEmpty()
-  profileData: CreateProfilePjDto;
-}
-
-// DTO unificado para aceitar qualquer tipo de perfil
-export class CreateUserWithProfileDto {
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-
-  @IsString()
-  @IsNotEmpty()
-  password: string;
-
-  @IsEnum(ProfileType)
-  @IsNotEmpty()
+export class CreateUserWithProfileDto extends CreateUserDto {
+  @IsNotEmpty({ message: 'Tipo de perfil é obrigatório' })
+  @IsEnum(ProfileType, { message: 'Tipo de perfil inválido. Deve ser PF ou PJ' })
   profileType: ProfileType;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'Dados do perfil são obrigatórios' })
   @ValidateNested()
-  @Type(() => CreateProfilePfDto)
-  profilePfData?: CreateProfilePfDto;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => CreateProfilePjDto)
-  profilePjData?: CreateProfilePjDto;
+  @Type(() => Object, {
+    discriminator: {
+      property: 'profileType',
+      subTypes: [
+        { value: CreateProfilePfDto, name: ProfileType.PF },
+        { value: CreateProfilePjDto, name: ProfileType.PJ }
+      ]
+    },
+    keepDiscriminatorProperty: true
+  })
+  profile: CreateProfilePfDto | CreateProfilePjDto;
 } 

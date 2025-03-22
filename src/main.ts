@@ -1,25 +1,38 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationError } from 'class-validator';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
-  // Configurar pipes de validação globais
+  // Configura pipes de validação globais
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     transform: true,
-    transformOptions: { enableImplicitConversion: true },
+    forbidNonWhitelisted: false,
+    transformOptions: { 
+      enableImplicitConversion: true,
+      exposeDefaultValues: true,
+    },
+    exceptionFactory: (validationErrors: ValidationError[] = []) => {
+      // Extrai mensagens de erro de forma mais amigável
+      const errors = validationErrors.map(error => {
+        return Object.values(error.constraints || {});
+      }).flat();
+
+      return new BadRequestException(errors);
+    },
   }));
   
-  // Configurar CORS
+  // Configura CORS
   app.enableCors();
   
-  // Configurar prefixo global para API
+  // Configura prefixo global para API
   app.setGlobalPrefix('api');
   
-  // Configurar Swagger
+  // Configura Swagger
   const config = new DocumentBuilder()
     .setTitle('API B2C')
     .setDescription('Documentação da API B2C')

@@ -1,5 +1,5 @@
-import { IsNotEmpty, IsString, IsOptional, IsISO8601 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { IsNotEmpty, IsString, IsOptional, IsDate } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateProfilePfDto {
   @IsNotEmpty({ message: 'Nome completo é obrigatório' })
@@ -11,8 +11,8 @@ export class CreateProfilePfDto {
   cpf: string;
 
   @IsNotEmpty({ message: 'Data de nascimento é obrigatória' })
-  @IsISO8601({}, { message: 'Data de nascimento deve estar no formato ISO8601 (YYYY-MM-DD)' })
-  @Transform(({ value }) => new Date(value))
+  @Type(() => Date)
+  @IsDate({ message: 'Data de nascimento inválida. Utilize o formato YYYY-MM-DD com valores válidos' })
   birthDate: Date;
 
   @IsOptional()

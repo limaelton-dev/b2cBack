@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { UsersRepository } from '../repositories/users.repository';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -8,12 +8,22 @@ import { ProfileType } from '../../../common/enums/profile-type.enum';
 import { plainToClass } from 'class-transformer';
 import { UserProfileDto } from '../dto/user-profile.dto';
 import { UserDto } from '../dto/user.dto';
+import { ProfilePf } from 'src/modules/profiles/entities/profile-pf.entity';
+import { ProfilePj } from 'src/modules/profiles/entities/profile-pj.entity';
+import { CreateProfilePfDto } from 'src/modules/profiles/dto/create-profile-pf.dto';
+import { CreateProfilePjDto } from 'src/modules/profiles/dto/create-profile-pj.dto';
+import { ProfilesService } from 'src/modules/profiles/services/profiles.service';
+import { CreateUserWithProfileDto } from 'src/modules/users/dto/create-user-with-profile.dto';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    @Inject(forwardRef(() => ProfilesService))
+    private readonly profilesService: ProfilesService
+  ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  async create(createUserDto: CreateUserDto): Promise<UserProfileDto> {
     const { email } = createUserDto;
     const existingUser = await this.usersRepository.findByEmail(email);
 
@@ -21,7 +31,30 @@ export class UserService {
       throw new ConflictException('Email já está em uso');
     }
 
-    return this.usersRepository.create(createUserDto);
+    const user = await this.usersRepository.create(createUserDto);
+    
+    // Se não for criação com perfil, retorna apenas o usuário
+    if (!('profileType' in createUserDto)) {
+      return plainToClass(UserProfileDto, user);
+    }
+    
+    const withProfileDto = createUserDto as CreateUserWithProfileDto;
+    
+    // Cria perfil de acordo com o tipo
+    if (withProfileDto.profileType === ProfileType.PF) {
+      await this.profilesService.createProfilePf(
+        user.id, 
+        withProfileDto.profile as CreateProfilePfDto
+      );
+    } else if (withProfileDto.profileType === ProfileType.PJ) {
+      await this.profilesService.createProfilePj(
+        user.id, 
+        withProfileDto.profile as CreateProfilePjDto
+      );
+    }
+    
+    // Retorna o usuário com o perfil recém-criado
+    return this.findWithProfile(user.id);
   }
 
   async findOne(id: number): Promise<UserDto> {
@@ -86,32 +119,36 @@ export class UserService {
       email: user.email,
     };
     
-    if (user.profiles && user.profiles.length > 0) {
-      const profile = user.profiles[0];
-      
-      userProfile.profile_type = profile.profileType;
-      
-      if (profile.profileType === ProfileType.PF && profile.profilePf) {
-        userProfile.profile = {
-          id: profile.id,
-          fullName: profile.profilePf.fullName,
-          cpf: profile.profilePf.cpf,
-          birthDate: profile.profilePf.birthDate,
-          gender: profile.profilePf.gender,
-        };
-      } else if (profile.profileType === ProfileType.PJ && profile.profilePj) {
-        userProfile.profile = {
-          id: profile.id,
-          companyName: profile.profilePj.companyName,
-          cnpj: profile.profilePj.cnpj,
-          tradingName: profile.profilePj.tradingName,
-          stateRegistration: profile.profilePj.stateRegistration,
-          municipalRegistration: profile.profilePj.municipalRegistration,
-        };
-      }
-
-    } else {
-      userProfile.profile = {};
+    userProfile.profile = {};
+    
+    if (!user.profiles || user.profiles.length === 0) {
+      return plainToClass(UserProfileDto, userProfile, { 
+        excludeExtraneousValues: false 
+      });
+    }
+    
+    const profile = user.profiles[0];
+    userProfile.profile_type = profile.profileType;
+    
+    if (profile.profileType === ProfileType.PF && profile.profilePf) {
+      userProfile.profile = {
+        id: profile.id,
+        fullName: profile.profilePf.fullName,
+        cpf: profile.profilePf.cpf,
+        birthDate: profile.profilePf.birthDate,
+        gender: profile.profilePf.gender,
+      };
+    }
+    
+    if (profile.profileType === ProfileType.PJ && profile.profilePj) {
+      userProfile.profile = {
+        id: profile.id,
+        companyName: profile.profilePj.companyName,
+        cnpj: profile.profilePj.cnpj,
+        tradingName: profile.profilePj.tradingName,
+        stateRegistration: profile.profilePj.stateRegistration,
+        municipalRegistration: profile.profilePj.municipalRegistration,
+      };
     }
     
     return plainToClass(UserProfileDto, userProfile, { 
@@ -129,84 +166,80 @@ export class UserService {
     const userDetails: any = {
       id: user.id,
       email: user.email,
+      address: [],
+      phone: [],
+      card: [],
+      profile: {}
     };
     
-    // Inicializar arrays vazios para garantir que sempre sejam retornados
-    userDetails.address = [];
-    userDetails.phone = [];
-    userDetails.card = [];
+    if (!user.profiles || user.profiles.length === 0) {
+      return plainToClass(UserDetailsDto, userDetails, { 
+        excludeExtraneousValues: false 
+      });
+    }
     
-    if (user.profiles && user.profiles.length > 0) {
-      const profile = user.profiles[0]; // Pega o primeiro perfil
-      
-      userDetails.profile_type = profile.profileType;
-      
-      // Preencher dados específicos do tipo de perfil
-      if (profile.profileType === ProfileType.PF && profile.profilePf) {
-        userDetails.profile = {
-          id: profile.id,
-          fullName: profile.profilePf.fullName,
-          cpf: profile.profilePf.cpf,
-          birthDate: profile.profilePf.birthDate,
-          gender: profile.profilePf.gender,
-        };
-      } else if (profile.profileType === ProfileType.PJ && profile.profilePj) {
-        userDetails.profile = {
-          id: profile.id,
-          companyName: profile.profilePj.companyName,
-          cnpj: profile.profilePj.cnpj,
-          tradingName: profile.profilePj.tradingName,
-          stateRegistration: profile.profilePj.stateRegistration,
-          municipalRegistration: profile.profilePj.municipalRegistration,
-        };
-      }
-      
-      // Mapear endereços - mas já inicializamos como array vazio acima
-      if (profile.addresses && profile.addresses.length > 0) {
-        userDetails.address = profile.addresses.map(address => ({
-          id: address.id,
-          street: address.street,
-          number: address.number,
-          complement: address.complement,
-          neighborhood: address.neighborhood,
-          city: address.city,
-          state: address.state,
-          zipCode: address.zipCode,
-          isDefault: address.isDefault,
-        }));
-      }
-      
-      // Mapear telefones - mas já inicializamos como array vazio acima
-      if (profile.phones && profile.phones.length > 0) {
-        userDetails.phone = profile.phones.map(phone => ({
-          id: phone.id,
-          ddd: phone.ddd,
-          number: phone.number,
-          isDefault: phone.isDefault,
-          verified: phone.verified,
-        }));
-      }
-      
-      // Mapear cartões - mas já inicializamos como array vazio acima
-      if (profile.cards && profile.cards.length > 0) {
-        userDetails.card = profile.cards.map(card => ({
-          id: card.id,
-          cardNumber: card.cardNumber,
-          holderName: card.holderName,
-          expirationDate: card.expirationDate,
-          isDefault: card.isDefault,
-          brand: card.brand,
-        }));
-      }
-    } else {
-      // Se não tem perfis, inicializar um objeto profile vazio
-      userDetails.profile = {};
+    const profile = user.profiles[0];
+    userDetails.profile_type = profile.profileType;
+    
+    if (profile.profileType === ProfileType.PF && profile.profilePf) {
+      userDetails.profile = {
+        id: profile.id,
+        fullName: profile.profilePf.fullName,
+        cpf: profile.profilePf.cpf,
+        birthDate: profile.profilePf.birthDate,
+        gender: profile.profilePf.gender,
+      };
+    }
+    
+    if (profile.profileType === ProfileType.PJ && profile.profilePj) {
+      userDetails.profile = {
+        id: profile.id,
+        companyName: profile.profilePj.companyName,
+        cnpj: profile.profilePj.cnpj,
+        tradingName: profile.profilePj.tradingName,
+        stateRegistration: profile.profilePj.stateRegistration,
+        municipalRegistration: profile.profilePj.municipalRegistration,
+      };
+    }
+    
+    if (profile.addresses && profile.addresses.length > 0) {
+      userDetails.address = profile.addresses.map(address => ({
+        id: address.id,
+        street: address.street,
+        number: address.number,
+        complement: address.complement,
+        neighborhood: address.neighborhood,
+        city: address.city,
+        state: address.state,
+        zipCode: address.zipCode,
+        isDefault: address.isDefault,
+      }));
+    }
+    
+    if (profile.phones && profile.phones.length > 0) {
+      userDetails.phone = profile.phones.map(phone => ({
+        id: phone.id,
+        ddd: phone.ddd,
+        number: phone.number,
+        isDefault: phone.isDefault,
+        verified: phone.verified,
+      }));
+    }
+    
+    if (profile.cards && profile.cards.length > 0) {
+      userDetails.card = profile.cards.map(card => ({
+        id: card.id,
+        cardNumber: card.cardNumber,
+        holderName: card.holderName,
+        expirationDate: card.expirationDate,
+        isDefault: card.isDefault,
+        brand: card.brand,
+      }));
     }
     
     return plainToClass(UserDetailsDto, userDetails, { 
       excludeExtraneousValues: false 
     });
   }
-
 
 }

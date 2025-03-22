@@ -9,3 +9,5 @@ export class CreateUserDto {
   @MinLength(6, { message: 'A senha deve ter pelo menos 6 caracteres' })
   password: string;
 }
+
+

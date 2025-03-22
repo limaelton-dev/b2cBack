@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject, forwardRef } from '@nestjs/common';
 import { ProfilesRepository } from '../repositories/profiles.repository';
 import { UsersRepository } from '../../users/repositories/users.repository';
 import { Profile } from '../entities/profile.entity';
@@ -13,12 +13,14 @@ import { UserService } from 'src/modules/users/services/user.service';
 import { User } from 'src/modules/users/entities/user.entity';
 import { UserProfileDto } from 'src/modules/users/dto/user-profile.dto';
 import { UserProfileDetailsDto } from 'src/modules/users/dto/user-profile-details.dto';
+import { In } from 'typeorm';
 
 @Injectable()
 export class ProfilesService {
   constructor(
     private readonly profilesRepository: ProfilesRepository,
     private readonly usersRepository: UsersRepository,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService
   ) {}
 

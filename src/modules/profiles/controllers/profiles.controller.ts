@@ -11,6 +11,8 @@ import {
   HttpCode,
   HttpStatus,
   ForbiddenException,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ProfilesService } from '../services/profiles.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -28,14 +30,39 @@ export class ProfilesController {
 
   @Post('pf')
   @HttpCode(HttpStatus.CREATED)
+  @UsePipes(new ValidationPipe({ 
+    transform: true, 
+    whitelist: true,
+    forbidNonWhitelisted: false,
+    skipMissingProperties: true,
+    disableErrorMessages: false,
+    transformOptions: { enableImplicitConversion: true }
+  }))
   async createProfilePf(@Request() req, @Body() createProfilePfDto: CreateProfilePfDto) {
-    return this.profilesService.createProfilePf(req.user.userId, createProfilePfDto);
+    try {
+      return this.profilesService.createProfilePf(req.user.userId, createProfilePfDto);
+    } catch (error) {
+      if (error.status) {
+        throw error;
+      }
+      
+      throw error;
+    }
   }
 
   @Post('pj')
   @HttpCode(HttpStatus.CREATED)
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async createProfilePj(@Request() req, @Body() createProfilePjDto: CreateProfilePjDto) {
-    return this.profilesService.createProfilePj(req.user.userId, createProfilePjDto);
+    try {
+      return this.profilesService.createProfilePj(req.user.userId, createProfilePjDto);
+    } catch (error) {
+      if (error.status) {
+        throw error;
+      }
+      
+      throw error;
+    }
   }
 
   @Get()
@@ -54,7 +81,6 @@ export class ProfilesController {
   async findOne(@Request() req, @Param('id') id: string) {
     const profile = await this.profilesService.findOne(+id);
     
-    // Verificar se o perfil pertence ao usuário autenticado
     if (profile.userId !== req.user.userId) {
       throw new ForbiddenException('Você não tem permissão para acessar este perfil');
     }
@@ -66,7 +92,6 @@ export class ProfilesController {
   async findProfilePf(@Request() req, @Param('id') id: string) {
     const profile = await this.profilesService.findOne(+id);
     
-    // Verificar se o perfil pertence ao usuário autenticado
     if (profile.userId !== req.user.userId) {
       throw new ForbiddenException('Você não tem permissão para acessar este perfil');
     }
@@ -78,7 +103,6 @@ export class ProfilesController {
   async findProfilePj(@Request() req, @Param('id') id: string) {
     const profile = await this.profilesService.findOne(+id);
     
-    // Verificar se o perfil pertence ao usuário autenticado
     if (profile.userId !== req.user.userId) {
       throw new ForbiddenException('Você não tem permissão para acessar este perfil');
     }
@@ -87,35 +111,51 @@ export class ProfilesController {
   }
 
   @Put(':id/pf')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async updateProfilePf(
     @Request() req,
     @Param('id') id: string,
     @Body() updateProfilePfDto: UpdateProfilePfDto,
   ) {
-    const profile = await this.profilesService.findOne(+id);
-    
-    // Verificar se o perfil pertence ao usuário autenticado
-    if (profile.userId !== req.user.userId) {
-      throw new ForbiddenException('Você não tem permissão para atualizar este perfil');
+    try {
+      const profile = await this.profilesService.findOne(+id);
+      
+      if (profile.userId !== req.user.userId) {
+        throw new ForbiddenException('Você não tem permissão para atualizar este perfil');
+      }
+            
+      return this.profilesService.updateProfilePf(+id, updateProfilePfDto);
+    } catch (error) {
+      if (error.status) {
+        throw error;
+      }
+                  
+      throw error;
     }
-    
-    return this.profilesService.updateProfilePf(+id, updateProfilePfDto);
   }
 
   @Put(':id/pj')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async updateProfilePj(
     @Request() req,
     @Param('id') id: string,
     @Body() updateProfilePjDto: UpdateProfilePjDto,
   ) {
-    const profile = await this.profilesService.findOne(+id);
-    
-    // Verificar se o perfil pertence ao usuário autenticado
-    if (profile.userId !== req.user.userId) {
-      throw new ForbiddenException('Você não tem permissão para atualizar este perfil');
+    try {
+      const profile = await this.profilesService.findOne(+id);
+      
+      if (profile.userId !== req.user.userId) {
+        throw new ForbiddenException('Você não tem permissão para atualizar este perfil');
+      }
+      
+      return this.profilesService.updateProfilePj(+id, updateProfilePjDto);
+    } catch (error) {
+      if (error.status) {
+        throw error;
+      }
+            
+      throw error;
     }
-    
-    return this.profilesService.updateProfilePj(+id, updateProfilePjDto);
   }
 
   @Delete(':id')
@@ -123,7 +163,6 @@ export class ProfilesController {
   async remove(@Request() req, @Param('id') id: string) {
     const profile = await this.profilesService.findOne(+id);
     
-    // Verificar se o perfil pertence ao usuário autenticado
     if (profile.userId !== req.user.userId) {
       throw new ForbiddenException('Você não tem permissão para remover este perfil');
     }
