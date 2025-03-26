@@ -1,28 +1,33 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersRepository } from '../../users/repositories/users.repository';
+import { UserRepository } from '../../user/repositories/user.repository';
 import { LoginDto } from '../dto/login.dto';
 import * as bcrypt from 'bcrypt';
-import { UserService } from 'src/modules/users/services/user.service';
-import { CreateUserDto } from 'src/modules/users/dto/create-user.dto';
-import { CreateUserWithProfileDto } from 'src/modules/users/dto/create-user-with-profile.dto';
+import { UserService } from 'src/modules/user/services/user.service';
+import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
+import { CreateUserWithProfileDto } from 'src/modules/user/dto/create-user-with-profile.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly usersRepository: UsersRepository,
+    private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usersRepository.findByEmail(email);
+    const user = await this.userRepository.findByEmail(email);
+
+    console.log('user validate:', user);
     
     if (!user) {
       return null;
     }
     
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('pass1: ', password);
+    console.log('pass2:', user.password);
+    console.log('pass validate:', isPasswordValid);
     
     if (!isPasswordValid) {
       return null;

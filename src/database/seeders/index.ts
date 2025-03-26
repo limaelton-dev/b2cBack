@@ -1,15 +1,20 @@
 import { DataSource } from 'typeorm';
-import { UsersSeeder } from './users.seeder';
+import { UserSeeder } from './user.seeder';
+import { PaymentMethodsSeeder } from './payment-methods.seeder';
 
-export const runSeeders = async (dataSource: DataSource, forceCreate: boolean = false) => {
+export async function runSeeders(dataSource: DataSource, forceCreate = false): Promise<void> {
   try {
+    console.log('Iniciando execução dos seeders...');
+    
     // Executar seeder de usuários
-    const usersSeeder = new UsersSeeder(dataSource, forceCreate);
-    await usersSeeder.run();
+    await new UserSeeder(dataSource, forceCreate).run();
+    
+    // Executar seeder de métodos de pagamento
+    await new PaymentMethodsSeeder(dataSource).run();
     
     console.log('Seeders executados com sucesso!');
   } catch (error) {
     console.error('Erro ao executar seeders:', error);
     throw error;
   }
-}; 
+} 

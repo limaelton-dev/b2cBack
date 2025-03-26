@@ -1,19 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { RouterModule } from '@nestjs/core';
-import { UsersModule } from './modules/users/users.module';
-// Remova o ProfilesModule daqui se for usá-lo apenas via RouterModule
-// import { ProfilesModule } from './modules/profiles/profiles.module';
-import { AddressesModule } from './modules/addresses/addresses.module';
-import { PhonesModule } from './modules/phones/phones.module';
-import { CardsModule } from './modules/cards/cards.module';
-import { ProductsModule } from './modules/products/products.module';
-import { DiscountsModule } from './modules/discounts/discounts.module';
-import { OrdersModule } from './modules/orders/orders.module';
-import { PaymentsModule } from './modules/payments/payments.module';
+import { UserModule } from './modules/user/user.module';
+// Remova o ProfileModule daqui se for usá-lo apenas via RouterModule
+// import { ProfileModule } from './modules/profile/profile.module';
+import { AddressModule } from './modules/address/address.module';
+import { PhoneModule } from './modules/phone/phone.module';
+import { CardModule } from './modules/card/card.module';
+import { ProductModule } from './modules/product/product.module';
+import { DiscountModule } from './modules/discount/discount.module';
+import { OrderModule } from './modules/order/order.module';
+import { PaymentModule } from './modules/payment/payment.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DatabaseModule } from './database/database.module';
-import { ProfilesModule } from './modules/profiles/profiles.module'; // mantenha a importação para a injeção de dependência
+import { ProfileModule } from './modules/profile/profile.module'; // mantenha a importação para a injeção de dependência
 
 @Module({
   imports: [
@@ -21,24 +21,24 @@ import { ProfilesModule } from './modules/profiles/profiles.module'; // mantenha
       isGlobal: true,
     }),
     DatabaseModule,
-    UsersModule,
-    AddressesModule,
-    PhonesModule,
-    CardsModule,
-    ProductsModule,
-    DiscountsModule,
-    OrdersModule,
-    PaymentsModule,
+    UserModule,
+    AddressModule,
+    PhoneModule,
+    CardModule,
+    ProductModule,
+    DiscountModule,
+    OrderModule,
+    PaymentModule,
     AuthModule,
     // Aqui fazemos o aninhamento das rotas
     RouterModule.register([
       {
         path: 'user',
-        module: UsersModule,
+        module: UserModule,
         children: [
           {
             path: 'profile',
-            module: ProfilesModule,
+            module: ProfileModule,
           },
         ],
       },
