@@ -1,6 +1,6 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
-import { LoginDto } from '../dto/login.dto';
+import { SigninDto } from '../dto/signin.dto';
 import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { CreateUserWithProfileDto } from 'src/modules/user/dto/create-user-with-profile.dto';
 
@@ -8,10 +8,10 @@ import { CreateUserWithProfileDto } from 'src/modules/user/dto/create-user-with-
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('login')
+  @Post('signin')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async signin(@Body() signinDto: SigninDto) {
+    return this.authService.signin(signinDto);
   }
 
   @Post('signup')

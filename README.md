@@ -81,7 +81,7 @@ A API estará disponível em `http://localhost:3000/api`.
 
 ### Autenticação
 
-- **POST /api/auth/login**: Login de usuário
+- **POST /api/auth/signin**: Signin de usuário
   ```json
   {
     "email": "usuario@exemplo.com",
