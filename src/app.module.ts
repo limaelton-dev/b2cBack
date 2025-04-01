@@ -15,6 +15,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { ProfileModule } from './modules/profile/profile.module'; // mantenha a importação para a injeção de dependência
 import { ConnectionController } from './test/connection/connection.controller';
+import { OracleModule } from './oracle/oracle.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ConnectionController } from './test/connection/connection.controller';
     OrderModule,
     PaymentModule,
     AuthModule,
+    OracleModule,
     RouterModule.register([
       {
         path: 'user',

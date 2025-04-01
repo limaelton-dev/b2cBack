@@ -11,7 +11,7 @@ export const postgresDataSourceOptions: DataSourceOptions = {
   username: process.env.POSTGRES_DB_USERNAME,
   password: process.env.POSTGRES_DB_PASSWORD,
   database: process.env.POSTGRES_DB_DATABASE,
-  entities: ['dist/**/*.entity.js'],
+  entities: ['dist/modules/**/*.entity.js'],
   migrations: ['dist/database/migrations/*.js'],
   migrationsTableName: 'migrations_history',
   synchronize: false,
@@ -24,7 +24,7 @@ export const oracleDataSourceOptions: DataSourceOptions = {
   username: process.env.ORACLE_DB_USERNAME,
   password: process.env.ORACLE_DB_PASSWORD,
   connectString: `${process.env.ORACLE_DB_HOST}:${process.env.ORACLE_DB_PORT}/${process.env.ORACLE_DB_DATABASE}`,
-  entities: [],
+  entities: ['dist/oracle/**/*.entity.js'],
   synchronize: false
 };
 
@@ -37,7 +37,7 @@ export const getPostgresDataSourceOptions = (dbConfig: any): DataSourceOptions =
     username: dbConfig.username,
     password: dbConfig.password,
     database: dbConfig.database,
-    entities: ['dist/**/*.entity.js'],
+    entities: ['dist/modules/**/*.entity.js'],
     migrations: ['dist/database/migrations/*.js'],
     migrationsTableName: 'migrations_history',
     synchronize: false,
@@ -52,7 +52,7 @@ export const getOracleDataSourceOptions = (dbConfig: any): DataSourceOptions => 
     username: dbConfig.username,
     password: dbConfig.password,
     connectString: dbConfig.connectString,
-    entities: [],
+    entities: ['dist/oracle/**/*.entity.js'],
     synchronize: false
   };
 };

@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
 import { ProductSyncService } from '../services/product-sync.service';
 
 @Controller('products')
@@ -7,8 +7,8 @@ export class ProductSyncController {
 
   @Get('sync')
   async getProductsToSync(
-    @Query('limit') limit: number = 100,
-    @Query('offset') offset: number = 0,
+    @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
   ) {
     return this.productSyncService.getProductsToSync(limit, offset);
   }

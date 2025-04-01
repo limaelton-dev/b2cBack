@@ -9,6 +9,10 @@ export class ProductSyncRepository {
   ) {}
 
   async getProductsToSync(limit: number, offset: number): Promise<any[]> {
+    // Garantir que limit e offset sejam números válidos
+    const limitValue = isNaN(Number(limit)) ? 100 : Number(limit);
+    const offsetValue = isNaN(Number(offset)) ? 0 : Number(offset);
+
     const query = `
       SELECT PRO.PRO_CODIGO,
              TPO_CODIGO,
