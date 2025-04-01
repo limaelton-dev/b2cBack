@@ -14,6 +14,7 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { ProfileModule } from './modules/profile/profile.module'; // mantenha a importação para a injeção de dependência
+import { ConnectionController } from './test/connection/connection.controller';
 
 @Module({
   imports: [
@@ -43,5 +44,6 @@ import { ProfileModule } from './modules/profile/profile.module'; // mantenha a 
       },
     ]),
   ],
+  controllers: [ConnectionController],
 })
 export class AppModule {}

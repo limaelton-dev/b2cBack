@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService as NestConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class ConfigService {
-  constructor(private configService: NestConfigService) {}
+export class AppConfigService {
+  constructor(private configService: ConfigService) {}
 
   get(key: string): string {
     return this.configService.get<string>(key);
@@ -28,16 +28,18 @@ export class ConfigService {
       username: this.get('POSTGRES_DB_USERNAME'),
       password: this.get('POSTGRES_DB_PASSWORD'),
       database: this.get('POSTGRES_DB_DATABASE'),
+      autoLoadEntities: true,
+      logging: this.configService.get('NODE_ENV') !== 'production',
     };
   }
 
   getOracleDatabaseConfig() {
     return {
-      host: this.get('ORACLE_DB_HOST'),
-      port: this.getNumber('ORACLE_DB_PORT'),
       username: this.get('ORACLE_DB_USERNAME'),
       password: this.get('ORACLE_DB_PASSWORD'),
-      database: this.get('ORACLE_DB_DATABASE'),
+      connectString: `${this.get('ORACLE_DB_HOST')}:${this.getNumber('ORACLE_DB_PORT')}/${this.get('ORACLE_DB_DATABASE')}`,
+      autoLoadEntities: true,
+      logging: this.configService.get('NODE_ENV') !== 'production',
     };
   }
 

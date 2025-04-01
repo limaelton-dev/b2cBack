@@ -19,12 +19,10 @@ export const postgresDataSourceOptions: DataSourceOptions = {
 
 export const oracleDataSourceOptions: DataSourceOptions = {
   type: 'oracle',
-  host: process.env.ORACLE_DB_HOST,
-  port: parseInt(process.env.ORACLE_DB_PORT),
   username: process.env.ORACLE_DB_USERNAME,
   password: process.env.ORACLE_DB_PASSWORD,
-  database: process.env.ORACLE_DB_DATABASE,
-  entities: ['dist/**/*.entity.js'],
+  connectString: `${process.env.ORACLE_DB_HOST}:${process.env.ORACLE_DB_PORT}/${process.env.ORACLE_DB_DATABASE}`,
+  entities: [],
   synchronize: false
 };
 
@@ -47,12 +45,10 @@ export const getPostgresDataSourceOptions = (dbConfig: any): DataSourceOptions =
 export const getOracleDataSourceOptions = (dbConfig: any): DataSourceOptions => {
   return {
     type: 'oracle',
-    host: dbConfig.host,
-    port: dbConfig.port,
     username: dbConfig.username,
     password: dbConfig.password,
-    database: dbConfig.database,
-    entities: ['dist/**/*.entity.js'],
+    connectString: dbConfig.connectString,
+    entities: [],
     synchronize: false
   };
 };

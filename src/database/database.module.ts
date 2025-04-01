@@ -1,38 +1,34 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule as NestConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { getOracleDataSourceOptions, getPostgresDataSourceOptions } from './data-source';
-import { ConfigService as AppConfigService } from '../config/config.service';
-import { ConfigModule } from '../config/config.module';
+import { AppConfigService } from '../config/app.config.service';
+import { AppConfigModule } from '../config/app.config.module';
 
 @Module({
   imports: [
-    ConfigModule,
+    AppConfigModule,
     TypeOrmModule.forRootAsync({
       name: 'default',
-      imports: [NestConfigModule, ConfigModule],
+      imports: [ConfigModule, AppConfigModule],
       inject: [ConfigService, AppConfigService],
       useFactory: async (configService: ConfigService, appConfigService: AppConfigService) => {
         const dbConfig = appConfigService.getPostgresDatabaseConfig();
         const options = getPostgresDataSourceOptions(dbConfig);
         return {
-          ...options,
-          autoLoadEntities: true,
-          logging: configService.get('NODE_ENV') !== 'production',
+          ...options
         };
       },
     }),
     TypeOrmModule.forRootAsync({
       name: 'oracle',
-      imports: [NestConfigModule, ConfigModule],
+      imports: [ConfigModule, AppConfigModule],
       inject: [ConfigService, AppConfigService],
       useFactory: async (configService: ConfigService, appConfigService: AppConfigService) => {
         const dbConfig = appConfigService.getOracleDatabaseConfig();
         const options = getOracleDataSourceOptions(dbConfig);
         return {
-          ...options,
-          autoLoadEntities: true,
-          logging: configService.get('NODE_ENV') !== 'production',
+          ...options
         };
       },
     }),

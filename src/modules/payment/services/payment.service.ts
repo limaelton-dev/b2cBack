@@ -1,13 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PaymentRepository } from '../repositories/payment.repository';
 import { Payment } from '../entities/payment.entity';
-import { ConfigService } from '../../../config/config.service';
+import { AppConfigService } from '../../../config/app.config.service';
 
 @Injectable()
 export class PaymentService {
   constructor(
     private readonly paymentRepository: PaymentRepository,
-    private readonly configService: ConfigService,
+    private readonly configService: AppConfigService,
   ) {}
   
   async findAll(): Promise<Payment[]> {
