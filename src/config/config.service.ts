@@ -21,13 +21,23 @@ export class ConfigService {
     return this.get('JWT_SECRET');
   }
 
-  getDatabaseConfig() {
+  getPostgresDatabaseConfig() {
     return {
-      host: this.get('DB_HOST'),
-      port: this.getNumber('DB_PORT'),
-      username: this.get('DB_USERNAME'),
-      password: this.get('DB_PASSWORD'),
-      database: this.get('DB_DATABASE'),
+      host: this.get('POSTGRES_DB_HOST'),
+      port: this.getNumber('POSTGRES_DB_PORT'),
+      username: this.get('POSTGRES_DB_USERNAME'),
+      password: this.get('POSTGRES_DB_PASSWORD'),
+      database: this.get('POSTGRES_DB_DATABASE'),
+    };
+  }
+
+  getOracleDatabaseConfig() {
+    return {
+      host: this.get('ORACLE_DB_HOST'),
+      port: this.getNumber('ORACLE_DB_PORT'),
+      username: this.get('ORACLE_DB_USERNAME'),
+      password: this.get('ORACLE_DB_PASSWORD'),
+      database: this.get('ORACLE_DB_DATABASE'),
     };
   }
 

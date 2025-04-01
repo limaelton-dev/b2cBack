@@ -30,7 +30,6 @@ import { ProfileModule } from './modules/profile/profile.module'; // mantenha a 
     OrderModule,
     PaymentModule,
     AuthModule,
-    // Aqui fazemos o aninhamento das rotas
     RouterModule.register([
       {
         path: 'user',

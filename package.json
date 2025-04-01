@@ -44,6 +44,7 @@
     "dotenv": "^16.4.5",
     "google-auth-library": "^9.15.1",
     "mercadopago": "^2.3.0",
+    "oracledb": "^6.8.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.12.0",
