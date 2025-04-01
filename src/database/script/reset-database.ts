@@ -5,16 +5,41 @@ async function resetDatabase() {
   const dataSource: DataSource = await AppDataSource.initialize();
   console.log("Conexão com o banco de dados estabelecida");
 
-  // Remove todas as tabelas, índices, constraints, etc.
-  await dataSource.dropDatabase();
-  console.log("Banco de dados limpo com dropDatabase()");
+  try {
+    // Desativa temporariamente as foreign keys
+    await dataSource.query('SET session_replication_role = replica;');
+    console.log("Foreign keys desativadas");
 
-  // Opcional: Se você quiser rodar as migrations automaticamente no reset:
-  // await dataSource.runMigrations();
-  // console.log("Migrations executadas com sucesso");
+    // Obtém todas as tabelas do banco
+    const tables = await dataSource.query(`
+      SELECT tablename 
+      FROM pg_tables 
+      WHERE schemaname = 'public'
+      AND tablename != 'migrations_history'
+    `);
+    console.log(`Encontradas ${tables.length} tabelas para remover`);
 
-  await dataSource.destroy();
-  console.log("Conexão com o banco de dados fechada");
+    // Remove cada tabela
+    for (const table of tables) {
+      await dataSource.query(`DROP TABLE IF EXISTS "${table.tablename}" CASCADE`);
+      console.log(`Tabela ${table.tablename} removida`);
+    }
+
+    // Reativa as foreign keys
+    await dataSource.query('SET session_replication_role = DEFAULT;');
+    console.log("Foreign keys reativadas");
+
+    // Executa as migrations
+    await dataSource.runMigrations();
+    console.log("Migrations executadas com sucesso");
+
+  } catch (error) {
+    console.error('Erro durante o reset:', error);
+    throw error;
+  } finally {
+    await dataSource.destroy();
+    console.log("Conexão com o banco de dados fechada");
+  }
 }
 
 // Executa a função principal

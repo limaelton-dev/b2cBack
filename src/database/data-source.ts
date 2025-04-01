@@ -15,6 +15,8 @@ export const postgresDataSourceOptions: DataSourceOptions = {
   migrations: ['dist/database/migrations/*.js'],
   migrationsTableName: 'migrations_history',
   synchronize: false,
+  logging: true, // Habilita logs para debug
+  // ssl: false, // Desabilita SSL para conexões locais
 };
 
 export const oracleDataSourceOptions: DataSourceOptions = {
@@ -39,6 +41,8 @@ export const getPostgresDataSourceOptions = (dbConfig: any): DataSourceOptions =
     migrations: ['dist/database/migrations/*.js'],
     migrationsTableName: 'migrations_history',
     synchronize: false,
+    logging: true,
+    ssl: false,
   };
 };
 
