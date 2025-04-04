@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CategoriasSyncRepository } from './repositories/categorias.sync.repository';
+import { CategoriasSyncService } from './services/categorias.sync.service';
 
 @Module({
   imports: [
@@ -9,7 +10,7 @@ import { CategoriasSyncRepository } from './repositories/categorias.sync.reposit
       'oracle'
     ),
   ],
-  providers: [CategoriasSyncRepository],
-  exports: [CategoriasSyncRepository],
+  providers: [CategoriasSyncRepository, CategoriasSyncService],
+  exports: [CategoriasSyncRepository, CategoriasSyncService],
 })
 export class CategoriasSyncModule {} 

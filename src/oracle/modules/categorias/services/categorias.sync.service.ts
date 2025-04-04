@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { CategoriasSyncRepository } from '../repositories/categorias.sync.repository';
 
 @Injectable()
-export class ProductSyncService {
+export class CategoriasSyncService {
   constructor(private readonly categoriaSyncRepository: CategoriasSyncRepository) {}
 
-  async getProdutosToSync(limit: number, offset: number): Promise<any[]> {
+  async getCategoriasToSync(): Promise<any[]> {
     return this.categoriaSyncRepository.getCategoriasToSync();
   }
 }

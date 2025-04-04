@@ -1,12 +1,12 @@
 import { Controller, Get, Query, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
 import { ProdutosSyncService } from '../services/produtos.sync.service';
-import { CategoriasSyncRepository } from '../../categorias/repositories/categorias.sync.repository';
+import { CategoriasSyncService } from '../../categorias/services/categorias.sync.service';
 
 @Controller('products')
 export class ProdutoSyncController {
   constructor(
     private readonly productSyncService: ProdutosSyncService,
-    private readonly categoriasSyncService: CategoriasSyncRepository,
+    private readonly categoriasSyncService: CategoriasSyncService,
   ) {}
 
   @Get('sync')
