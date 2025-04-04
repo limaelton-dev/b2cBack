@@ -3,12 +3,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
 @Injectable()
-export class ProductSyncRepository {
+export class ProdutosSyncRepository {
   constructor(
     @InjectDataSource('oracle') private readonly oracleDataSource: DataSource,
   ) { }
 
-  async getProductsToSync(limit: number, offset: number): Promise<any[]> {
+  async getProdutosToSync(limit: number, offset: number): Promise<any[]> {
     const limitValue = isNaN(Number(limit)) ? 1000 : Number(limit);
     const offsetValue = isNaN(Number(offset)) ? 0 : Number(offset);
 

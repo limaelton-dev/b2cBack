@@ -18,7 +18,7 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
 
         CREATE TABLE profile (
             id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL,
+            user_id INT NOT NULL,
             profile_type profile_type_enum NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -27,7 +27,7 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
         );
 
         CREATE TABLE profile_pf (
-            profile_id INTEGER PRIMARY KEY,
+            profile_id INT PRIMARY KEY,
             full_name VARCHAR(255) NOT NULL,
             cpf VARCHAR(14) UNIQUE NOT NULL,
             birth_date DATE NOT NULL,
@@ -37,7 +37,7 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
         );
 
         CREATE TABLE profile_pj (
-            profile_id INTEGER PRIMARY KEY,
+            profile_id INT PRIMARY KEY,
             company_name VARCHAR(255) NOT NULL,
             cnpj VARCHAR(18) UNIQUE NOT NULL,
             trading_name VARCHAR(255),
@@ -49,7 +49,7 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
 
         CREATE TABLE address (
             id SERIAL PRIMARY KEY,
-            profile_id INTEGER NOT NULL,
+            profile_id INT NOT NULL,
             street VARCHAR(255) NOT NULL,
             number VARCHAR(20) NOT NULL,
             complement VARCHAR(255),
@@ -66,7 +66,7 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
 
         CREATE TABLE phone (
             id SERIAL PRIMARY KEY,
-            profile_id INTEGER NOT NULL,
+            profile_id INT NOT NULL,
             ddd VARCHAR(3) NOT NULL,
             number VARCHAR(10) NOT NULL,
             is_default BOOLEAN DEFAULT false,
@@ -79,7 +79,7 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
 
         CREATE TABLE card (
             id SERIAL PRIMARY KEY,
-            profile_id INTEGER NOT NULL,
+            profile_id INT NOT NULL,
             card_number VARCHAR(19) NOT NULL,
             holder_name VARCHAR(255) NOT NULL,
             expiration_date VARCHAR(7) NOT NULL,
@@ -91,17 +91,24 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
                 REFERENCES profile(id) ON DELETE CASCADE
         );
 
-        CREATE TABLE category (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            slug VARCHAR(100) NOT NULL UNIQUE,
-            parent_category_id INT REFERENCES category(id)
-        );
-
         CREATE TABLE brand (
             id SERIAL PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            slug VARCHAR(100) NOT NULL UNIQUE
+            oracle_id INT NOT NULL UNIQUE,
+            name TEXT NOT NULL,
+            slug TEXT NOT NULL UNIQUE
+        );
+
+        CREATE TABLE category (
+            id SERIAL PRIMARY KEY,
+            oracle_id INT NOT NULL,
+            name TEXT NOT NULL,
+            slug TEXT NOT NULL UNIQUE,
+            parent_id INT REFERENCES category(id)
+            brand_id INT REFERENCES brand(id),
+            level SMALLINT NOT NULL, -- 1=Pai, 2=Filho, 3=Neto
+            source_table TEXT NOT NULL, -- Tabela de origem (ex: PRODUTO, FABRICANTE, etc.)
+            source_column TEXT NOT NULL, -- Coluna de origem (ex: PRO_CODIGO, FAB_CODIGO, etc.)
+            UNIQUE (oracle_id, source_table, source_column)
         );
 
         CREATE TABLE product (
@@ -109,14 +116,14 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
             name VARCHAR(255) NOT NULL,
             description TEXT,
             price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
-            stock INTEGER NOT NULL CHECK (stock >= 0),
+            stock INT NOT NULL CHECK (stock >= 0),
             sku VARCHAR(50) UNIQUE NOT NULL,
             weight DECIMAL(10, 2) NOT NULL CHECK (weight >= 0),
             height DECIMAL(10, 2) NOT NULL CHECK (height >= 0),
             width DECIMAL(10, 2) NOT NULL CHECK (width >= 0),
             length DECIMAL(10, 2) NOT NULL CHECK (length >= 0),
-            brand_id INTEGER,
-            category_id INTEGER,
+            brand_id INT,
+            category_id INT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             CONSTRAINT fk_product_brand FOREIGN KEY (brand_id)
@@ -133,7 +140,7 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
             value DECIMAL(10, 2),
             scope discount_scope_enum NOT NULL,
             combinable BOOLEAN DEFAULT false,
-            min_quantity INTEGER,
+            min_quantity INT,
             first_purchase_only BOOLEAN DEFAULT false,
             start_date TIMESTAMP NOT NULL,
             end_date TIMESTAMP NOT NULL,
@@ -144,8 +151,8 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
 
         CREATE TABLE discount_product (
             id SERIAL PRIMARY KEY,
-            discount_id INTEGER NOT NULL,
-            product_id INTEGER NOT NULL,
+            discount_id INT NOT NULL,
+            product_id INT NOT NULL,
             CONSTRAINT fk_discount_product_discount FOREIGN KEY (discount_id)
                 REFERENCES discount(id) ON DELETE CASCADE,
             CONSTRAINT fk_discount_product_product FOREIGN KEY (product_id)
@@ -154,11 +161,11 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
 
         CREATE TABLE "order" (
             id SERIAL PRIMARY KEY,
-            profile_id INTEGER NOT NULL,
+            profile_id INT NOT NULL,
             total_price DECIMAL(10, 2) NOT NULL CHECK (total_price >= 0),
             status order_status_enum DEFAULT 'pending',
             full_address TEXT NOT NULL,
-            discount_id INTEGER,
+            discount_id INT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             CONSTRAINT fk_order_profile FOREIGN KEY (profile_id)
@@ -169,12 +176,12 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
 
         CREATE TABLE order_item (
             id SERIAL PRIMARY KEY,
-            order_id INTEGER NOT NULL,
-            product_id INTEGER NOT NULL,
-            quantity INTEGER NOT NULL,
+            order_id INT NOT NULL,
+            product_id INT NOT NULL,
+            quantity INT NOT NULL,
             price DECIMAL(10, 2) NOT NULL,
             discount DECIMAL(10, 2),
-            coupon_id INTEGER,
+            coupon_id INT,
             total_price DECIMAL(10, 2) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -193,11 +200,11 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
 
         CREATE TABLE payment (
             id SERIAL PRIMARY KEY,
-            order_id INTEGER NOT NULL,
+            order_id INT NOT NULL,
             transaction_amount DECIMAL(10, 2) NOT NULL,
-            payment_method_id INTEGER NOT NULL,
+            payment_method_id INT NOT NULL,
             token VARCHAR(255),
-            installments INTEGER NOT NULL,
+            installments INT NOT NULL,
             external_reference VARCHAR(255),
             payer_email VARCHAR(255) NOT NULL,
             payer_identification_type VARCHAR(50) NOT NULL,

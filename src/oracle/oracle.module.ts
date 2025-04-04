@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ProductSyncModule } from './modules/produto/product-sync.module';
+import { ProdutosSyncModule } from './modules/produto/produtos.sync.module';
 
 @Module({
-  imports: [ProductSyncModule],
-  exports: [ProductSyncModule],
+  imports: [ProdutosSyncModule],
+  exports: [ProdutosSyncModule],
 })
 export class OracleModule {}

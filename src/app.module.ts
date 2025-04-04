@@ -2,8 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { RouterModule } from '@nestjs/core';
 import { UserModule } from './modules/user/user.module';
-// Remova o ProfileModule daqui se for usá-lo apenas via RouterModule
-// import { ProfileModule } from './modules/profile/profile.module';
 import { AddressModule } from './modules/address/address.module';
 import { PhoneModule } from './modules/phone/phone.module';
 import { CardModule } from './modules/card/card.module';
@@ -13,9 +11,10 @@ import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DatabaseModule } from './database/database.module';
-import { ProfileModule } from './modules/profile/profile.module'; // mantenha a importação para a injeção de dependência
+import { ProfileModule } from './modules/profile/profile.module';
 import { ConnectionController } from './test/connection/connection.controller';
 import { OracleModule } from './oracle/oracle.module';
+import { CategoryModule } from './modules/category/category.module';
 
 @Module({
   imports: [
@@ -45,6 +44,7 @@ import { OracleModule } from './oracle/oracle.module';
         ],
       },
     ]),
+    CategoryModule,
   ],
   controllers: [ConnectionController],
 })
