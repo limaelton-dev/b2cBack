@@ -7,7 +7,7 @@ export class ProductSyncController {
 
   @Get('sync')
   async getProductsToSync(
-    @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit: number,
+    @Query('limit', new DefaultValuePipe(1000), ParseIntPipe) limit: number,
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
   ) {
     return this.productSyncService.getProductsToSync(limit, offset);
