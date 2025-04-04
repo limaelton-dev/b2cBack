@@ -3,6 +3,11 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 export class ConsolidatedMigration1714680000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
+        DROP TYPE IF EXISTS profile_type_enum CASCADE;
+        DROP TYPE IF EXISTS order_status_enum CASCADE;
+        DROP TYPE IF EXISTS discount_unit_enum CASCADE;
+        DROP TYPE IF EXISTS discount_scope_enum CASCADE;
+
         CREATE TYPE profile_type_enum AS ENUM ('PF', 'PJ');
         CREATE TYPE order_status_enum AS ENUM ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled');
         CREATE TYPE discount_unit_enum AS ENUM ('percentage', 'fixed', 'free_shipping');
@@ -103,7 +108,7 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
             oracle_id INT NOT NULL,
             name TEXT NOT NULL,
             slug TEXT NOT NULL UNIQUE,
-            parent_id INT REFERENCES category(id)
+            parent_id INT REFERENCES category(id),
             brand_id INT REFERENCES brand(id),
             level SMALLINT NOT NULL, -- 1=Pai, 2=Filho, 3=Neto
             source_table TEXT NOT NULL, -- Tabela de origem (ex: PRODUTO, FABRICANTE, etc.)

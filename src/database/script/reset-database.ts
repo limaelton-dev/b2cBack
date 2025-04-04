@@ -15,7 +15,6 @@ async function resetDatabase() {
       SELECT tablename 
       FROM pg_tables 
       WHERE schemaname = 'public'
-      AND tablename != 'migrations_history'
     `);
     console.log(`Encontradas ${tables.length} tabelas para remover`);
 
