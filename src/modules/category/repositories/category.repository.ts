@@ -56,4 +56,21 @@ export class CategoryRepository {
         return this.categoryRepository.save(newCategory);
     }
 
+    async getId(data: {
+        oracleId: number;
+        sourceTable: string;
+        sourceColumn: string;
+    }): Promise<number | null> {
+        const category = await this.categoryRepository.findOne({
+            select: ["id"],
+            where: {
+                oracleId: data.oracleId,
+                sourceTable: data.sourceTable,
+                sourceColumn: data.sourceColumn,
+            },
+        });
+
+        return category ? category.id : null;
+    }
+
 }
