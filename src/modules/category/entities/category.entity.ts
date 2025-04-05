@@ -6,19 +6,19 @@ export class Category {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column({name: 'oracle_id', unique: true})
     oracleId: number;
 
-    @Column()
+    @Column({name: 'name'})
     name: string;
 
-    @Column()
+    @Column({ name: 'source_table' })
     sourceTable: string;
 
-    @Column()
+    @Column({ name: 'source_column' })
     sourceColumn: string;
 
-    @Column()
+    @Column({ name: 'slug' })
     slug: string;
 
     @Column({ type: 'smallint' })

@@ -43,7 +43,7 @@ export class CategoriasSyncService {
             }
 
             const childKey = `2-${item.COD_FILHO}-${brand.id}`;
-            if (processedCategoryKeys.has(childKey)) {
+            if (!processedCategoryKeys.has(childKey)) {
                 const parentId = await this.categoryRepository.getId({
                     oracleId: item.COD_PAI,
                     sourceTable: 'PRODUTO_CLASSIFICACAO',

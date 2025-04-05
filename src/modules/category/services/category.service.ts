@@ -19,6 +19,7 @@ export class CategoryService {
   async getCategoryMenu(): Promise<any[]> {
     // Busca todas as brands
     const brands = await this.brandRepository.find();
+    console.log('brands', brands);
 
     const result = [];
 
@@ -32,25 +33,25 @@ export class CategoryService {
 
       const parents = categories.filter(c => c.level === 1);
       const children = categories.filter(c => c.level === 2);
-      const netos = categories.filter(c => c.level === 3);
+      const grandChidren = categories.filter(c => c.level === 3);
 
       const formattedCategories = parents.map(parent => {
         const childList = children
           .filter(child => child.parent?.id === parent.id)
           .map(child => {
-            const netoList = netos
-              .filter(neto => neto.parent?.id === child.id)
-              .map(neto => ({
-                id: neto.id,
-                name: neto.name,
-                slug: neto.slug,
+            const grandChildList = grandChidren
+              .filter(grandChild => grandChild.parent?.id === child.id)
+              .map(grandChild => ({
+                id: grandChild.id,
+                name: grandChild.name,
+                slug: grandChild.slug,
               }));
 
             return {
               id: child.id,
               name: child.name,
               slug: child.slug,
-              children: netoList,
+              children: grandChildList,
             };
           });
 

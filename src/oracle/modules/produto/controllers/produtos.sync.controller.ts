@@ -19,6 +19,6 @@ export class ProdutoSyncController {
 
   @Get('sync/categorias')
   async getCategoriasToSync() {
-    return this.categoriasSyncService.getCategoriasToSync();
+    return this.categoriasSyncService.syncCategorysFromOracle();
   }
 }

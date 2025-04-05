@@ -2,15 +2,15 @@ import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('brand')
 export class Brand {
-    @PrimaryGeneratedColumn()
+    @PrimaryGeneratedColumn({ name: 'id' })
     id: number;
 
-    @Column({ unique: true })
+    @Column({ name: 'oracle_id', unique: true })
     oracleId: number;
 
-    @Column()
+    @Column({name: 'name'})
     name: string;
 
-    @Column({ unique: true })
+    @Column({ name: 'slug', unique: true })
     slug: string;
 }
