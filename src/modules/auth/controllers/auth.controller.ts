@@ -10,6 +10,7 @@ export class AuthController {
 
   @Post('signin')
   @HttpCode(HttpStatus.OK)
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async signin(@Body() signinDto: SigninDto) {
     return this.authService.signin(signinDto);
   }

@@ -17,17 +17,12 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.userRepository.findByEmail(email);
-
-    console.log('user validate:', user);
     
     if (!user) {
       return null;
     }
     
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log('pass1: ', password);
-    console.log('pass2:', user.password);
-    console.log('pass validate:', isPasswordValid);
     
     if (!isPasswordValid) {
       return null;
