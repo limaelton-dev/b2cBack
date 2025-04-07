@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from '../../user/repositories/user.repository';
-import { SigninDto } from '../dto/signin.dto';
+import { SignInDto } from '../dto/sign.in.dto';
 import * as bcrypt from 'bcrypt';
 import { UserService } from 'src/modules/user/services/user.service';
 import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
@@ -32,8 +32,8 @@ export class AuthService {
     return result;
   }
 
-  async signin(signinDto: SigninDto) {
-    const { email, password } = signinDto;
+  async signIn(signInDto: SignInDto) {
+    const { email, password } = signInDto;
     const user = await this.validateUser(email, password);
     
     if (!user) {
@@ -51,7 +51,7 @@ export class AuthService {
     };
   }
 
-  async signup(createUserDto: CreateUserDto | CreateUserWithProfileDto) {
+  async signUp(createUserDto: CreateUserDto | CreateUserWithProfileDto) {
     const user = await this.userService.create(createUserDto);
     
     const payload = { email: user.email, sub: user.id };
