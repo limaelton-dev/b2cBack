@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CategoriasSyncRepository } from '../repositories/categorias.sync.repository';
 import { BrandRepository } from 'src/modules/category/repositories/brand.repository';
 import { CategoryRepository } from 'src/modules/category/repositories/category.repository';
-import { normalizeFabCodigo } from 'src/common/helpers/normalize.categorias';
+import { normalizeFabCodigo } from 'src/common/helpers/category.util';
 
 @Injectable()
 export class CategoriasSyncService {
