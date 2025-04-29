@@ -1,18 +1,85 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  IsNotEmpty
+} from 'class-validator';
 
 export class CreateProductDto {
-  @IsNotEmpty({ message: 'Nome é obrigatório' })
-  @IsString({ message: 'Nome deve ser uma string' })
+  @IsInt()
+  oracleId: number;
+
+  @IsString()
+  @IsNotEmpty()
+  reference: string;
+
+  @IsString()
+  @IsNotEmpty()
   name: string;
 
+  @IsString()
   @IsOptional()
-  @IsString({ message: 'Descrição deve ser uma string' })
   description?: string;
 
-  @IsNotEmpty({ message: 'Preço é obrigatório' })
-  @IsNumber({}, { message: 'Preço deve ser um número' })
-  @Type(() => Number)
-  @Min(0, { message: 'Preço deve ser maior ou igual a zero' })
+  @IsString()
+  @IsOptional()
+  techDescription?: string;
+
+  @IsString()
+  @IsOptional()
+  packagingContent?: string;
+
+  @IsString()
+  @IsOptional()
+  model?: string;
+
+  @IsNumber()
+  @IsPositive()
   price: number;
-} 
+
+  @IsInt()
+  stock: number;
+
+  @IsString()
+  unit: string;
+
+  @IsString()
+  barcode: string;
+
+  @IsString()
+  sku: string;
+
+  @IsNumber()
+  @IsPositive()
+  weight: number;
+
+  @IsNumber()
+  @IsPositive()
+  height: number;
+
+  @IsNumber()
+  @IsPositive()
+  width: number;
+
+  @IsNumber()
+  @IsPositive()
+  length: number;
+
+  @IsString()
+  slug: string;
+
+  @IsInt()
+  brandId: number;
+
+  @IsInt()
+  categoryLevel1Id: number;
+
+  @IsInt()
+  categoryLevel2Id: number;
+
+  @IsOptional()
+  @IsInt()
+  categoryLevel3Id?: number;
+}

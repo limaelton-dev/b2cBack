@@ -103,37 +103,51 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
             slug TEXT NOT NULL UNIQUE
         );
 
-        CREATE TABLE category (
+        CREATE TABLE category ( 
             id SERIAL PRIMARY KEY,
             oracle_id INT NOT NULL,
             name TEXT NOT NULL,
             slug TEXT NOT NULL UNIQUE,
             parent_id INT REFERENCES category(id),
             brand_id INT REFERENCES brand(id),
-            level SMALLINT NOT NULL, -- 1=Pai, 2=Filho, 3=Neto
-            source_table TEXT NOT NULL, -- Tabela de origem (ex: PRODUTO, FABRICANTE, etc.)
-            source_column TEXT NOT NULL, -- Coluna de origem (ex: PRO_CODIGO, FAB_CODIGO, etc.)
+            level SMALLINT NOT NULL,                                -- 1=Pai, 2=Filho, 3=Neto
+            source_table TEXT NOT NULL,                             -- Tabela de origem (ex: PRODUTO, FABRICANTE, etc.)
+            source_column TEXT NOT NULL,                            -- Coluna de origem (ex: PRO_CODIGO, FAB_CODIGO, etc.)
             UNIQUE (oracle_id, source_table, source_column)
         );
 
         CREATE TABLE product (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            description TEXT,
-            price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
-            stock INT NOT NULL CHECK (stock >= 0),
-            sku VARCHAR(50) UNIQUE NOT NULL,
-            weight DECIMAL(10, 2) NOT NULL CHECK (weight >= 0),
-            height DECIMAL(10, 2) NOT NULL CHECK (height >= 0),
-            width DECIMAL(10, 2) NOT NULL CHECK (width >= 0),
-            length DECIMAL(10, 2) NOT NULL CHECK (length >= 0),
-            brand_id INT,
-            category_id INT,
+            id SERIAL PRIMARY KEY, 
+            oracle_id INT NOT NULL,                                 -- PRO_CODIGO
+            reference TEXT NOT NULL unique,                         -- PRO_REFERENCIA
+            name TEXT NOT NULL,                             -- PRO_DESCRICAO
+            description TEXT,                                       -- PRO_APRESENTACAO
+            tech_description TEXT,                                  -- PRO_DES_TECNICA
+            packaging_content TEXT,                                 -- PRO_CONTEUDO_EMB || PRO_CONTEUDO_EMB2
+            model TEXT,                                             -- PRO_MODELO_COM
+            price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),       -- PRO_PRECO_VENDA
+            stock INT NOT NULL CHECK (stock >= 0),                  -- PRO_ESTOQUE
+            unit VARCHAR(50) NOT NULL,                              -- PRO_UNIDADE
+            barcode VARCHAR(50) UNIQUE NOT NULL,                    -- PRO_CODIGOBARRA
+            sku TEXT UNIQUE NOT NULL,                        -- PRO_PARTNUM_SKU
+            weight DECIMAL(10, 2) NOT NULL CHECK (weight >= 0),     -- PRO_PESO_PRO || PRO_PESO_EMB
+            height DECIMAL(10, 2) NOT NULL CHECK (height >= 0),     -- PRO_ALTURA_PRO || PRO_ALTURA_EMB
+            width DECIMAL(10, 2) NOT NULL CHECK (width >= 0),       -- PRO_LARGURA_PRO || PRO_LARGURA_EMB
+            length DECIMAL(10, 2) NOT NULL CHECK (length >= 0),     -- PRO_COMPRIMENTO_PRO || PRO_COMPRIMENTO_EMB
+            slug TEXT NOT NULL UNIQUE,                              -- PRO_URL_AMIGAVEL
+            brand_id INT,                                           -- FAB_CODIGO
+            category_level1_id INT,                                 -- PRO_PROPCL2
+            category_level2_id INT,                                 -- TPO_CODIGO
+            category_level3_id INT,                                 -- PRO_PROPCL4
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             CONSTRAINT fk_product_brand FOREIGN KEY (brand_id)
                 REFERENCES brand(id) ON DELETE SET NULL,
-            CONSTRAINT fk_product_category FOREIGN KEY (category_id)
+            CONSTRAINT fk_product_category_l1 FOREIGN KEY (category_level1_id) 
+                REFERENCES category(id) ON DELETE SET NULL,
+            CONSTRAINT fk_product_category_l2 FOREIGN KEY (category_level2_id) 
+                REFERENCES category(id) ON DELETE SET NULL,
+            CONSTRAINT fk_product_category_l3 FOREIGN KEY (category_level3_id) 
                 REFERENCES category(id) ON DELETE SET NULL
         );
 

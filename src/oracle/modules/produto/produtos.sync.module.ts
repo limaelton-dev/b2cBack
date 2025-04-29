@@ -7,6 +7,8 @@ import { Tipo } from './entities/tipo.entity';
 import { Produto } from './entities/produto.entity';
 import { Fabricante } from './entities/fabricante.entity';
 import { CategoriasSyncModule } from '../categorias/categorias.sync.module';
+import { CategoryModule } from 'src/modules/category/category.module';
+import { ProductModule } from 'src/modules/product/product.module';
 
 @Module({
   imports: [
@@ -19,8 +21,11 @@ import { CategoriasSyncModule } from '../categorias/categorias.sync.module';
       'oracle'
     ),
     CategoriasSyncModule,
+    CategoryModule,
+    ProductModule,
   ],
   controllers: [ProdutoSyncController],
   providers: [ProdutosSyncService, ProdutosSyncRepository],
+  exports: [ProdutosSyncService, ProdutosSyncRepository],
 })
 export class ProdutosSyncModule {}

@@ -1,20 +1,89 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+  ManyToOne,
+  JoinColumn
+} from 'typeorm';
 import { OrderItem } from '../../order/entities/order-item.entity';
 import { DiscountProduct } from '../../discount/entities/discount-product.entity';
+import { Brand } from '../../category/entities/brand.entity';
+import { Category } from '../../category/entities/category.entity';
 
 @Entity('product')
 export class Product {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  name: string;
+  @Column({ name: 'oracle_id' })
+  oracleId: number; // PRO_CODIGO
 
-  @Column({ nullable: true, type: 'text' })
-  description: string;
+  @Column({ unique: true })
+  reference: string; // PRO_REFERENCIA
+
+  @Column()
+  name: string; // PRO_DESCRICAO
+
+  @Column({ type: 'text', nullable: true })
+  description: string; // PRO_APRESENTACAO
+
+  @Column({ name: 'tech_description', type: 'text', nullable: true })
+  techDescription: string; // PRO_DES_TECNICA
+
+  @Column({ name: 'packaging_content', type: 'text', nullable: true })
+  packagingContent: string; // PRO_CONTEUDO_EMB || PRO_CONTEUDO_EMB2
+
+  @Column({ nullable: true })
+  model: string; // PRO_MODELO_COM
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price: number;
+  price: number; // PRO_PRECO_VENDA
+
+  @Column()
+  stock: number; // PRO_ESTOQUE
+
+  @Column()
+  unit: string; // PRO_UNIDADE
+
+  @Column({ unique: true })
+  barcode: string; // PRO_CODIGOBARRA
+
+  @Column({ unique: true })
+  sku: string; // PRO_PARTNUM_SKU
+
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  weight: number; // PRO_PESO_PRO || PRO_PESO_EMB
+
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  height: number; // PRO_ALTURA_PRO || PRO_ALTURA_EMB
+
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  width: number; // PRO_LARGURA_PRO || PRO_LARGURA_EMB
+
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  length: number; // PRO_COMPRIMENTO_PRO || PRO_COMPRIMENTO_EMB
+
+  @Column({ unique: true })
+  slug: string; // PRO_URL_AMIGAVEL
+
+  @ManyToOne(() => Brand, { nullable: true })
+  @JoinColumn({ name: 'brand_id' })
+  brand: Brand;
+
+  @ManyToOne(() => Category, { nullable: true })
+  @JoinColumn({ name: 'category_level1_id' })
+  categoryLevel1: Category;
+
+  @ManyToOne(() => Category, { nullable: true })
+  @JoinColumn({ name: 'category_level2_id' })
+  categoryLevel2: Category;
+
+  @ManyToOne(() => Category, { nullable: true })
+  @JoinColumn({ name: 'category_level3_id' })
+  categoryLevel3: Category;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -27,4 +96,4 @@ export class Product {
 
   @OneToMany(() => DiscountProduct, (discountProduct) => discountProduct.product)
   discountProduct: DiscountProduct[];
-} 
+}
