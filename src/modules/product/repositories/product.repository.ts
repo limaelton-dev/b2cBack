@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Product } from '../entities/product.entity';
@@ -6,6 +6,7 @@ import { CreateProductDto } from '../dto/create-product.dto';
 
 @Injectable()
 export class ProductRepository {
+  private readonly logger = new Logger(ProductRepository.name);
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
@@ -61,11 +62,22 @@ export class ProductRepository {
     });
 
     if (existing) {
-      Object.assign(existing, data);
-      return this.productRepository.save(existing);
+      console.log('[UPSERT] Atualizando produto existente com ID:', existing.id);
+      console.log('[UPSERT] Dados atualizados:', data);
+    } else {
+      console.log('[UPSERT] Criando novo produto com dados:', data);
     }
 
     const newProduct = this.productRepository.create(data);
+    console.log('[UPSERT] Salvando entidade:', newProduct);
     return this.productRepository.save(newProduct);
+  }
+
+  /**
+   * Retorna o repositório interno do TypeORM para operações especiais
+   * @returns O repositório TypeORM
+   */
+  getRepository(): Repository<Product> {
+    return this.productRepository;
   }
 } 

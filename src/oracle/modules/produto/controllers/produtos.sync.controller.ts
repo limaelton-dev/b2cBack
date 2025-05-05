@@ -14,7 +14,7 @@ export class ProdutoSyncController {
     @Query('limit', new DefaultValuePipe(1000), ParseIntPipe) limit: number,
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
   ) {
-    return this.productSyncService.getProdutosToSync(limit, offset);
+    return this.productSyncService.syncFromOracle(limit, offset);
   }
 
   @Get('sync/categorias')

@@ -4,8 +4,15 @@ import {
   IsOptional,
   IsPositive,
   IsString,
-  IsNotEmpty
+  IsNotEmpty,
+  ValidateNested
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class RelatedEntity {
+  @IsInt()
+  id: number;
+}
 
 export class CreateProductDto {
   @IsInt()
@@ -70,16 +77,21 @@ export class CreateProductDto {
   @IsString()
   slug: string;
 
-  @IsInt()
-  brandId: number;
+  @ValidateNested()
+  @Type(() => RelatedEntity)
+  brand: RelatedEntity;
 
-  @IsInt()
-  categoryLevel1Id: number;
+  @ValidateNested()
+  @Type(() => RelatedEntity)
+  categoryLevel1: RelatedEntity;
 
-  @IsInt()
-  categoryLevel2Id: number;
-
+  @ValidateNested()
+  @Type(() => RelatedEntity)
   @IsOptional()
-  @IsInt()
-  categoryLevel3Id?: number;
+  categoryLevel2?: RelatedEntity;
+
+  @ValidateNested()
+  @Type(() => RelatedEntity)
+  @IsOptional()
+  categoryLevel3?: RelatedEntity;
 }

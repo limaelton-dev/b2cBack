@@ -120,7 +120,7 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
             id SERIAL PRIMARY KEY, 
             oracle_id INT NOT NULL,                                 -- PRO_CODIGO
             reference TEXT NOT NULL unique,                         -- PRO_REFERENCIA
-            name TEXT NOT NULL,                             -- PRO_DESCRICAO
+            name TEXT NOT NULL,                                     -- PRO_DESCRICAO
             description TEXT,                                       -- PRO_APRESENTACAO
             tech_description TEXT,                                  -- PRO_DES_TECNICA
             packaging_content TEXT,                                 -- PRO_CONTEUDO_EMB || PRO_CONTEUDO_EMB2
@@ -128,15 +128,15 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
             price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),       -- PRO_PRECO_VENDA
             stock INT NOT NULL CHECK (stock >= 0),                  -- PRO_ESTOQUE
             unit VARCHAR(50) NOT NULL,                              -- PRO_UNIDADE
-            barcode VARCHAR(50) UNIQUE NOT NULL,                    -- PRO_CODIGOBARRA
-            sku TEXT UNIQUE NOT NULL,                        -- PRO_PARTNUM_SKU
+            barcode VARCHAR(50) NOT NULL,                           -- PRO_CODIGOBARRA
+            sku TEXT NOT NULL,                                      -- PRO_PARTNUM_SKU
             weight DECIMAL(10, 2) NOT NULL CHECK (weight >= 0),     -- PRO_PESO_PRO || PRO_PESO_EMB
             height DECIMAL(10, 2) NOT NULL CHECK (height >= 0),     -- PRO_ALTURA_PRO || PRO_ALTURA_EMB
             width DECIMAL(10, 2) NOT NULL CHECK (width >= 0),       -- PRO_LARGURA_PRO || PRO_LARGURA_EMB
             length DECIMAL(10, 2) NOT NULL CHECK (length >= 0),     -- PRO_COMPRIMENTO_PRO || PRO_COMPRIMENTO_EMB
             slug TEXT NOT NULL UNIQUE,                              -- PRO_URL_AMIGAVEL
-            brand_id INT,                                           -- FAB_CODIGO
-            category_level1_id INT,                                 -- PRO_PROPCL2
+            brand_id INT NOT NULL,                                  -- FAB_CODIGO
+            category_level1_id INT NOT NULL,                        -- PRO_PROPCL2
             category_level2_id INT,                                 -- TPO_CODIGO
             category_level3_id INT,                                 -- PRO_PROPCL4
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

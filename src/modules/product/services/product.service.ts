@@ -3,13 +3,40 @@ import { ProductRepository } from '../repositories/product.repository';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { Product } from '../entities/product.entity';
+import { Brand } from '../../category/entities/brand.entity';
+import { Category } from '../../category/entities/category.entity';
 
 @Injectable()
 export class ProductService {
   constructor(private readonly productRepository: ProductRepository) {}
 
   async create(createProductDto: CreateProductDto): Promise<Product> {
-    return this.productRepository.create(createProductDto);
+    // Converter DTO para formato compatível com o repository
+    const productData = this.mapDtoToEntity(createProductDto);
+    return this.productRepository.create(productData);
+  }
+
+  private mapDtoToEntity(dto: CreateProductDto): Partial<Product> {
+    const result: any = { ...dto };
+    
+    // Transformar relações em objetos com apenas o ID
+    if (dto.brand) {
+      result.brand = { id: dto.brand.id };
+    }
+    
+    if (dto.categoryLevel1) {
+      result.categoryLevel1 = { id: dto.categoryLevel1.id };
+    }
+    
+    if (dto.categoryLevel2) {
+      result.categoryLevel2 = { id: dto.categoryLevel2.id };
+    }
+    
+    if (dto.categoryLevel3) {
+      result.categoryLevel3 = { id: dto.categoryLevel3.id };
+    }
+    
+    return result;
   }
 
   async findAll(): Promise<Product[]> {

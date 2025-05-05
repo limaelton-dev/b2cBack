@@ -32,4 +32,17 @@ export class BrandRepository {
 
         return this.brandRepository.save(brand);
     }
+
+    async getId(data: {
+        oracleId: number;
+    }): Promise<number | null> {
+        const category = await this.brandRepository.findOne({
+            select: ["id"],
+            where: {
+                oracleId: data.oracleId
+            },
+        });
+
+        return category ? category.id : null;
+    }
 }

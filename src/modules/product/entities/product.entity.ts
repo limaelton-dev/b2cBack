@@ -51,7 +51,7 @@ export class Product {
   @Column({ unique: true })
   barcode: string; // PRO_CODIGOBARRA
 
-  @Column({ unique: true })
+  @Column()
   sku: string; // PRO_PARTNUM_SKU
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
@@ -69,11 +69,11 @@ export class Product {
   @Column({ unique: true })
   slug: string; // PRO_URL_AMIGAVEL
 
-  @ManyToOne(() => Brand, { nullable: true })
+  @ManyToOne(() => Brand, { nullable: false })
   @JoinColumn({ name: 'brand_id' })
   brand: Brand;
 
-  @ManyToOne(() => Category, { nullable: true })
+  @ManyToOne(() => Category, { nullable: false })
   @JoinColumn({ name: 'category_level1_id' })
   categoryLevel1: Category;
 
