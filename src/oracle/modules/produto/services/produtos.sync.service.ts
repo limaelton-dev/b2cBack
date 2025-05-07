@@ -86,6 +86,8 @@ export class ProdutosSyncService {
         height,
         width,
         length,
+        modelImage: item.PRO_MODELO_COM,
+        brandImage: item.FAB_DESCRICAO,
         brand: { id: brandId },
         categoryLevel1: { id: categoryLevel1Id },
         categoryLevel2: { id: categoryLevel2Id },

@@ -26,6 +26,9 @@ export class ProdutosSyncRepository {
         PRO.PRO_DES_TECNICA, -- descrição técnica do produto
         PRO.PRO_APRESENTACAO, -- apresentação do produto
         PRO.PRO_URL_AMIGAVEL, -- slug do produto
+        PRO.PRO_MODELO_COM, --para gerar imagem
+        FAB.FAB_DESCRICAO, --para gerar imagem
+
         CASE 
           WHEN PRO.PRO_CONTEUDO_EMB IS NOT NULL 
             THEN TO_NCHAR(PRO.PRO_CONTEUDO_EMB)

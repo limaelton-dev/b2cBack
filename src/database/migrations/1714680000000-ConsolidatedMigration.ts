@@ -135,10 +135,12 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
             width DECIMAL(10, 2) NOT NULL CHECK (width >= 0),       -- PRO_LARGURA_PRO || PRO_LARGURA_EMB
             length DECIMAL(10, 2) NOT NULL CHECK (length >= 0),     -- PRO_COMPRIMENTO_PRO || PRO_COMPRIMENTO_EMB
             slug TEXT NOT NULL UNIQUE,                              -- PRO_URL_AMIGAVEL
+            model_image TEXT,                                        -- PRO_MODELO_COM gerar imagem
+            brand_image TEXT,                                        -- FAB_DESCRICAO gerar imagem
             brand_id INT NOT NULL,                                  -- FAB_CODIGO
-            category_level1_id INT NOT NULL,                        -- PRO_PROPCL2
-            category_level2_id INT,                                 -- TPO_CODIGO
-            category_level3_id INT,                                 -- PRO_PROPCL4
+            category_level1_id INT NOT NULL,                        -- PRO_PROPCL2 || ...
+            category_level2_id INT,                                 -- TPO_CODIGO || ...
+            category_level3_id INT,                                 -- PRO_PROPCL4 || ...
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             CONSTRAINT fk_product_brand FOREIGN KEY (brand_id)
@@ -149,6 +151,13 @@ export class ConsolidatedMigration1714680000000 implements MigrationInterface {
                 REFERENCES category(id) ON DELETE SET NULL,
             CONSTRAINT fk_product_category_l3 FOREIGN KEY (category_level3_id) 
                 REFERENCES category(id) ON DELETE SET NULL
+        );
+
+        CREATE TABLE product_image (
+            id SERIAL PRIMARY KEY,
+            product_id INT REFERENCES product(id) ON DELETE CASCADE,
+            url TEXT NOT NULL,
+            is_main BOOLEAN DEFAULT FALSE
         );
 
         CREATE TABLE discount (

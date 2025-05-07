@@ -1,22 +1,20 @@
 import {
   Controller,
-  Post,
   Body,
   Param,
   Get,
   Put,
-  Delete,
   UseGuards,
-  Query,
-  HttpCode,
-  HttpStatus,
+  Query
 } from '@nestjs/common';
 import { ProductService } from '../services/product.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { UpdateProductDto } from '../dto/update-product.dto';
+import { Logger } from '@nestjs/common';
 
 @Controller('product')
 export class ProductController {
+  private readonly logger = new Logger(ProductController.name);
   constructor(private readonly productService: ProductService) {}
 
   @Get()
@@ -27,6 +25,12 @@ export class ProductController {
   @Get('search')
   async search(@Query('query') query: string) {
     return this.productService.search(query);
+  }
+
+  @Get('generate-images')
+  async generateImagesForAllProducts() {
+    this.logger.log('controller generateImagesForAllProducts');
+    return this.productService.generateImagesForAllProducts();
   }
 
   @Get(':id')

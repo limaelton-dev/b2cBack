@@ -3,15 +3,17 @@ import { ProductRepository } from '../repositories/product.repository';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { Product } from '../entities/product.entity';
-import { Brand } from '../../category/entities/brand.entity';
-import { Category } from '../../category/entities/category.entity';
+import { ProductImageService } from './product.image.service';
+import { ProductImage } from '../entities/product.image.entity';
 
 @Injectable()
 export class ProductService {
-  constructor(private readonly productRepository: ProductRepository) {}
+  constructor(
+    private readonly productRepository: ProductRepository,
+    private readonly productImageService: ProductImageService
+  ) {}
 
   async create(createProductDto: CreateProductDto): Promise<Product> {
-    // Converter DTO para formato compatível com o repository
     const productData = this.mapDtoToEntity(createProductDto);
     return this.productRepository.create(productData);
   }
@@ -19,7 +21,6 @@ export class ProductService {
   private mapDtoToEntity(dto: CreateProductDto): Partial<Product> {
     const result: any = { ...dto };
     
-    // Transformar relações em objetos com apenas o ID
     if (dto.brand) {
       result.brand = { id: dto.brand.id };
     }
@@ -73,5 +74,26 @@ export class ProductService {
       throw new NotFoundException('Produto não encontrado');
     }
     await this.productRepository.remove(id);
+  }
+
+  async generateImagesForAllProducts(): Promise<boolean> {
+    console.log('Gerando imagens para todos os produtos');
+    const allProducts = await this.productRepository.findAll();
+    console.log('Gerando imagens para todos os produtos 2');
+    // return allProducts;
+    
+    for (const product of allProducts) {
+      const brand = product.brandImage?.replace(/\s/g, '').trim() || '';
+      const model = product.modelImage?.replace(/\s/g, '').trim() || '';
+      const baseUrl = `http://www.portalcoletek.com.br/imagens/200-200/${brand}_${model}_`;
+
+      try {
+        await this.productImageService.upsertImages(product.id, baseUrl);
+      } catch (error) {
+        console.error(`Erro ao inserir imagens para produto ID ${product.id}:`, error);
+      }
+
+    }
+    return true;
   }
 } 

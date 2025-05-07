@@ -12,6 +12,7 @@ import { OrderItem } from '../../order/entities/order-item.entity';
 import { DiscountProduct } from '../../discount/entities/discount-product.entity';
 import { Brand } from '../../category/entities/brand.entity';
 import { Category } from '../../category/entities/category.entity';
+import { ProductImage } from './product.image.entity';
 
 @Entity('product')
 export class Product {
@@ -69,6 +70,12 @@ export class Product {
   @Column({ unique: true })
   slug: string; // PRO_URL_AMIGAVEL
 
+  @Column({ name: 'model_image', nullable: true })
+  modelImage: string; // PRO_MODELO_COM
+
+  @Column({ name: 'brand_image', nullable: true })
+  brandImage: string; // FAB_DESCRICAO
+
   @ManyToOne(() => Brand, { nullable: false })
   @JoinColumn({ name: 'brand_id' })
   brand: Brand;
@@ -96,4 +103,8 @@ export class Product {
 
   @OneToMany(() => DiscountProduct, (discountProduct) => discountProduct.product)
   discountProduct: DiscountProduct[];
+
+  @OneToMany(() => ProductImage, image => image.product, { cascade: true })
+  images: ProductImage[];
+  
 }
