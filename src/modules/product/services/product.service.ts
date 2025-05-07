@@ -77,10 +77,7 @@ export class ProductService {
   }
 
   async generateImagesForAllProducts(): Promise<boolean> {
-    console.log('Gerando imagens para todos os produtos');
     const allProducts = await this.productRepository.findAll();
-    console.log('Gerando imagens para todos os produtos 2');
-    // return allProducts;
     
     for (const product of allProducts) {
       const brand = product.brandImage?.replace(/\s/g, '').trim() || '';

@@ -29,8 +29,6 @@ export class ProdutosSyncService {
 
       this.logger.log(`Brand ID: ${brandId}`);
 
-      console.log('haha typeof brandId:', typeof brandId, 'value:', brandId);
-
       const categoryLevel1Id = await this.categoryRepository.getId({
         oracleId: item.CATEGORY_L1_ORACLE_ID,
         sourceTable: 'PRODUTO_CLASSIFICACAO',

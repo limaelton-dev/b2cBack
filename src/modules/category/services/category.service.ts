@@ -17,18 +17,14 @@ export class CategoryService {
   ) {}
 
   async getCategoryMenu(): Promise<any[]> {
-    // Busca todas as brands
     const brands = await this.brandRepository.find();
-    console.log('brands', brands);
-
     const result = [];
 
     for (const brand of brands) {
-      // Busca categorias da brand
       const categories = await this.categoryRepository.find({
         where: { brand: { id: brand.id } },
         relations: ['parent'],
-        order: { level: 'ASC' }, // Ordenar por nível garante ordem de montagem correta
+        order: { level: 'ASC' },
       });
 
       const parents = categories.filter(c => c.level === 1);

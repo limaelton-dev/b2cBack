@@ -18,13 +18,10 @@ export class ProductImageService {
   }
 
   async upsertImages(productId: number, baseUrl: string) {
-    console.log('upsertImages AAA');
-    console.log('baseUrl A', baseUrl);
     const savedImages: ProductImage[] = [];
 
     for (let i = 1; i < 5; i++) {
       const url = `${baseUrl}${String(i).padStart(2, '0')}.jpg`;
-      console.log('url', url);
       const isMain = i === 1;
       const exists = await this.checkUrlExists(url);
       if (exists) {
