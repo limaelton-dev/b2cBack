@@ -8,9 +8,6 @@ export class CreateProductImageDto {
   @IsUrl()
   url: string;
 
-  @IsInt()
-  position: number;
-
   @IsBoolean()
   isMain: boolean;
 }

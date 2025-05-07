@@ -5,6 +5,7 @@ import { UpdateProductDto } from '../dto/update-product.dto';
 import { Product } from '../entities/product.entity';
 import { ProductImageService } from './product.image.service';
 import { ProductImage } from '../entities/product.image.entity';
+import { PaginationDto } from '../dto/pagination.dto';
 
 @Injectable()
 export class ProductService {
@@ -40,8 +41,8 @@ export class ProductService {
     return result;
   }
 
-  async findAll(): Promise<Product[]> {
-    return this.productRepository.findAll();
+  async findAll(paginationDto: PaginationDto) {
+    return this.productRepository.findAll(paginationDto);
   }
 
   async findOne(id: number): Promise<Product> {
@@ -77,20 +78,46 @@ export class ProductService {
   }
 
   async generateImagesForAllProducts(): Promise<boolean> {
-    const allProducts = await this.productRepository.findAll();
-    
-    for (const product of allProducts) {
-      const brand = product.brandImage?.replace(/\s/g, '').trim() || '';
-      const model = product.modelImage?.replace(/\s/g, '').trim() || '';
-      const baseUrl = `http://www.portalcoletek.com.br/imagens/200-200/${brand}_${model}_`;
+    const pageSize = 50; // Processa 50 produtos por vez
+    let currentPage = 1;
+    let hasMoreProducts = true;
+    let totalProcessed = 0;
 
-      try {
-        await this.productImageService.upsertImages(product.id, baseUrl);
-      } catch (error) {
-        console.error(`Erro ao inserir imagens para produto ID ${product.id}:`, error);
+    while (hasMoreProducts) {
+      const paginationDto = new PaginationDto();
+      paginationDto.page = currentPage;
+      paginationDto.limit = pageSize;
+
+      const result = await this.productRepository.findAll(paginationDto);
+      const products = result.data;
+
+      if (products.length === 0) {
+        hasMoreProducts = false;
+        continue;
       }
 
+      for (const product of products) {
+        const brand = product.brandImage?.replace(/\s/g, '').trim() || '';
+        const model = product.modelImage?.replace(/\s/g, '').trim() || '';
+        const baseUrl = `http://www.portalcoletek.com.br/imagens/200-200/${brand}_${model}_`;
+
+        try {
+          await this.productImageService.upsertImages(product.id, baseUrl);
+          totalProcessed++;
+          console.log(`Processado produto ID ${product.id} (${totalProcessed} de ${result.meta.total})`);
+        } catch (error) {
+          console.error(`Erro ao inserir imagens para produto ID ${product.id}:`, error);
+        }
+      }
+
+      if (currentPage >= result.meta.totalPages) {
+        hasMoreProducts = false;
+      } else {
+        currentPage++;
+      }
     }
+
+    console.log(`Processamento concluído. Total de produtos processados: ${totalProcessed}`);
     return true;
   }
 } 

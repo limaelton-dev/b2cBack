@@ -10,16 +10,15 @@ import {
 import { ProductService } from '../services/product.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { UpdateProductDto } from '../dto/update-product.dto';
-import { Logger } from '@nestjs/common';
+import { PaginationDto } from '../dto/pagination.dto';
 
 @Controller('product')
 export class ProductController {
-  private readonly logger = new Logger(ProductController.name);
   constructor(private readonly productService: ProductService) {}
 
   @Get()
-  async findAll() {
-    return this.productService.findAll();
+  async findAll(@Query() paginationDto: PaginationDto) {
+    return this.productService.findAll(paginationDto);
   }
 
   @Get('search')
@@ -28,8 +27,8 @@ export class ProductController {
   }
 
   @Get('generate-images')
+  @UseGuards(JwtAuthGuard)
   async generateImagesForAllProducts() {
-    this.logger.log('controller generateImagesForAllProducts');
     return this.productService.generateImagesForAllProducts();
   }
 
