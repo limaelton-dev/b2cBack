@@ -6,12 +6,17 @@ import { Product } from '../entities/product.entity';
 import { ProductImageService } from './product.image.service';
 import { ProductImage } from '../entities/product.image.entity';
 import { PaginationDto } from '../dto/pagination.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Brand } from 'src/modules/category/entities/brand.entity';
 
 @Injectable()
 export class ProductService {
   constructor(
     private readonly productRepository: ProductRepository,
-    private readonly productImageService: ProductImageService
+    private readonly productImageService: ProductImageService,
+    @InjectRepository(Brand)
+    private produtoFabricanteRepository: Repository<Brand>,
   ) {}
 
   async create(createProductDto: CreateProductDto): Promise<Product> {
@@ -45,10 +50,18 @@ export class ProductService {
     return this.productRepository.findAll(paginationDto);
   }
 
+  async find(ids: string | number): Promise<Product[]> {
+    const product = await this.productRepository.find(ids);
+    if (!product) {
+      throw new NotFoundException('Produto(s) não encontrado');
+    }
+    return product;
+  }
+
   async findOne(id: number): Promise<Product> {
     const product = await this.productRepository.findOne(id);
     if (!product) {
-      throw new NotFoundException('Produto não encontrado');
+      throw new NotFoundException('Produto(s) não encontrado');
     }
     return product;
   }
@@ -67,6 +80,23 @@ export class ProductService {
       throw new NotFoundException('Produto não encontrado');
     }
     return this.productRepository.update(id, updateProductDto);
+  }
+
+  async getProdutosFabricanteLimit(limit: number): Promise<Brand[]> {
+    const query = this.produtoFabricanteRepository
+      .createQueryBuilder('brand')
+      .leftJoin('brand.products', 'product')
+      .select([
+        'brand.id',
+        'brand.name',
+        'brand.slug',
+        'COUNT(produto.id) AS total_products'
+      ])
+      .groupBy('brand.id, brand.name, brand.slug')
+      .orderBy('total_products', 'DESC')
+      .limit(limit);
+    
+    return await query.getMany();
   }
 
   async remove(id: number): Promise<void> {
