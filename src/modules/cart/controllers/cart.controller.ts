@@ -5,6 +5,7 @@ import { UpdateCartItemDto } from '../dto/update-cart-item.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { CartResponseDto } from '../dto/cart-response.dto';
+import { ApplyDiscountDto } from '../dto/apply-discount.dto';
 
 @Controller('cart')
 @UseGuards(JwtAuthGuard)
@@ -67,8 +68,8 @@ export class CartController {
   @Post('discount')
   async applyDiscount(
     @GetUser('profileId') profileId: number,
-    @Body('code') discountCode: string,
+    @Body() applyDiscountDto: ApplyDiscountDto,
   ): Promise<CartResponseDto> {
-    return this.cartService.applyDiscount(profileId, discountCode);
+    return this.cartService.applyDiscount(profileId, applyDiscountDto.code);
   }
 } 

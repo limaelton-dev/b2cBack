@@ -185,10 +185,10 @@ export class CartService {
     let result = 0;
     switch (discount.unit) {
       case 'percentage':
-        result = subtotal * (1 - discount.value / 100);
+        result = subtotal * (1 - discount.percentage / 100);
         break;
       case 'fixed':
-        result = Math.max(0, subtotal - discount.value);
+        result = Math.max(0, subtotal - discount.fixedAmount);
         break;
       case 'free_shipping':
         result = subtotal;
