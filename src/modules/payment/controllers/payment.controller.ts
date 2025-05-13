@@ -16,13 +16,13 @@ export class PaymentController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<Payment> {
+  async findOne(@Param('id') id: number): Promise<Payment> {
     return this.paymentService.findOne(+id);
   }
 
   @Get('order/:orderId')
-  async findByOrderId(@Param('orderId') orderId: string): Promise<Payment[]> {
-    return this.paymentService.findByOrderId(+orderId);
+  async findByOrderId(@Param('orderId') orderId: number): Promise<Payment[]> {
+    return this.paymentService.findByOrderId(orderId);
   }
 
   @Post()
@@ -32,10 +32,10 @@ export class PaymentController {
 
   @Patch(':id/status')
   async updateStatus(
-    @Param('id') id: string,
+    @Param('id') id: number,
     @Body() updateStatusDto: UpdatePaymentStatusDto,
   ): Promise<Payment> {
-    return this.paymentService.updateStatus(+id, updateStatusDto.status);
+    return this.paymentService.updateStatus(id, updateStatusDto.status);
   }
 
   @Get('methods')
@@ -44,7 +44,7 @@ export class PaymentController {
   }
 
   @Get('methods/:id')
-  async getPaymentMethod(@Param('id') id: string) {
-    return this.paymentService.getPaymentMethod(+id);
+  async getPaymentMethod(@Param('id') id: number) {
+    return this.paymentService.getPaymentMethod(id);
   }
 } 

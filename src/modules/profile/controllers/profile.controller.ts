@@ -78,8 +78,8 @@ export class ProfileController {
   }
 
   @Get(':id')
-  async findOne(@Request() req, @Param('id') id: string) {
-    const profile = await this.profileService.findOne(+id);
+  async findOne(@Request() req, @Param('id') id: number) {
+    const profile = await this.profileService.findOne(id);
     
     if (profile.userId !== req.user.userId) {
       throw new ForbiddenException('Você não tem permissão para acessar este perfil');
@@ -89,36 +89,36 @@ export class ProfileController {
   }
 
   @Get(':id/pf')
-  async findProfilePf(@Request() req, @Param('id') id: string) {
-    const profile = await this.profileService.findOne(+id);
+  async findProfilePf(@Request() req, @Param('id') id: number) {
+    const profile = await this.profileService.findOne(id);
     
     if (profile.userId !== req.user.userId) {
       throw new ForbiddenException('Você não tem permissão para acessar este perfil');
     }
     
-    return this.profileService.findProfilePf(+id);
+    return this.profileService.findProfilePf(id);
   }
 
   @Get(':id/pj')
-  async findProfilePj(@Request() req, @Param('id') id: string) {
-    const profile = await this.profileService.findOne(+id);
+  async findProfilePj(@Request() req, @Param('id') id: number) {
+    const profile = await this.profileService.findOne(id);
     
     if (profile.userId !== req.user.userId) {
       throw new ForbiddenException('Você não tem permissão para acessar este perfil');
     }
     
-    return this.profileService.findProfilePj(+id);
+    return this.profileService.findProfilePj(id);
   }
 
   @Put(':id/pf')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async updateProfilePf(
     @Request() req,
-    @Param('id') id: string,
+    @Param('id') id: number,
     @Body() updateProfilePfDto: UpdateProfilePfDto,
   ) {
     try {
-      const profile = await this.profileService.findOne(+id);
+      const profile = await this.profileService.findOne(id);
       
       if (profile.userId !== req.user.userId) {
         throw new ForbiddenException('Você não tem permissão para atualizar este perfil');
@@ -138,11 +138,11 @@ export class ProfileController {
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async updateProfilePj(
     @Request() req,
-    @Param('id') id: string,
+    @Param('id') id: number,
     @Body() updateProfilePjDto: UpdateProfilePjDto,
   ) {
     try {
-      const profile = await this.profileService.findOne(+id);
+      const profile = await this.profileService.findOne(id);
       
       if (profile.userId !== req.user.userId) {
         throw new ForbiddenException('Você não tem permissão para atualizar este perfil');
@@ -160,13 +160,13 @@ export class ProfileController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Request() req, @Param('id') id: string) {
-    const profile = await this.profileService.findOne(+id);
+  async remove(@Request() req, @Param('id') id: number) {
+    const profile = await this.profileService.findOne(id);
     
     if (profile.userId !== req.user.userId) {
       throw new ForbiddenException('Você não tem permissão para remover este perfil');
     }
     
-    await this.profileService.remove(+id);
+    await this.profileService.remove(id);
   }
 } 

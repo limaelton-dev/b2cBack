@@ -34,14 +34,26 @@ export class AppConfigService {
   }
 
   getOracleDatabaseConfig() {
+    const host = this.get('ORACLE_DB_HOST');
+    const port = this.getNumber('ORACLE_DB_PORT');
+    const serviceNameOrSid = this.get('ORACLE_DB_DATABASE');
+    const isServiceName = this.getBoolean('ORACLE_USE_SERVICE_NAME');
+  
+    // Formato adequado para modo Thin
+    const connectString = isServiceName
+      ? `(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=${host})(PORT=${port}))(CONNECT_DATA=(SERVICE_NAME=${serviceNameOrSid})))`
+      : `(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=${host})(PORT=${port}))(CONNECT_DATA=(SID=${serviceNameOrSid})))`;
+  
     return {
       username: this.get('ORACLE_DB_USERNAME'),
       password: this.get('ORACLE_DB_PASSWORD'),
-      connectString: `${this.get('ORACLE_DB_HOST')}:${this.getNumber('ORACLE_DB_PORT')}/${this.get('ORACLE_DB_DATABASE')}`,
+      connectString,
       autoLoadEntities: true,
       logging: this.configService.get('NODE_ENV') !== 'production',
+      thickMode: true,
     };
   }
+  
 
   getMercadoPagoConfig() {
     return {

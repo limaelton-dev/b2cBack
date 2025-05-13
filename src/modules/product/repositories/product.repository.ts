@@ -7,7 +7,6 @@ import { PaginationDto } from '../dto/pagination.dto';
 
 @Injectable()
 export class ProductRepository {
-  private readonly logger = new Logger(ProductRepository.name);
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
@@ -42,14 +41,14 @@ export class ProductRepository {
   async findOne(id: number): Promise<Product> {
     return this.productRepository.findOne({
       where: { id },
-      relations: ['orderItems', 'discountProduct'],
+      relations: ['images', 'discountProduct'],
     });
   }
 
   async findByIds(ids: number[]): Promise<Product[]> {
     return this.productRepository.find({
       where: { id: In(ids) },
-      relations: ['orderItems', 'discountProduct'],
+      relations: ['images', 'discountProduct'],
     });
   }
 
@@ -58,7 +57,7 @@ export class ProductRepository {
       .createQueryBuilder('product')
       .where('LOWER(product.name) LIKE LOWER(:query)', { query: `%${query}%` })
       .orWhere('LOWER(product.description) LIKE LOWER(:query)', { query: `%${query}%` })
-      .leftJoinAndSelect('product.orderItems', 'orderItems')
+      .leftJoinAndSelect('product.images', 'images')
       .leftJoinAndSelect('product.discountProduct', 'discountProduct')
       .getMany();
   }

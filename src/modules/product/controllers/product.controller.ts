@@ -33,13 +33,7 @@ export class ProductController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.productService.findOne(+id);
-  }
-
-  @Put(':id')
-  @UseGuards(JwtAuthGuard)
-  async update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productService.update(+id, updateProductDto);
+  async findOne(@Param('id') id: number) {
+    return this.productService.findOne(id);
   }
 } 

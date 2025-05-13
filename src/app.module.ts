@@ -15,6 +15,7 @@ import { ProfileModule } from './modules/profile/profile.module';
 import { ConnectionController } from './test/connection/connection.controller';
 import { OracleModule } from './oracle/oracle.module';
 import { CategoryModule } from './modules/category/category.module';
+import { CheckoutModule } from './modules/checkout/checkout.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { CategoryModule } from './modules/category/category.module';
     PaymentModule,
     AuthModule,
     OracleModule,
+    CheckoutModule,
     RouterModule.register([
       {
         path: 'user',

@@ -120,4 +120,21 @@ export class ProductService {
     console.log(`Processamento concluído. Total de produtos processados: ${totalProcessed}`);
     return true;
   }
+
+  async updateStock(id: number, quantity: number): Promise<Product> {
+    const product = await this.productRepository.findOne(id);
+    if (!product) {
+      throw new NotFoundException('Produto não encontrado');
+    }
+    product.stock += quantity;
+    return this.productRepository.update(id, { stock: product.stock });
+  }
+
+  async validateStock(id: number, quantity: number): Promise<boolean> {
+    const product = await this.productRepository.findOne(id);
+    if (!product) {
+      throw new NotFoundException('Produto não encontrado');
+    }
+    return product.stock >= quantity;
+  }
 } 

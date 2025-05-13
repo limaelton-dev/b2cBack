@@ -7,6 +7,7 @@ import { ProductService } from '../../product/services/product.service';
 import { DiscountService } from '../../discount/services/discount.service';
 import { CartRepository } from '../repositories/cart.repository';
 import { CartItemRepository } from '../repositories/cart-item.repository';
+import { CartResponseDto, CartItemResponseDto } from '../dto/cart-response.dto';
 
 @Injectable()
 export class CartService {
@@ -27,6 +28,26 @@ export class CartService {
     return cart;
   }
 
+  async getCartSimplified(profileId: number): Promise<CartResponseDto> {
+    const cart = await this.getCart(profileId);
+    return this.mapToCartResponse(cart);
+  }
+
+  private mapToCartResponse(cart: Cart): CartResponseDto {
+    const responseDto = new CartResponseDto();
+    responseDto.id = cart.id;
+    responseDto.subtotal = cart.subtotal;
+    responseDto.total = cart.total;
+    responseDto.items = cart.items.map(item => {
+      const itemDto = new CartItemResponseDto();
+      itemDto.id = item.id;
+      itemDto.productId = item.productId;
+      itemDto.quantity = item.quantity;
+      return itemDto;
+    });
+    return responseDto;
+  }
+
   private async createCart(profileId: number): Promise<Cart> {
     return this.cartRepository.create({
       profileId,
@@ -35,7 +56,7 @@ export class CartService {
     });
   }
 
-  async addToCart(profileId: number, addToCartDto: AddToCartDto): Promise<Cart> {
+  async addToCart(profileId: number, addToCartDto: AddToCartDto): Promise<CartResponseDto> {
     const cart = await this.getCart(profileId);
     const product = await this.productService.findOne(addToCartDto.productId);
 
@@ -47,14 +68,17 @@ export class CartService {
 
     if (cartItem) {
       cartItem.quantity += addToCartDto.quantity;
-      cartItem.totalPrice = cartItem.quantity * cartItem.unitPrice;
+      cartItem.totalPrice = Number((cartItem.quantity * Number(cartItem.unitPrice)).toFixed(2));
     } else {
+      const unitPrice = Number(product.price);
+      const totalPrice = Number((addToCartDto.quantity * unitPrice).toFixed(2));
+      
       cartItem = await this.cartItemRepository.create({
         cartId: cart.id,
         productId: product.id,
         quantity: addToCartDto.quantity,
-        unitPrice: product.price,
-        totalPrice: product.price * addToCartDto.quantity,
+        unitPrice: unitPrice,
+        totalPrice: totalPrice,
       });
       cart.items.push(cartItem);
     }
@@ -62,14 +86,14 @@ export class CartService {
     await this.cartItemRepository.save(cartItem);
     await this.updateCartTotals(cart);
 
-    return this.getCart(profileId);
+    return this.getCartSimplified(profileId);
   }
 
   async updateCartItem(
     profileId: number,
     itemId: number,
     updateCartItemDto: UpdateCartItemDto,
-  ): Promise<Cart> {
+  ): Promise<CartResponseDto> {
     const cart = await this.getCart(profileId);
     const cartItem = cart.items.find(item => item.id === itemId);
 
@@ -78,29 +102,46 @@ export class CartService {
     }
 
     cartItem.quantity = updateCartItemDto.quantity;
-    cartItem.totalPrice = cartItem.quantity * cartItem.unitPrice;
+    // Certifica-se de que o preço total é um número formatado corretamente
+    cartItem.totalPrice = Number((cartItem.quantity * Number(cartItem.unitPrice)).toFixed(2));
 
     await this.cartItemRepository.save(cartItem);
     await this.updateCartTotals(cart);
 
-    return this.getCart(profileId);
+    return this.getCartSimplified(profileId);
   }
 
-  async removeCartItem(profileId: number, itemId: number): Promise<Cart> {
+  async removeCartItem(
+    profileId: number,
+    itemId: number,
+  ): Promise<CartResponseDto> {
     const cart = await this.getCart(profileId);
-    const cartItem = cart.items.find(item => item.id === itemId);
-
-    if (!cartItem) {
+    
+    // Encontra o item no carrinho
+    const itemIndex = cart.items.findIndex(item => item.id === itemId);
+    if (itemIndex === -1) {
       throw new NotFoundException('Item não encontrado no carrinho');
     }
-
+    
+    // Remove o item da lista antes de chamar o repositório
+    const cartItem = cart.items[itemIndex];
+    cart.items.splice(itemIndex, 1);
+    
+    // Remove do banco de dados
     await this.cartItemRepository.remove(cartItem);
+    
+    // Atualiza os totais do carrinho
     await this.updateCartTotals(cart);
-
-    return this.getCart(profileId);
+    
+    // Obtém o carrinho atualizado diretamente da instância atual
+    // em vez de fazer uma nova consulta ao banco de dados
+    return this.mapToCartResponse(cart);
   }
 
-  async applyDiscount(profileId: number, discountCode: string): Promise<Cart> {
+  async applyDiscount(
+    profileId: number,
+    discountCode: string,
+  ): Promise<CartResponseDto> {
     const cart = await this.getCart(profileId);
     const discount = await this.discountService.findByCode(discountCode);
 
@@ -111,21 +152,27 @@ export class CartService {
     cart.discountId = discount.id;
     await this.updateCartTotals(cart);
 
-    return this.getCart(profileId);
+    return this.getCartSimplified(profileId);
   }
 
   private async updateCartTotals(cart: Cart): Promise<void> {
-    cart.subtotal = cart.items.reduce((sum, item) => sum + item.totalPrice, 0);
+    const subtotal = Number(
+      cart.items.reduce((sum, item) => sum + Number(item.totalPrice), 0).toFixed(2)
+    );
+    
+    cart.subtotal = subtotal;
 
     if (cart.discountId) {
       const discount = await this.discountService.findOne(cart.discountId);
       if (discount) {
-        cart.total = await this.calculateDiscountedTotal(cart.subtotal, discount);
+        cart.total = Number(
+          (await this.calculateDiscountedTotal(subtotal, discount)).toFixed(2)
+        );
       } else {
-        cart.total = cart.subtotal;
+        cart.total = subtotal;
       }
     } else {
-      cart.total = cart.subtotal;
+      cart.total = subtotal;
     }
 
     await this.cartRepository.save(cart);
@@ -135,15 +182,88 @@ export class CartService {
     subtotal: number,
     discount: any,
   ): Promise<number> {
+    let result = 0;
     switch (discount.unit) {
       case 'percentage':
-        return subtotal * (1 - discount.value / 100);
+        result = subtotal * (1 - discount.value / 100);
+        break;
       case 'fixed':
-        return Math.max(0, subtotal - discount.value);
+        result = Math.max(0, subtotal - discount.value);
+        break;
       case 'free_shipping':
-        return subtotal;
+        result = subtotal;
+        break;
       default:
-        return subtotal;
+        result = subtotal;
     }
+    // Retorna o valor formatado para 2 casas decimais
+    return Number(result.toFixed(2));
+  }
+
+  async clearCart(profileId: number): Promise<void> {
+    const cart = await this.getCart(profileId);
+    
+    // Remove todos os itens do banco de dados
+    for (const item of [...cart.items]) {
+      await this.cartItemRepository.remove(item);
+    }
+    
+    // Limpa o array de itens
+    cart.items = [];
+    
+    // Atualiza os totais
+    cart.subtotal = 0;
+    cart.total = 0;
+    
+    // Salva o carrinho atualizado
+    await this.cartRepository.save(cart);
+  }
+
+  async updateCartItemByProductId(
+    profileId: number,
+    productId: number,
+    updateCartItemDto: UpdateCartItemDto,
+  ): Promise<CartResponseDto> {
+    const cart = await this.getCart(profileId);
+    const cartItem = cart.items.find(item => item.productId === productId);
+
+    if (!cartItem) {
+      throw new NotFoundException('Item não encontrado no carrinho');
+    }
+
+    cartItem.quantity = updateCartItemDto.quantity;
+    // Certifica-se de que o preço total é um número formatado corretamente
+    cartItem.totalPrice = Number((cartItem.quantity * Number(cartItem.unitPrice)).toFixed(2));
+
+    await this.cartItemRepository.save(cartItem);
+    await this.updateCartTotals(cart);
+
+    return this.getCartSimplified(profileId);
+  }
+
+  async removeCartItemByProductId(
+    profileId: number,
+    productId: number,
+  ): Promise<CartResponseDto> {
+    const cart = await this.getCart(profileId);
+    
+    // Encontra o item no carrinho pelo ID do produto
+    const itemIndex = cart.items.findIndex(item => item.productId === productId);
+    if (itemIndex === -1) {
+      throw new NotFoundException('Item não encontrado no carrinho');
+    }
+    
+    // Remove o item da lista antes de chamar o repositório
+    const cartItem = cart.items[itemIndex];
+    cart.items.splice(itemIndex, 1);
+    
+    // Remove do banco de dados
+    await this.cartItemRepository.remove(cartItem);
+    
+    // Atualiza os totais do carrinho
+    await this.updateCartTotals(cart);
+    
+    // Obtém o carrinho atualizado diretamente da instância atual
+    return this.mapToCartResponse(cart);
   }
 } 

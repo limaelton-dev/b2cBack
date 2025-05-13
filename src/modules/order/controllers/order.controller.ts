@@ -22,14 +22,14 @@ export class OrderController {
   }
 
   @Get(':id')
-  async findOne(@Request() req, @Param('id') id: string) {
+  async findOne(@Request() req, @Param('id') id: number) {
     return this.orderService.findOne(+id, req.user.profileId);
   }
 
   @Put(':id')
   async update(
     @Request() req,
-    @Param('id') id: string,
+    @Param('id') id: number,
     @Body() updateOrderDto: UpdateOrderDto,
   ) {
     return this.orderService.update(+id, req.user.profileId, updateOrderDto);
@@ -38,7 +38,7 @@ export class OrderController {
   @Put(':id/status')
   async updateStatus(
     @Request() req,
-    @Param('id') id: string,
+    @Param('id') id: number,
     @Body('status') status: OrderStatus,
   ) {
     return this.orderService.updateStatus(+id, req.user.profileId, status);
@@ -46,7 +46,7 @@ export class OrderController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Request() req, @Param('id') id: string) {
+  async remove(@Request() req, @Param('id') id: number) {
     return this.orderService.remove(+id, req.user.profileId);
   }
 } 

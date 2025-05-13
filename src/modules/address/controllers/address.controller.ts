@@ -30,7 +30,7 @@ export class AddressController {
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Request() req,
-    @Param('profileId') profileId: string,
+    @Param('profileId') profileId: number,
     @Body() createAddressDto: CreateAddressDto,
   ) {
     const profile = await this.profileService.findOne(+profileId);
@@ -44,7 +44,7 @@ export class AddressController {
   }
 
   @Get()
-  async findAll(@Request() req, @Param('profileId') profileId: string) {
+  async findAll(@Request() req, @Param('profileId') profileId: number) {
     const profile = await this.profileService.findOne(+profileId);
     
     // Verificar se o perfil pertence ao usuário autenticado
@@ -56,7 +56,7 @@ export class AddressController {
   }
 
   @Get('default')
-  async findDefault(@Request() req, @Param('profileId') profileId: string) {
+  async findDefault(@Request() req, @Param('profileId') profileId: number) {
     const profile = await this.profileService.findOne(+profileId);
     
     // Verificar se o perfil pertence ao usuário autenticado
@@ -68,7 +68,7 @@ export class AddressController {
   }
 
   @Get(':id')
-  async findOne(@Request() req, @Param('profileId') profileId: string, @Param('id') id: string) {
+  async findOne(@Request() req, @Param('profileId') profileId: number, @Param('id') id: number) {
     const profile = await this.profileService.findOne(+profileId);
     
     // Verificar se o perfil pertence ao usuário autenticado
@@ -89,8 +89,8 @@ export class AddressController {
   @Put(':id')
   async update(
     @Request() req,
-    @Param('profileId') profileId: string,
-    @Param('id') id: string,
+    @Param('profileId') profileId: number,
+    @Param('id') id: number,
     @Body() updateAddressDto: UpdateAddressDto,
   ) {
     const profile = await this.profileService.findOne(+profileId);
@@ -112,7 +112,7 @@ export class AddressController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Request() req, @Param('profileId') profileId: string, @Param('id') id: string) {
+  async remove(@Request() req, @Param('profileId') profileId: number, @Param('id') id: number) {
     const profile = await this.profileService.findOne(+profileId);
     
     // Verificar se o perfil pertence ao usuário autenticado
