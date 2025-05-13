@@ -19,13 +19,44 @@ export class CartService {
   ) {}
 
   async getCart(profileId: number): Promise<Cart> {
+    console.log('CartService.getCart - início:', { profileId });
+    
     let cart = await this.cartRepository.findOneByProfileId(profileId);
+    console.log('CartService.getCart - carrinho encontrado:', { found: !!cart, cartId: cart?.id, profileId });
 
     if (!cart) {
+      console.log('CartService.getCart - criando novo carrinho:', { profileId });
       cart = await this.createCart(profileId);
+      console.log('CartService.getCart - carrinho criado:', { 
+        success: !!cart, 
+        cartId: cart?.id, 
+        profileId: cart?.profileId 
+      });
     }
 
     return cart;
+  }
+
+  // Método para buscar carrinho pelo ID
+  async getCartById(cartId: number): Promise<Cart> {
+    console.log('CartService.getCartById:', { cartId });
+    const cart = await this.cartRepository.findOne(cartId);
+    if (!cart) {
+      throw new NotFoundException(`Carrinho com ID ${cartId} não encontrado`);
+    }
+    return cart;
+  }
+
+  // Método compatível com a nova interface do checkout
+  async findByProfileId(profileId: number): Promise<Cart> {
+    console.log('CartService.findByProfileId:', { profileId });
+    return this.cartRepository.findOneByProfileId(profileId);
+  }
+
+  // Método compatível com a nova interface do checkout
+  async create(profileId: number): Promise<Cart> {
+    console.log('CartService.create:', { profileId });
+    return this.createCart(profileId);
   }
 
   async getCartSimplified(profileId: number): Promise<CartResponseDto> {
@@ -49,6 +80,7 @@ export class CartService {
   }
 
   private async createCart(profileId: number): Promise<Cart> {
+    console.log('CartService.createCart:', { profileId });
     return this.cartRepository.create({
       profileId,
       subtotal: 0,
@@ -200,21 +232,37 @@ export class CartService {
     return Number(result.toFixed(2));
   }
 
-  async clearCart(profileId: number): Promise<void> {
-    const cart = await this.getCart(profileId);
-    
+  // Método para limpar o carrinho, pode receber o ID do perfil ou o ID do carrinho
+  async clearCart(idOrProfileId: number): Promise<void> {
+    let cart: Cart;
+
+    // Tenta buscar o carrinho diretamente pelo ID
+    try {
+      cart = await this.cartRepository.findOne(idOrProfileId);
+    } catch (e) {
+      // Se falhar, provavelmente não é um ID de carrinho
+      cart = null;
+    }
+
+    // Se não encontrou por ID, assume que é um profile ID
+    if (!cart) {
+      cart = await this.getCart(idOrProfileId);
+    }
+
+    if (!cart) {
+      throw new NotFoundException('Carrinho não encontrado');
+    }
+
     // Remove todos os itens do banco de dados
-    for (const item of [...cart.items]) {
+    const cartItems = await this.cartItemRepository.findByCartId(cart.id);
+    for (const item of cartItems) {
       await this.cartItemRepository.remove(item);
     }
-    
-    // Limpa o array de itens
-    cart.items = [];
-    
+
     // Atualiza os totais
     cart.subtotal = 0;
     cart.total = 0;
-    
+
     // Salva o carrinho atualizado
     await this.cartRepository.save(cart);
   }

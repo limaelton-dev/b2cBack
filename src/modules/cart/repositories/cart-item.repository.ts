@@ -17,6 +17,13 @@ export class CartItemRepository {
     });
   }
 
+  async findByCartId(cartId: number): Promise<CartItem[]> {
+    return this.repository.find({
+      where: { cartId },
+      relations: ['product'],
+    });
+  }
+
   async save(cartItem: CartItem): Promise<CartItem> {
     return this.repository.save(cartItem);
   }

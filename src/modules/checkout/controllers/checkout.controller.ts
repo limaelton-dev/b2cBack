@@ -1,7 +1,8 @@
-import { Controller, Post, Body, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
 import { CheckoutService } from '../services/checkout.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
 
 @ApiTags('Checkout')
 @Controller('checkout')
@@ -10,19 +11,25 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 export class CheckoutController {
   constructor(private readonly checkoutService: CheckoutService) {}
 
-  @Post('initialize/:cartId')
-  @ApiOperation({ summary: 'Inicializa o processo de checkout' })
-  async initializeCheckout(
-    @Param('cartId') cartId: number,
+  @Post('validate')
+  @ApiOperation({ summary: 'Valida o processo de checkout' })
+  async validateCheckout(
+    @GetUser('profileId') profileId: number,
     @Body('gatewayName') gatewayName: string,
   ) {
-    return this.checkoutService.initializeCheckout(cartId, gatewayName);
+    console.log('CheckoutController.validateCheckout:', { 
+      profileId, 
+      gatewayName,
+      typeProfileId: typeof profileId
+    });
+    
+    return this.checkoutService.validateCheckout(profileId, gatewayName);
   }
 
-  @Post('process/:cartId')
+  @Post('process')
   @ApiOperation({ summary: 'Processa o pagamento do checkout' })
   async processPayment(
-    @Param('cartId') cartId: number,
+    @GetUser('profileId') profileId: number,
     @Body() paymentData: {
       paymentMethod: string;
       customerData: {
@@ -34,7 +41,7 @@ export class CheckoutController {
     },
   ) {
     return this.checkoutService.processPayment(
-      cartId,
+      profileId,
       paymentData.paymentMethod,
       paymentData.customerData,
       paymentData.address,
@@ -45,5 +52,11 @@ export class CheckoutController {
   @ApiOperation({ summary: 'Lista os gateways de pagamento disponíveis' })
   async getAvailableGateways() {
     return this.checkoutService.getAvailablePaymentGateways();
+  }
+
+  @Get('gateways/info')
+  @ApiOperation({ summary: 'Obtém informações detalhadas sobre os gateways de pagamento disponíveis' })
+  async getGatewaysInfo() {
+    return this.checkoutService.getPaymentGatewaysInfo();
   }
 } 

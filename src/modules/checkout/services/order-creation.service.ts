@@ -18,24 +18,14 @@ export class OrderCreationService {
   ) {
     try {
       const orderData = {
-        profileId: profileId,
-        totalPrice: cartValidation.total,
-        status: OrderStatus.PENDING,
         fullAddress: address,
         items: cartValidation.items.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
-          price: item.price,
-          name: item.name,
-          sku: item.sku,
         })),
-        paymentId,
-        subtotal: cartValidation.subtotal,
-        shipping: cartValidation.shipping,
-        discounts: cartValidation.discounts,
       };
 
-      const order = await this.orderService.create(profileId ,orderData);
+      const order = await this.orderService.create(profileId, orderData);
 
       return {
         success: true,

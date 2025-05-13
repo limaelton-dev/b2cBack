@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { CheckoutController } from './controllers/checkout.controller';
 import { CheckoutService } from './services/checkout.service';
 import { PaymentModule } from '../payment/payment.module';
@@ -12,6 +12,8 @@ import { OrderCreationService } from './services/order-creation.service';
 import { StockManagementService } from './services/stock-management.service';
 import { AppConfigModule } from '../../config/app.config.module';
 import { AppConfigService } from '../../config/app.config.service';
+import { CieloGateway } from './payment-gateway/cielo.gateway';
+import { ProfileModule } from '../profile/profile.module';
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { AppConfigService } from '../../config/app.config.service';
     OrderModule,
     ProductModule,
     AppConfigModule,
+    ProfileModule,
   ],
   controllers: [CheckoutController],
   providers: [
@@ -29,12 +32,13 @@ import { AppConfigService } from '../../config/app.config.service';
     CartValidationService,
     OrderCreationService,
     StockManagementService,
+    CieloGateway,
     {
       provide: 'PaymentGatewayConfig',
       useFactory: (configService: AppConfigService) => {
         return {
-          apiKey: configService.get('PAYMENT_GATEWAY_API_KEY'),
-          secretKey: configService.get('PAYMENT_GATEWAY_SECRET_KEY'),
+          apiKey: configService.get('PAYMENT_GATEWAY_API_KEY') || 'cielo_api_key_simulada',
+          secretKey: configService.get('PAYMENT_GATEWAY_SECRET_KEY') || 'cielo_secret_key_simulada',
           environment: configService.get('NODE_ENV') === 'production' ? 'production' : 'sandbox',
         };
       },
@@ -43,4 +47,14 @@ import { AppConfigService } from '../../config/app.config.service';
   ],
   exports: [CheckoutService],
 })
-export class CheckoutModule {} 
+export class CheckoutModule implements OnModuleInit {
+  constructor(
+    private readonly paymentGatewayFactory: PaymentGatewayFactory,
+    private readonly cieloGateway: CieloGateway
+  ) {}
+
+  onModuleInit() {
+    // Registrar o gateway da CIELO quando o módulo inicializar
+    this.paymentGatewayFactory.registerGateway('cielo', this.cieloGateway);
+  }
+} 

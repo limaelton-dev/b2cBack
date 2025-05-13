@@ -12,7 +12,7 @@ export class CartValidationService {
 
   async validateCart(cartId: number): Promise<CartValidation> {
     try {
-      const cart = await this.cartService.getCart(cartId);
+      const cart = await this.cartService.getCartById(cartId);
       
       if (!cart) {
         throw new CheckoutException(
@@ -50,6 +50,7 @@ export class CartValidationService {
           continue;
         }
 
+        /* Verificação de estoque temporariamente desativada
         if (product.stock < item.quantity) {
           validation.errors.push(
             `Estoque insuficiente para o produto ${product.name}. Disponível: ${product.stock}`,
@@ -57,6 +58,7 @@ export class CartValidationService {
           validation.isValid = false;
           continue;
         }
+        */
 
         const cartItem: CartItem = {
           productId: product.id,

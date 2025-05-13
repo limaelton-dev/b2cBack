@@ -27,21 +27,21 @@ export class OrderRepository {
 
   async findAll(): Promise<Order[]> {
     return this.orderRepository.find({
-      relations: ['profile', 'orderItems', 'orderItems.product', 'discount', 'payment'],
+      relations: ['profile', 'items', 'items.product', 'discount', 'payment'],
     });
   }
 
   async findOne(id: number): Promise<Order> {
     return this.orderRepository.findOne({
       where: { id },
-      relations: ['profile', 'orderItems', 'orderItems.product', 'discount', 'payment'],
+      relations: ['profile', 'items', 'items.product', 'discount', 'payment'],
     });
   }
 
   async findByProfileId(profileId: number): Promise<Order[]> {
     return this.orderRepository.find({
       where: { profileId },
-      relations: ['profile', 'orderItems', 'orderItems.product', 'discount', 'payment'],
+      relations: ['profile', 'items', 'items.product', 'discount', 'payment'],
       order: { createdAt: 'DESC' },
     });
   }

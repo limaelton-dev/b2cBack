@@ -26,9 +26,26 @@ export interface PaymentGatewayRequest {
   metadata?: Record<string, any>;
 }
 
+export interface PaymentMethod {
+  id: string;
+  name: string;
+  type: string;
+  logo?: string;
+  installments: boolean;
+  maxInstallments?: number;
+}
+
+export interface PaymentGatewayInfo {
+  name: string;
+  description: string;
+  logo?: string;
+  supportedMethods: PaymentMethod[];
+}
+
 export interface IPaymentGateway {
   initialize(config: PaymentGatewayConfig): Promise<void>;
   processPayment(request: PaymentGatewayRequest): Promise<PaymentGatewayResponse>;
   refundPayment(transactionId: number, amount: number): Promise<PaymentGatewayResponse>;
   getPaymentStatus(transactionId: number): Promise<PaymentGatewayResponse>;
+  getGatewayInfo?(): PaymentGatewayInfo;
 } 
