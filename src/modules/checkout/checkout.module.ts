@@ -1,6 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { CheckoutController } from './controllers/checkout.controller';
 import { CheckoutService } from './services/checkout.service';
+import { CieloService } from './services/cielo.service';
 import { PaymentModule } from '../payment/payment.module';
 import { CartModule } from '../cart/cart.module';
 import { OrderModule } from '../order/order.module';
@@ -11,9 +12,11 @@ import { CartValidationService } from './services/cart-validation.service';
 import { OrderCreationService } from './services/order-creation.service';
 import { StockManagementService } from './services/stock-management.service';
 import { AppConfigModule } from '../../config/app.config.module';
-import { AppConfigService } from '../../config/app.config.service';
-import { CieloGateway } from './payment-gateway/cielo.gateway';
+import { CieloGateway } from './payment-gateway/cielo/cielo.gateway';
 import { ProfileModule } from '../profile/profile.module';
+import { CieloConfigProvider } from './providers/cielo-config.provider';
+import { ICheckoutService } from './interfaces/checkout-service.interface';
+import { IPaymentService } from './interfaces/payment-service.interface';
 
 @Module({
   imports: [
@@ -26,26 +29,30 @@ import { ProfileModule } from '../profile/profile.module';
   ],
   controllers: [CheckoutController],
   providers: [
-    CheckoutService,
+    {
+      provide: 'CheckoutService',
+      useClass: CheckoutService
+    },
+    {
+      provide: 'CieloService',
+      useClass: CieloService
+    },
     PaymentGatewayFactory,
     PaymentGatewayStrategy,
     CartValidationService,
     OrderCreationService,
     StockManagementService,
     CieloGateway,
-    {
-      provide: 'PaymentGatewayConfig',
-      useFactory: (configService: AppConfigService) => {
-        return {
-          apiKey: configService.get('PAYMENT_GATEWAY_API_KEY') || 'cielo_api_key_simulada',
-          secretKey: configService.get('PAYMENT_GATEWAY_SECRET_KEY') || 'cielo_secret_key_simulada',
-          environment: configService.get('NODE_ENV') === 'production' ? 'production' : 'sandbox',
-        };
-      },
-      inject: [AppConfigService],
-    },
+    CieloConfigProvider,
+    CheckoutService,
+    CieloService
   ],
-  exports: [CheckoutService],
+  exports: [
+    'CheckoutService',
+    'CieloService',
+    CheckoutService,
+    CieloService
+  ],
 })
 export class CheckoutModule implements OnModuleInit {
   constructor(

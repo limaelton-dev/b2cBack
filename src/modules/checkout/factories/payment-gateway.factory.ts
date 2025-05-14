@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { IPaymentGateway } from '../interfaces/payment-gateway.interface';
+import { PaymentGateway } from '../payment-gateway/interfaces/payment-gateway.interface';
 
 @Injectable()
 export class PaymentGatewayFactory {
-  private gateways: Map<string, IPaymentGateway> = new Map();
+  private gateways: Map<string, PaymentGateway> = new Map();
 
-  registerGateway(name: string, gateway: IPaymentGateway) {
+  registerGateway(name: string, gateway: PaymentGateway) {
     this.gateways.set(name, gateway);
   }
 
-  getGateway(name: string): IPaymentGateway {
+  getGateway(name: string): PaymentGateway {
     const gateway = this.gateways.get(name);
     if (!gateway) {
       throw new Error(`Gateway de pagamento '${name}' não encontrado`);

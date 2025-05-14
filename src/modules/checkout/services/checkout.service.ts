@@ -1,16 +1,19 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PaymentGatewayStrategy } from '../strategies/payment-gateway.strategy';
 import { PaymentGatewayFactory } from '../factories/payment-gateway.factory';
-import { PaymentGatewayRequest, PaymentGatewayResponse, PaymentGatewayInfo } from '../interfaces/payment-gateway.interface';
+import { PaymentGatewayRequest, PaymentGatewayResponse, PaymentGatewayInfo } from '../payment-gateway/interfaces/payment-gateway.interface';
 import { CartValidationService } from './cart-validation.service';
 import { OrderCreationService } from './order-creation.service';
 import { StockManagementService } from './stock-management.service';
 import { CheckoutException } from '../interfaces/checkout.interface';
 import { CartService } from '../../cart/services/cart.service';
 import { ProfileService } from '../../profile/services/profile.service';
+import { ICheckoutService } from '../interfaces/checkout-service.interface';
 
 @Injectable()
-export class CheckoutService {
+export class CheckoutService implements ICheckoutService {
+  private readonly DEFAULT_GATEWAY = 'cielo';
+
   constructor(
     private readonly paymentGatewayStrategy: PaymentGatewayStrategy,
     private readonly paymentGatewayFactory: PaymentGatewayFactory,
@@ -21,7 +24,7 @@ export class CheckoutService {
     private readonly profileService: ProfileService,
   ) {}
 
-  async validateCheckout(profileId: number, gatewayName: string) {
+  async validateCheckout(profileId: number, gatewayName: string = this.DEFAULT_GATEWAY) {
     try {
       console.log('validateCheckout - início:', { profileId, gatewayName });
       
@@ -150,10 +153,12 @@ export class CheckoutService {
         description: `Pedido do perfil ${profileId}`,
         paymentMethod,
         customer: {
-          id: customerData.id,
+          id: customerData.id || profileId,
           email: customerData.email,
           name: customerData.name,
         },
+        // Adicionar dados do cartão se estiverem presentes no customerData
+        cardData: customerData.cardData ? customerData.cardData : undefined,
         metadata: {
           profileId,
           cartId: cart.id,
@@ -173,7 +178,7 @@ export class CheckoutService {
         const orderResult = await this.orderCreationService.createOrder(
           validation,
           profileId,
-          response.transactionId,
+          response.transactionId ? Number(response.transactionId) : 0,
           address,
         );
 
@@ -187,7 +192,7 @@ export class CheckoutService {
 
         return {
           ...response,
-          orderId: orderResult.orderId,
+          orderId: orderResult.orderId.toString(),
         };
       }
 
