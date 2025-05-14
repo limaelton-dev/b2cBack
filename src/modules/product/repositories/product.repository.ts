@@ -37,11 +37,36 @@ export class ProductRepository {
       },
     };
   }
+  
+  async find(ids: string | number) {
+    if (typeof ids === 'number' || (!ids.includes(',') && !isNaN(Number(ids)))) {
+      const product = await this.productRepository.find({
+        where: { id: Number(ids) },
+        relations: ['categoryLevel1', 'categoryLevel2', 'images', 'brand'],
+      });
+      return product;
+    } else {
+      if(ids.includes(',')) {
+        const prods = ids.split(',').map(Number);
+        return await this.productRepository.find({
+            where: {id: In(prods)},
+            relations: ['categoryLevel1', 'categoryLevel2', 'images']
+        });
+      }
+      else {
+        const product = await this.productRepository.find({
+            where: { slug: ids },
+            relations: ['categoryLevel1', 'categoryLevel2', 'images', 'brand'],
+        });
+        return product;
+      }
+    }
+  }
 
   async findOne(id: number): Promise<Product> {
     return this.productRepository.findOne({
       where: { id },
-      relations: ['images', 'discountProduct'],
+      relations: ['orderItems', 'discountProduct', 'categoryLevel1', 'brand', 'images'],
     });
   }
 

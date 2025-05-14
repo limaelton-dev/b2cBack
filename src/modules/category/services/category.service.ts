@@ -16,6 +16,16 @@ export class CategoryService {
     private readonly brandRepository: Repository<Brand>,
   ) {}
 
+  async getProdutosTipoLimit(limit: number): Promise<Category[]> {
+    const query = this.categoryRepository
+        .createQueryBuilder('category')
+        .where('category.source_table LIKE :source', { source: '%TIPO%' })
+        .orderBy('category.name', 'DESC')
+        .limit(limit);
+
+    return await query.getMany();
+  }
+
   async getCategoryMenu(): Promise<any[]> {
     const brands = await this.brandRepository.find();
     const result = [];
