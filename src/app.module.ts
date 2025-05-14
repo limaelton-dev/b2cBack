@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RouterModule } from '@nestjs/core';
 import { UserModule } from './modules/user/user.module';
 import { AddressModule } from './modules/address/address.module';
@@ -16,6 +16,7 @@ import { ConnectionController } from './test/connection/connection.controller';
 import { OracleModule } from './oracle/oracle.module';
 import { CategoryModule } from './modules/category/category.module';
 import { CheckoutModule } from './modules/checkout/checkout.module';
+import { ShippingModule } from './modules/shipping/shipping.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { CheckoutModule } from './modules/checkout/checkout.module';
     AuthModule,
     OracleModule,
     CheckoutModule,
+    ShippingModule,
     RouterModule.register([
       {
         path: 'user',

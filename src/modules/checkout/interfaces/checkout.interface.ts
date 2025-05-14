@@ -7,6 +7,14 @@ export interface CartItem {
   stock: number;
 }
 
+export interface ShippingOption {
+  code: string;
+  name: string;
+  price: number;
+  deliveryTime: number;
+  isEstimated?: boolean;
+}
+
 export interface CartValidation {
   isValid: boolean;
   items: CartItem[];
@@ -15,6 +23,7 @@ export interface CartValidation {
   shipping: number;
   discounts: number;
   errors?: string[];
+  shippingOptions?: ShippingOption[];
 }
 
 export interface CheckoutError extends Error {
@@ -23,12 +32,13 @@ export interface CheckoutError extends Error {
 }
 
 export class CheckoutException extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-    public readonly details?: Record<string, any>,
-  ) {
+  public readonly code: string;
+  public readonly details: any;
+
+  constructor(code: string, message: string, details?: any) {
     super(message);
     this.name = 'CheckoutException';
+    this.code = code;
+    this.details = details;
   }
 } 
