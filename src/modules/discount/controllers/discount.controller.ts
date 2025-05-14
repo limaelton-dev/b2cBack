@@ -21,7 +21,7 @@ export class DiscountController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: number) {
     return this.discountService.findOne(+id);
   }
 
@@ -33,28 +33,28 @@ export class DiscountController {
   @Put(':id')
   @UseGuards(JwtAuthGuard)
   async update(
-    @Param('id') id: string,
+    @Param('id') id: number,
     @Body() updateDiscountDto: UpdateDiscountDto,
   ) {
-    return this.discountService.update(+id, updateDiscountDto);
+    return this.discountService.update(id, updateDiscountDto);
   }
 
   @Put(':id/increment-usage')
   @UseGuards(JwtAuthGuard)
-  async incrementUsage(@Param('id') id: string) {
-    return this.discountService.incrementUsage(+id);
+  async incrementUsage(@Param('id') id: number) {
+    return this.discountService.incrementUsage(id);
   }
 
   @Put(':id/deactivate')
   @UseGuards(JwtAuthGuard)
-  async deactivate(@Param('id') id: string) {
-    return this.discountService.deactivate(+id);
+  async deactivate(@Param('id') id: number) {
+    return this.discountService.deactivate(id);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string) {
-    return this.discountService.remove(+id);
+  async remove(@Param('id') id: number) {
+    return this.discountService.remove(id);
   }
 } 

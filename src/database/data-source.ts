@@ -25,7 +25,8 @@ export const oracleDataSourceOptions: DataSourceOptions = {
   password: process.env.ORACLE_DB_PASSWORD,
   connectString: `${process.env.ORACLE_DB_HOST}:${process.env.ORACLE_DB_PORT}/${process.env.ORACLE_DB_DATABASE}`,
   entities: ['dist/oracle/**/*.entity.js'],
-  synchronize: false
+  synchronize: false,
+  thickMode: true
 };
 
 // Funções que utilizam ConfigService
@@ -53,7 +54,8 @@ export const getOracleDataSourceOptions = (dbConfig: any): DataSourceOptions => 
     password: dbConfig.password,
     connectString: dbConfig.connectString,
     entities: ['dist/oracle/**/*.entity.js'],
-    synchronize: false
+    synchronize: false,
+    thickMode: dbConfig.thickMode
   };
 };
 

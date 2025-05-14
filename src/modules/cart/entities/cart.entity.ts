@@ -26,7 +26,7 @@ export class Cart {
   @Column('decimal', { precision: 10, scale: 2, default: 0 })
   total: number;
 
-  @Column({ nullable: true })
+  @Column({ name: 'discount_id', nullable: true })
   discountId: number;
 
   @CreateDateColumn({ name: 'created_at' })

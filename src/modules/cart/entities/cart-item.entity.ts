@@ -24,10 +24,10 @@ export class CartItem {
   @Column()
   quantity: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { name: 'unit_price', precision: 10, scale: 2 })
   unitPrice: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { name: 'total_price', precision: 10, scale: 2 })
   totalPrice: number;
 
   @CreateDateColumn({ name: 'created_at' })

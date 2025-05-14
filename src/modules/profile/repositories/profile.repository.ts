@@ -41,10 +41,17 @@ export class ProfileRepository {
   }
 
   async findOne(id: number): Promise<Profile> {
-    return this.profileRepository.findOne({
+    console.log('ProfileRepository.findOne:', { id });
+    const profile = await this.profileRepository.findOne({
       where: { id },
       relations: ['user', 'address', 'phone', 'card', 'order', 'profilePf', 'profilePj'],
     });
+    console.log('ProfileRepository.findOne result:', { 
+      found: !!profile, 
+      profileId: profile?.id,
+      userId: profile?.userId 
+    });
+    return profile;
   }
 
   async findByUserId(userId: number): Promise<Profile[]> {
