@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Query, Logger } from '@nestjs/common';
 import { CartService } from '../services/cart.service';
 import { AddToCartDto } from '../dto/add-to-cart.dto';
 import { UpdateCartItemDto } from '../dto/update-cart-item.dto';
@@ -6,10 +6,13 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { CartResponseDto } from '../dto/cart-response.dto';
 import { ApplyDiscountDto } from '../dto/apply-discount.dto';
+import { ShippingCalculationResponseDto } from '../../shipping/dtos/shipping-calculation-response.dto';
 
 @Controller('cart')
 @UseGuards(JwtAuthGuard)
 export class CartController {
+  private readonly logger = new Logger(CartController.name);
+  
   constructor(private readonly cartService: CartService) {}
 
   @Get()
@@ -71,5 +74,31 @@ export class CartController {
     @Body() applyDiscountDto: ApplyDiscountDto,
   ): Promise<CartResponseDto> {
     return this.cartService.applyDiscount(profileId, applyDiscountDto.code);
+  }
+
+  @Get('shipping')
+  async calculateShipping(
+    @GetUser('profileId') profileId: number,
+    @Query('zipCode') zipCode: string,
+    @Query('shippingType') shippingType: string = 'ALL',
+  ): Promise<ShippingCalculationResponseDto> {
+    try {
+      this.logger.log(`Calculando frete para o carrinho do perfil ${profileId} com CEP ${zipCode} e tipo ${shippingType}`);
+      const result = await this.cartService.calculateShipping(profileId, zipCode, shippingType);
+      
+      if (result.success) {
+        this.logger.log(`Cálculo de frete bem-sucedido: ${result.data?.availableServices?.length || 0} opções disponíveis`);
+      } else {
+        this.logger.warn(`Falha no cálculo de frete: ${result.message}`);
+      }
+      
+      return result;
+    } catch (error) {
+      this.logger.error(`Erro não tratado ao calcular frete: ${error.message}`, error.stack);
+      return {
+        success: false,
+        message: `Erro ao processar o cálculo de frete: ${error.message || 'Erro desconhecido'}`,
+      };
+    }
   }
 } 

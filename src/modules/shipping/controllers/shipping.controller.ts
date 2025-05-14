@@ -14,7 +14,6 @@ import { ShippingService } from '../services/shipping.service';
 import { ShippingRequestDto } from '../dtos/shipping-request.dto';
 import { ShippingCalculationResponseDto } from '../dtos/shipping-calculation-response.dto';
 import { TrackingInfoDto } from '../dtos/tracking-info.dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ProductService } from '../../product/services/product.service';
 
 /**
@@ -41,7 +40,6 @@ export class ShippingController {
    * Calcula o frete para um conjunto de itens
    */
   @Post('calculate')
-  @UseGuards(JwtAuthGuard)
   async calculateShipping(
     @Body(ValidationPipe) request: ShippingRequestDto
   ): Promise<ShippingCalculationResponseDto> {

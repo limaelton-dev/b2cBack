@@ -1,9 +1,9 @@
 import { IsNotEmpty, IsNumber, IsString, IsBoolean, IsOptional } from 'class-validator';
 
 export class CreateCardDto {
-  @IsNotEmpty({ message: 'ID do perfil é obrigatório' })
+  @IsOptional()
   @IsNumber({}, { message: 'ID do perfil deve ser um número' })
-  profileId: number;
+  profileId?: number;
 
   @IsNotEmpty({ message: 'Número do cartão é obrigatório' })
   @IsString({ message: 'Número do cartão deve ser uma string' })

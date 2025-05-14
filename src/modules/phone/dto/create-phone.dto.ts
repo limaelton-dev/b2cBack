@@ -1,9 +1,9 @@
 import { IsNotEmpty, IsNumber, IsString, IsBoolean, IsOptional } from 'class-validator';
 
 export class CreatePhoneDto {
-  @IsNotEmpty({ message: 'ID do perfil é obrigatório' })
+  @IsOptional()
   @IsNumber({}, { message: 'ID do perfil deve ser um número' })
-  profileId: number;
+  profileId?: number;
 
   @IsNotEmpty({ message: 'DDD é obrigatório' })
   @IsString({ message: 'DDD deve ser uma string' })
