@@ -19,7 +19,6 @@ export class CartRepository {
   }
 
   async findOneByProfileId(profileId: number): Promise<Cart | null> {
-    console.log('CartRepository.findOneByProfileId:', { profileId });
     return this.repository.findOne({
       where: { profileId },
       relations: ['items', 'items.product'],

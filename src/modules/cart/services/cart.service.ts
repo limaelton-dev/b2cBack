@@ -19,19 +19,10 @@ export class CartService {
   ) {}
 
   async getCart(profileId: number): Promise<Cart> {
-    console.log('CartService.getCart - início:', { profileId });
-    
     let cart = await this.cartRepository.findOneByProfileId(profileId);
-    console.log('CartService.getCart - carrinho encontrado:', { found: !!cart, cartId: cart?.id, profileId });
 
     if (!cart) {
-      console.log('CartService.getCart - criando novo carrinho:', { profileId });
       cart = await this.createCart(profileId);
-      console.log('CartService.getCart - carrinho criado:', { 
-        success: !!cart, 
-        cartId: cart?.id, 
-        profileId: cart?.profileId 
-      });
     }
 
     return cart;
@@ -232,38 +223,21 @@ export class CartService {
     return Number(result.toFixed(2));
   }
 
-  // Método para limpar o carrinho, pode receber o ID do perfil ou o ID do carrinho
-  async clearCart(idOrProfileId: number): Promise<void> {
+  async clearCart(profileId: number): Promise<void> {
     let cart: Cart;
 
-    // Tenta buscar o carrinho diretamente pelo ID
-    try {
-      cart = await this.cartRepository.findOne(idOrProfileId);
-    } catch (e) {
-      // Se falhar, provavelmente não é um ID de carrinho
-      cart = null;
-    }
-
-    // Se não encontrou por ID, assume que é um profile ID
-    if (!cart) {
-      cart = await this.getCart(idOrProfileId);
-    }
+    cart = await this.getCart(profileId);
 
     if (!cart) {
       throw new NotFoundException('Carrinho não encontrado');
     }
 
-    // Remove todos os itens do banco de dados
-    const cartItems = await this.cartItemRepository.findByCartId(cart.id);
-    for (const item of cartItems) {
-      await this.cartItemRepository.remove(item);
-    }
-
-    // Atualiza os totais
+    await this.cartItemRepository.deleteByCartId(cart.id);
+    
+    cart.items = [];
     cart.subtotal = 0;
     cart.total = 0;
 
-    // Salva o carrinho atualizado
     await this.cartRepository.save(cart);
   }
 

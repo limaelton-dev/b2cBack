@@ -26,40 +26,17 @@ export class CheckoutService implements ICheckoutService {
 
   async validateCheckout(profileId: number, gatewayName: string = this.DEFAULT_GATEWAY) {
     try {
-      console.log('validateCheckout - início:', { profileId, gatewayName });
-      
       // Verifica se o perfil existe
       const profile = await this.profileService.findOne(profileId);
       if (!profile) {
         throw new NotFoundException(`Perfil com ID ${profileId} não encontrado`);
       }
       
-      console.log('validateCheckout - perfil encontrado:', { 
-        profileId: profile.id, 
-        userId: profile.userId, 
-        profileType: profile.profileType 
-      });
-      
       // Busca ou cria um carrinho para o perfil
       let cart = await this.cartService.findByProfileId(profileId);
-      console.log('validateCheckout - carrinho encontrado:', { 
-        found: !!cart, 
-        cartId: cart?.id,
-        profileId 
-      });
-      
-      if (!cart) {
-        console.log('validateCheckout - criando novo carrinho para o perfil:', { profileId });
-        cart = await this.cartService.create(profileId);
-        console.log('validateCheckout - carrinho criado:', { 
-          success: !!cart,
-          cartId: cart?.id,
-          profileId: cart?.profileId
-        });
-      }
       
       if (!cart || !cart.id) {
-        throw new CheckoutException('CART_NOT_FOUND', 'Não foi possível criar ou acessar o carrinho');
+        throw new CheckoutException('CART_NOT_FOUND', 'Não foi possível acessar o carrinho');
       }
       
       // Valida o carrinho e calcula totais
@@ -188,7 +165,7 @@ export class CheckoutService implements ICheckoutService {
         */
 
         // Limpa o carrinho
-        await this.cartService.clearCart(cart.id);
+        await this.cartService.clearCart(profileId);
 
         return {
           ...response,
