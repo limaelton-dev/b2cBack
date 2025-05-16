@@ -100,15 +100,6 @@ export class CheckoutController {
       email: paymentDto.customerData?.email || userEmail,
     };
 
-    // Validação dos dados do cartão
-    if (!paymentDto.cardNumber || !paymentDto.holder || !paymentDto.expirationDate || !paymentDto.securityCode) {
-      return {
-        success: false,
-        message: 'Dados do cartão incompletos. Verifique e tente novamente.',
-        details: null
-      };
-    }
-
     // Processar pagamento com cartão de crédito via Cielo
     const creditCardResponse = await this.paymentService.processCreditCardPayment(
       amount,
@@ -120,7 +111,7 @@ export class CheckoutController {
         brand: paymentDto.brand,
       },
       customer,
-      paymentDto.description || 'Compra online'
+      paymentDto.description || 'Compra online Coletek'
     );
 
     // Se o pagamento for bem-sucedido, criar a ordem
@@ -197,15 +188,6 @@ export class CheckoutController {
       name: paymentDto.customerData?.name || userName,
       email: paymentDto.customerData?.email || userEmail,
     };
-
-    // Validação dos dados do token
-    if (!paymentDto.token || !paymentDto.brand) {
-      return {
-        success: false,
-        message: 'Dados do token incompletos. Verifique e tente novamente.',
-        details: null
-      };
-    }
 
     // Processar pagamento com cartão tokenizado via Cielo
     const tokenizedResponse = await this.paymentService.processTokenizedCardPayment(

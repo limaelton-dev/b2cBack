@@ -8,6 +8,10 @@ import { DiscountService } from '../../discount/services/discount.service';
 import { CartRepository } from '../repositories/cart.repository';
 import { CartItemRepository } from '../repositories/cart-item.repository';
 import { CartResponseDto, CartItemResponseDto } from '../dto/cart-response.dto';
+import { ShippingService } from '../../shipping/services/shipping.service';
+import { ShippingCalculationResponseDto } from '../../shipping/dtos/shipping-calculation-response.dto';
+import { ShippingItemDto } from '../../shipping/dtos/shipping-item.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CartService {
@@ -16,22 +20,15 @@ export class CartService {
     private cartItemRepository: CartItemRepository,
     private productService: ProductService,
     private discountService: DiscountService,
+    private shippingService: ShippingService,
+    private configService: ConfigService,
   ) {}
 
   async getCart(profileId: number): Promise<Cart> {
-    console.log('CartService.getCart - início:', { profileId });
-    
     let cart = await this.cartRepository.findOneByProfileId(profileId);
-    console.log('CartService.getCart - carrinho encontrado:', { found: !!cart, cartId: cart?.id, profileId });
 
     if (!cart) {
-      console.log('CartService.getCart - criando novo carrinho:', { profileId });
       cart = await this.createCart(profileId);
-      console.log('CartService.getCart - carrinho criado:', { 
-        success: !!cart, 
-        cartId: cart?.id, 
-        profileId: cart?.profileId 
-      });
     }
 
     return cart;
@@ -232,38 +229,21 @@ export class CartService {
     return Number(result.toFixed(2));
   }
 
-  // Método para limpar o carrinho, pode receber o ID do perfil ou o ID do carrinho
-  async clearCart(idOrProfileId: number): Promise<void> {
+  async clearCart(profileId: number): Promise<void> {
     let cart: Cart;
 
-    // Tenta buscar o carrinho diretamente pelo ID
-    try {
-      cart = await this.cartRepository.findOne(idOrProfileId);
-    } catch (e) {
-      // Se falhar, provavelmente não é um ID de carrinho
-      cart = null;
-    }
-
-    // Se não encontrou por ID, assume que é um profile ID
-    if (!cart) {
-      cart = await this.getCart(idOrProfileId);
-    }
+    cart = await this.getCart(profileId);
 
     if (!cart) {
       throw new NotFoundException('Carrinho não encontrado');
     }
 
-    // Remove todos os itens do banco de dados
-    const cartItems = await this.cartItemRepository.findByCartId(cart.id);
-    for (const item of cartItems) {
-      await this.cartItemRepository.remove(item);
-    }
-
-    // Atualiza os totais
+    await this.cartItemRepository.deleteByCartId(cart.id);
+    
+    cart.items = [];
     cart.subtotal = 0;
     cart.total = 0;
 
-    // Salva o carrinho atualizado
     await this.cartRepository.save(cart);
   }
 
@@ -313,5 +293,107 @@ export class CartService {
     
     // Obtém o carrinho atualizado diretamente da instância atual
     return this.mapToCartResponse(cart);
+  }
+
+  async calculateShipping(
+    profileId: number,
+    destinationZipCode: string,
+    shippingType: string = 'ALL',
+  ): Promise<ShippingCalculationResponseDto> {
+    const cart = await this.getCart(profileId);
+
+    if (!cart || !cart.items || cart.items.length === 0) {
+      return {
+        success: false,
+        message: 'O carrinho está vazio',
+      };
+    }
+
+    if (!destinationZipCode) {
+      return {
+        success: false,
+        message: 'CEP de destino é obrigatório',
+      };
+    }
+
+    // Buscar o CEP de origem nas configurações
+    const originZipCode = this.configService.get<string>('CORREIOS_CEP_ORIGEM');
+    if (!originZipCode) {
+      return {
+        success: false,
+        message: 'CEP de origem não configurado',
+      };
+    }
+
+    // Obter os dados dos produtos no carrinho
+    const productIds = cart.items.map(item => item.productId);
+    const products = await this.productService.findByIds(productIds);
+
+    // Transformar itens do carrinho em itens para cálculo de frete
+    const shippingItems: ShippingItemDto[] = [];
+    
+    for (const cartItem of cart.items) {
+      const product = products.find(p => p.id === cartItem.productId);
+      if (!product) continue;
+
+      // Determinar o código de serviço com base no tipo de frete
+      // Por padrão, usamos o tipo ALL para calcular todas as opções
+      const serviceCode = shippingType?.toUpperCase() === 'PAC' ? '04510' : 
+                          shippingType?.toUpperCase() === 'SEDEX' ? '04014' : 
+                          '04014'; // SEDEX como padrão para cálculo conjunto
+
+      shippingItems.push({
+        productId: cartItem.productId,
+        serviceCode: serviceCode,
+        quantity: cartItem.quantity,
+        weight: product.weight || 300, // 300g como padrão se não especificado
+        dimensions: {
+          height: product.height || 10, // 10cm como padrão
+          width: product.width || 10,   // 10cm como padrão
+          length: product.length || 10  // 10cm como padrão
+        }
+      });
+    }
+
+    try {
+      // Calcular o frete usando o serviço de frete
+      return await this.shippingService.calculateShipping(
+        'correios', // Provedor padrão
+        originZipCode,
+        destinationZipCode,
+        shippingItems
+      );
+    } catch (error) {
+      // Se o erro estiver relacionado com o PAC não disponível, fazer fallback para SEDEX apenas
+      if (error.message && 
+          (error.message.includes('400') || 
+           error.message.includes('Classificaçao de preço') || 
+           error.message.includes('não foi encontrada na proposta de preço'))) {
+        try {
+          // Forçar o cálculo apenas para SEDEX
+          console.log('Erro no cálculo de PAC, fazendo fallback para apenas SEDEX');
+          
+          // Atualizar todos os itens para usar apenas SEDEX
+          shippingItems.forEach(item => item.serviceCode = '04014');
+          
+          return await this.shippingService.calculateShipping(
+            'correios',
+            originZipCode,
+            destinationZipCode,
+            shippingItems
+          );
+        } catch (fallbackError) {
+          return {
+            success: false,
+            message: `Erro ao calcular frete (mesmo com fallback): ${fallbackError.message || 'Erro desconhecido'}`,
+          };
+        }
+      }
+      
+      return {
+        success: false,
+        message: `Erro ao calcular frete: ${error.message || 'Erro desconhecido'}`,
+      };
+    }
   }
 } 

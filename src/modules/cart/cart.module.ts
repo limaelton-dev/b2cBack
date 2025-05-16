@@ -8,12 +8,16 @@ import { Cart } from './entities/cart.entity';
 import { CartItem } from './entities/cart-item.entity';
 import { ProductModule } from '../product/product.module';
 import { DiscountModule } from '../discount/discount.module';
+import { ShippingModule } from '../shipping/shipping.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Cart, CartItem]),
     ProductModule,
     DiscountModule,
+    ShippingModule,
+    ConfigModule,
   ],
   controllers: [CartController],
   providers: [CartService, CartRepository, CartItemRepository],

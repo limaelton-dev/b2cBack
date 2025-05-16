@@ -7,7 +7,6 @@ import {
   Put,
   Delete,
   UseGuards,
-  Request,
   HttpCode,
   HttpStatus,
   ForbiddenException,
@@ -17,8 +16,9 @@ import { ProfileService } from '../../profile/services/profile.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { UpdateAddressDto } from '../dto/update-address.dto';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
 
-@Controller('profile/:profileId/address')
+@Controller('address')
 @UseGuards(JwtAuthGuard)
 export class AddressController {
   constructor(
@@ -29,57 +29,68 @@ export class AddressController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Request() req,
-    @Param('profileId') profileId: number,
+    @GetUser('sub') userId: number,
     @Body() createAddressDto: CreateAddressDto,
   ) {
-    const profile = await this.profileService.findOne(+profileId);
+    // Buscar perfis do usuário
+    const profiles = await this.profileService.findAllByUserId(userId);
     
-    // Verificar se o perfil pertence ao usuário autenticado
-    if (profile.userId !== req.user.userId) {
-      throw new ForbiddenException('Você não tem permissão para adicionar endereços a este perfil');
+    if (!profiles || profiles.length === 0) {
+      throw new ForbiddenException('Perfil não encontrado para este usuário');
     }
     
-    return this.addressService.create(+profileId, createAddressDto);
+    // Usando o primeiro perfil do usuário
+    const profile = profiles[0];
+    
+    return this.addressService.create(profile.id, createAddressDto);
   }
 
   @Get()
-  async findAll(@Request() req, @Param('profileId') profileId: number) {
-    const profile = await this.profileService.findOne(+profileId);
+  async findAll(@GetUser('sub') userId: number) {
+    // Buscar perfis do usuário
+    const profiles = await this.profileService.findAllByUserId(userId);
     
-    // Verificar se o perfil pertence ao usuário autenticado
-    if (profile.userId !== req.user.userId) {
-      throw new ForbiddenException('Você não tem permissão para acessar endereços deste perfil');
+    if (!profiles || profiles.length === 0) {
+      throw new ForbiddenException('Perfil não encontrado para este usuário');
     }
     
-    return this.addressService.findAll(+profileId);
+    // Usando o primeiro perfil do usuário
+    const profile = profiles[0];
+    
+    return this.addressService.findAll(profile.id);
   }
 
   @Get('default')
-  async findDefault(@Request() req, @Param('profileId') profileId: number) {
-    const profile = await this.profileService.findOne(+profileId);
+  async findDefault(@GetUser('sub') userId: number) {
+    // Buscar perfis do usuário
+    const profiles = await this.profileService.findAllByUserId(userId);
     
-    // Verificar se o perfil pertence ao usuário autenticado
-    if (profile.userId !== req.user.userId) {
-      throw new ForbiddenException('Você não tem permissão para acessar endereços deste perfil');
+    if (!profiles || profiles.length === 0) {
+      throw new ForbiddenException('Perfil não encontrado para este usuário');
     }
     
-    return this.addressService.findDefault(+profileId);
+    // Usando o primeiro perfil do usuário
+    const profile = profiles[0];
+    
+    return this.addressService.findDefault(profile.id);
   }
 
   @Get(':id')
-  async findOne(@Request() req, @Param('profileId') profileId: number, @Param('id') id: number) {
-    const profile = await this.profileService.findOne(+profileId);
+  async findOne(@GetUser('sub') userId: number, @Param('id') id: number) {
+    // Buscar perfis do usuário
+    const profiles = await this.profileService.findAllByUserId(userId);
     
-    // Verificar se o perfil pertence ao usuário autenticado
-    if (profile.userId !== req.user.userId) {
-      throw new ForbiddenException('Você não tem permissão para acessar endereços deste perfil');
+    if (!profiles || profiles.length === 0) {
+      throw new ForbiddenException('Perfil não encontrado para este usuário');
     }
+    
+    // Usando o primeiro perfil do usuário
+    const profile = profiles[0];
     
     const address = await this.addressService.findOne(+id);
     
     // Verificar se o endereço pertence ao perfil
-    if (address.profileId !== +profileId) {
+    if (address.profileId !== profile.id) {
       throw new ForbiddenException('Endereço não pertence a este perfil');
     }
     
@@ -88,22 +99,24 @@ export class AddressController {
 
   @Put(':id')
   async update(
-    @Request() req,
-    @Param('profileId') profileId: number,
+    @GetUser('sub') userId: number,
     @Param('id') id: number,
     @Body() updateAddressDto: UpdateAddressDto,
   ) {
-    const profile = await this.profileService.findOne(+profileId);
+    // Buscar perfis do usuário
+    const profiles = await this.profileService.findAllByUserId(userId);
     
-    // Verificar se o perfil pertence ao usuário autenticado
-    if (profile.userId !== req.user.userId) {
-      throw new ForbiddenException('Você não tem permissão para atualizar endereços deste perfil');
+    if (!profiles || profiles.length === 0) {
+      throw new ForbiddenException('Perfil não encontrado para este usuário');
     }
+    
+    // Usando o primeiro perfil do usuário
+    const profile = profiles[0];
     
     const address = await this.addressService.findOne(+id);
     
     // Verificar se o endereço pertence ao perfil
-    if (address.profileId !== +profileId) {
+    if (address.profileId !== profile.id) {
       throw new ForbiddenException('Endereço não pertence a este perfil');
     }
     
@@ -112,18 +125,21 @@ export class AddressController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Request() req, @Param('profileId') profileId: number, @Param('id') id: number) {
-    const profile = await this.profileService.findOne(+profileId);
+  async remove(@GetUser('sub') userId: number, @Param('id') id: number) {
+    // Buscar perfis do usuário
+    const profiles = await this.profileService.findAllByUserId(userId);
     
-    // Verificar se o perfil pertence ao usuário autenticado
-    if (profile.userId !== req.user.userId) {
-      throw new ForbiddenException('Você não tem permissão para remover endereços deste perfil');
+    if (!profiles || profiles.length === 0) {
+      throw new ForbiddenException('Perfil não encontrado para este usuário');
     }
+    
+    // Usando o primeiro perfil do usuário
+    const profile = profiles[0];
     
     const address = await this.addressService.findOne(+id);
     
     // Verificar se o endereço pertence ao perfil
-    if (address.profileId !== +profileId) {
+    if (address.profileId !== profile.id) {
       throw new ForbiddenException('Endereço não pertence a este perfil');
     }
     

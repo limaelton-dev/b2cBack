@@ -36,4 +36,8 @@ export class CartItemRepository {
   async remove(cartItem: CartItem): Promise<void> {
     await this.repository.remove(cartItem);
   }
+
+  async deleteByCartId(cartId: number): Promise<void> {
+    await this.repository.delete({ cartId });
+  }
 } 

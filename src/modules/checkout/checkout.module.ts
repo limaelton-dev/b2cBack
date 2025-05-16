@@ -17,6 +17,7 @@ import { ProfileModule } from '../profile/profile.module';
 import { CieloConfigProvider } from './providers/cielo-config.provider';
 import { ICheckoutService } from './interfaces/checkout-service.interface';
 import { IPaymentService } from './interfaces/payment-service.interface';
+import { ShippingModule } from '../shipping/shipping.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { IPaymentService } from './interfaces/payment-service.interface';
     ProductModule,
     AppConfigModule,
     ProfileModule,
+    ShippingModule,
   ],
   controllers: [CheckoutController],
   providers: [
