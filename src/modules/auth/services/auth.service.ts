@@ -66,6 +66,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        name: defaultProfile.profileType == 'PF' ? defaultProfile.profilePf.fullName : defaultProfile.profilePj.companyName,
         profileId: defaultProfile.id,
         profileType: defaultProfile.profileType
       },
