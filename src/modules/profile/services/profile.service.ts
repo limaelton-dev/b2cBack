@@ -46,7 +46,8 @@ export class ProfileService {
     // Criar perfil PF
     const profilePf = await this.profileRepository.createProfilePf({
       profileId: profile.id,
-      fullName: createProfilePfDto.fullName,
+      firstName: createProfilePfDto.firstName,
+      lastName: createProfilePfDto.lastName,
       cpf: createProfilePfDto.cpf,
       birthDate: createProfilePfDto.birthDate,
       gender: createProfilePfDto.gender,

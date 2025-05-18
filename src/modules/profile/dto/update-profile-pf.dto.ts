@@ -3,8 +3,12 @@ import { Type } from 'class-transformer';
 
 export class UpdateProfilePfDto {
   @IsOptional()
-  @IsString({ message: 'Nome completo deve ser uma string' })
-  fullName?: string;
+  @IsString({ message: 'Nome deve ser uma string' })
+  firstName?: string;
+
+  @IsOptional()
+  @IsString({ message: 'Sobrenome deve ser uma string' })
+  lastName?: string;
 
   @IsOptional()
   @IsString({ message: 'CPF deve ser uma string' })

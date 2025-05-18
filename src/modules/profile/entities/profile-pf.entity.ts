@@ -6,8 +6,11 @@ export class ProfilePf {
   @PrimaryColumn({ name: 'profile_id' })
   profileId: number;
 
-  @Column({ name: 'full_name' })
-  fullName: string;
+  @Column({ name: 'first_name', nullable: false })
+  firstName: string;
+
+  @Column({ name: 'last_name', nullable: false })
+  lastName: string;
 
   @Column({ unique: true })
   cpf: string;

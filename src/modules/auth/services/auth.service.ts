@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from '../../user/repositories/user.repository';
 import { SignInDto } from '../dto/sign.in.dto';
@@ -7,6 +7,8 @@ import { UserService } from 'src/modules/user/services/user.service';
 import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { CreateUserWithProfileDto } from 'src/modules/user/dto/create-user-with-profile.dto';
 import { ProfileService } from 'src/modules/profile/services/profile.service';
+import { ProfileType } from 'src/common/enums';
+import { CreateProfilePfDto } from 'src/modules/profile/dto/create-profile-pf.dto';
 
 @Injectable()
 export class AuthService {
@@ -66,7 +68,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: defaultProfile.profileType == 'PF' ? defaultProfile.profilePf.fullName : defaultProfile.profilePj.companyName,
+        name: defaultProfile.profileType == 'PF' ? defaultProfile.profilePf.firstName + ' ' + defaultProfile.profilePf.lastName : defaultProfile.profilePj.companyName,
         profileId: defaultProfile.id,
         profileType: defaultProfile.profileType
       },
@@ -74,6 +76,15 @@ export class AuthService {
   }
 
   async signUp(createUserDto: CreateUserDto | CreateUserWithProfileDto) {
+    // Validação adicional para garantir que os campos firstName e lastName estejam presentes quando o perfil for PF
+    if ('profileType' in createUserDto && createUserDto.profileType === ProfileType.PF) {
+      const profileData = createUserDto.profile as CreateProfilePfDto;
+      
+      if (!profileData.firstName || !profileData.lastName) {
+        throw new BadRequestException('Os campos firstName e lastName são obrigatórios para perfil PF');
+      }
+    }
+    
     const user = await this.userService.create(createUserDto);
     
     // Buscar perfis do usuário recém-criado

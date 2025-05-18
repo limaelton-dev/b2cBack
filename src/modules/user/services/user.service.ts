@@ -131,7 +131,8 @@ export class UserService {
     if (profile.profileType === ProfileType.PF && profile.profilePf) {
       userProfile.profile = {
         id: profile.id,
-        fullName: profile.profilePf.fullName,
+        firstName: profile.profilePf.firstName,
+        lastName: profile.profilePf.lastName,
         cpf: profile.profilePf.cpf,
         birthDate: profile.profilePf.birthDate,
         gender: profile.profilePf.gender,
@@ -182,7 +183,8 @@ export class UserService {
     if (profile.profileType === ProfileType.PF && profile.profilePf) {
       userDetails.profile = {
         id: profile.id,
-        fullName: profile.profilePf.fullName,
+        firstName: profile.profilePf.firstName,
+        lastName: profile.profilePf.lastName,
         cpf: profile.profilePf.cpf,
         birthDate: profile.profilePf.birthDate,
         gender: profile.profilePf.gender,

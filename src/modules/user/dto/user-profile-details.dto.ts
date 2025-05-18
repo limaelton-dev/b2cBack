@@ -3,7 +3,8 @@ import { ProfileType } from '../../../common/enums/profile-type.enum';
 
 class ProfilePFDto {
   id: number;
-  fullName: string;
+  firstName: string;
+  lastName: string;
   cpf: string;
   birthDate: Date;
   gender?: string;

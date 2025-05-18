@@ -17,7 +17,14 @@ export class AuthController {
 
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @UsePipes(new ValidationPipe({ 
+    transform: true, 
+    whitelist: true,
+    forbidNonWhitelisted: false,
+    skipMissingProperties: false,
+    validationError: { target: false },
+    validateCustomDecorators: true
+  }))
   async signUp(@Body() createUserDto: CreateUserDto | CreateUserWithProfileDto) {
     return this.authService.signUp(createUserDto);
   }

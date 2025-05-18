@@ -2,9 +2,13 @@ import { IsNotEmpty, IsString, IsOptional, IsDate } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateProfilePfDto {
-  @IsNotEmpty({ message: 'Nome completo é obrigatório' })
-  @IsString({ message: 'Nome completo deve ser uma string' })
-  fullName: string;
+  @IsNotEmpty({ message: 'Nome é obrigatório' })
+  @IsString({ message: 'Nome deve ser uma string' })
+  firstName: string;
+
+  @IsNotEmpty({ message: 'Sobrenome é obrigatório' })
+  @IsString({ message: 'Sobrenome deve ser uma string' })
+  lastName: string;
 
   @IsNotEmpty({ message: 'CPF é obrigatório' })
   @IsString({ message: 'CPF deve ser uma string' })
