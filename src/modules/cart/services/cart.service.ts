@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { Cart } from '../entities/cart.entity';
 import { CartItem } from '../entities/cart-item.entity';
 import { AddToCartDto } from '../dto/add-to-cart.dto';
@@ -12,6 +12,8 @@ import { ShippingService } from '../../shipping/services/shipping.service';
 import { ShippingCalculationResponseDto } from '../../shipping/dtos/shipping-calculation-response.dto';
 import { ShippingItemDto } from '../../shipping/dtos/shipping-item.dto';
 import { ConfigService } from '@nestjs/config';
+import { RemoveCartItemResponseDto } from '../dto/remove-cart-item-response.dto';
+import { UpdateCartItemResponseDto } from '../dto/update-cart-item-response.dto';
 
 @Injectable()
 export class CartService {
@@ -148,51 +150,68 @@ export class CartService {
 
   async updateCartItem(
     profileId: number,
-    itemId: number,
+    productId: number,
     updateCartItemDto: UpdateCartItemDto,
-  ): Promise<CartResponseDto> {
+  ): Promise<UpdateCartItemResponseDto> {
+    // Obter o carrinho do usuário
     const cart = await this.getCart(profileId);
-    const cartItem = cart.items.find(item => item.id === itemId);
-
+    
+    // Buscar todos os itens deste carrinho
+    const cartItems = await this.cartItemRepository.findByCartId(cart.id);
+    
+    // Encontrar o item com o productId desejado
+    const cartItem = cartItems.find(item => item.productId === productId);
+    
     if (!cartItem) {
-      throw new NotFoundException('Item não encontrado no carrinho');
+      throw new NotFoundException(`Produto com ID ${productId} não encontrado no carrinho`);
     }
 
+    // Atualizar a quantidade
     cartItem.quantity = updateCartItemDto.quantity;
     // Certifica-se de que o preço total é um número formatado corretamente
     cartItem.totalPrice = Number((cartItem.quantity * Number(cartItem.unitPrice)).toFixed(2));
 
     await this.cartItemRepository.save(cartItem);
-    await this.updateCartTotals(cart);
+    
+    // Recarregar o carrinho para ter os itens atualizados
+    const updatedCart = await this.getCart(profileId);
+    await this.updateCartTotals(updatedCart);
 
-    return this.getCartSimplified(profileId);
+    return {
+      productId,
+      cart: this.mapToCartResponse(updatedCart)
+    };
   }
 
   async removeCartItem(
     profileId: number,
-    itemId: number,
-  ): Promise<CartResponseDto> {
+    productId: number,
+  ): Promise<RemoveCartItemResponseDto> {
+    // Obter o carrinho do usuário
     const cart = await this.getCart(profileId);
     
-    // Encontra o item no carrinho
-    const itemIndex = cart.items.findIndex(item => item.id === itemId);
-    if (itemIndex === -1) {
-      throw new NotFoundException('Item não encontrado no carrinho');
-    }
+    // Buscar todos os itens deste carrinho
+    const cartItems = await this.cartItemRepository.findByCartId(cart.id);
     
-    // Remove o item da lista antes de chamar o repositório
-    const cartItem = cart.items[itemIndex];
-    cart.items.splice(itemIndex, 1);
+    // Encontrar o item com o productId desejado
+    const cartItem = cartItems.find(item => item.productId === productId);
+    
+    if (!cartItem) {
+      throw new NotFoundException(`Produto com ID ${productId} não encontrado no carrinho`);
+    }
     
     // Remove do banco de dados
     await this.cartItemRepository.remove(cartItem);
     
-    // Atualiza os totais do carrinho
-    await this.updateCartTotals(cart);
+    // Recarregar o carrinho para ter os itens atualizados
+    const updatedCart = await this.getCart(profileId);
+    await this.updateCartTotals(updatedCart);
     
-    // Obtém o carrinho atualizado diretamente da instância atual
-    // em vez de fazer uma nova consulta ao banco de dados
-    return this.mapToCartResponse(cart);
+    // Retorna o ID do produto e o carrinho atualizado
+    return {
+      productId,
+      cart: this.mapToCartResponse(updatedCart)
+    };
   }
 
   async applyDiscount(
@@ -279,48 +298,66 @@ export class CartService {
     profileId: number,
     productId: number,
     updateCartItemDto: UpdateCartItemDto,
-  ): Promise<CartResponseDto> {
+  ): Promise<UpdateCartItemResponseDto> {
+    // Obter o carrinho do usuário
     const cart = await this.getCart(profileId);
-    const cartItem = cart.items.find(item => item.productId === productId);
-
+    
+    // Buscar todos os itens deste carrinho
+    const cartItems = await this.cartItemRepository.findByCartId(cart.id);
+    
+    // Encontrar o item com o productId desejado
+    const cartItem = cartItems.find(item => item.productId === productId);
+    
     if (!cartItem) {
-      throw new NotFoundException('Item não encontrado no carrinho');
+      throw new NotFoundException(`Produto com ID ${productId} não encontrado no carrinho`);
     }
 
+    // Atualizar a quantidade
     cartItem.quantity = updateCartItemDto.quantity;
     // Certifica-se de que o preço total é um número formatado corretamente
     cartItem.totalPrice = Number((cartItem.quantity * Number(cartItem.unitPrice)).toFixed(2));
 
     await this.cartItemRepository.save(cartItem);
-    await this.updateCartTotals(cart);
+    
+    // Recarregar o carrinho para ter os itens atualizados
+    const updatedCart = await this.getCart(profileId);
+    await this.updateCartTotals(updatedCart);
 
-    return this.getCartSimplified(profileId);
+    return {
+      productId,
+      cart: this.mapToCartResponse(updatedCart)
+    };
   }
 
   async removeCartItemByProductId(
     profileId: number,
     productId: number,
-  ): Promise<CartResponseDto> {
+  ): Promise<RemoveCartItemResponseDto> {
+    // Obter o carrinho do usuário
     const cart = await this.getCart(profileId);
     
-    // Encontra o item no carrinho pelo ID do produto
-    const itemIndex = cart.items.findIndex(item => item.productId === productId);
-    if (itemIndex === -1) {
-      throw new NotFoundException('Item não encontrado no carrinho');
-    }
+    // Buscar todos os itens deste carrinho
+    const cartItems = await this.cartItemRepository.findByCartId(cart.id);
     
-    // Remove o item da lista antes de chamar o repositório
-    const cartItem = cart.items[itemIndex];
-    cart.items.splice(itemIndex, 1);
+    // Encontrar o item com o productId desejado
+    const cartItem = cartItems.find(item => item.productId === productId);
+    
+    if (!cartItem) {
+      throw new NotFoundException(`Produto com ID ${productId} não encontrado no carrinho`);
+    }
     
     // Remove do banco de dados
     await this.cartItemRepository.remove(cartItem);
     
-    // Atualiza os totais do carrinho
-    await this.updateCartTotals(cart);
+    // Recarregar o carrinho para ter os itens atualizados
+    const updatedCart = await this.getCart(profileId);
+    await this.updateCartTotals(updatedCart);
     
-    // Obtém o carrinho atualizado diretamente da instância atual
-    return this.mapToCartResponse(cart);
+    // Retorna o ID do produto e o carrinho atualizado
+    return {
+      productId,
+      cart: this.mapToCartResponse(updatedCart)
+    };
   }
 
   async calculateShipping(
@@ -423,5 +460,29 @@ export class CartService {
         message: `Erro ao calcular frete: ${error.message || 'Erro desconhecido'}`,
       };
     }
+  }
+
+  // Método auxiliar para buscar um item do carrinho pelo ID do produto
+  async findCartItemByProductId(
+    profileId: number,
+    productId: number,
+  ): Promise<{ itemId: number; productId: number }> {
+    // Obter o carrinho do usuário
+    const cart = await this.getCart(profileId);
+    
+    // Buscar todos os itens deste carrinho
+    const cartItems = await this.cartItemRepository.findByCartId(cart.id);
+    
+    // Encontrar o item com o productId desejado
+    const cartItem = cartItems.find(item => item.productId === productId);
+    
+    if (!cartItem) {
+      throw new NotFoundException(`Produto com ID ${productId} não encontrado no carrinho`);
+    }
+    
+    return {
+      itemId: cartItem.id,
+      productId: cartItem.productId
+    };
   }
 } 

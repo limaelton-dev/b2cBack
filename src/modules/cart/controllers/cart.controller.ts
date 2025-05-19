@@ -7,6 +7,8 @@ import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { CartResponseDto } from '../dto/cart-response.dto';
 import { ApplyDiscountDto } from '../dto/apply-discount.dto';
 import { ShippingCalculationResponseDto } from '../../shipping/dtos/shipping-calculation-response.dto';
+import { RemoveCartItemResponseDto } from '../dto/remove-cart-item-response.dto';
+import { UpdateCartItemResponseDto } from '../dto/update-cart-item-response.dto';
 
 @Controller('cart')
 @UseGuards(JwtAuthGuard)
@@ -36,13 +38,13 @@ export class CartController {
     return this.cartService.addToCart(profileId, addToCartDto);
   }
 
-  @Put('items/:id')
+  @Put('items/:productId')
   async updateCartItem(
     @GetUser('profileId') profileId: number,
-    @Param('id') itemId: number,
+    @Param('productId') productId: number,
     @Body() updateCartItemDto: UpdateCartItemDto,
-  ): Promise<CartResponseDto> {
-    return this.cartService.updateCartItem(profileId, itemId, updateCartItemDto);
+  ): Promise<UpdateCartItemResponseDto> {
+    return this.cartService.updateCartItem(profileId, productId, updateCartItemDto);
   }
 
   @Put('items/product/:productId')
@@ -50,23 +52,23 @@ export class CartController {
     @GetUser('profileId') profileId: number,
     @Param('productId') productId: number,
     @Body() updateCartItemDto: UpdateCartItemDto,
-  ): Promise<CartResponseDto> {
+  ): Promise<UpdateCartItemResponseDto> {
     return this.cartService.updateCartItemByProductId(profileId, productId, updateCartItemDto);
   }
 
-  @Delete('items/:id')
+  @Delete('items/:productId')
   async removeCartItem(
     @GetUser('profileId') profileId: number,
-    @Param('id') itemId: number,
-  ): Promise<CartResponseDto> {
-    return this.cartService.removeCartItem(profileId, itemId);
+    @Param('productId') productId: number,
+  ): Promise<RemoveCartItemResponseDto> {
+    return this.cartService.removeCartItem(profileId, productId);
   }
 
   @Delete('items/product/:productId')
   async removeCartItemByProductId(
     @GetUser('profileId') profileId: number,
     @Param('productId') productId: number,
-  ): Promise<CartResponseDto> {
+  ): Promise<RemoveCartItemResponseDto> {
     return this.cartService.removeCartItemByProductId(profileId, productId);
   }
 
@@ -108,5 +110,13 @@ export class CartController {
         message: `Erro ao processar o cálculo de frete: ${error.message || 'Erro desconhecido'}`,
       };
     }
+  }
+
+  @Get('items/product/:productId')
+  async getCartItemByProductId(
+    @GetUser('profileId') profileId: number,
+    @Param('productId') productId: number,
+  ) {
+    return this.cartService.findCartItemByProductId(profileId, productId);
   }
 } 
