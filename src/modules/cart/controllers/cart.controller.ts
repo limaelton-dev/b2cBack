@@ -20,6 +20,14 @@ export class CartController {
     return this.cartService.getCartSimplified(profileId);
   }
 
+  @Post('items/addLocal')
+  async addLocalCart(
+    @GetUser('profileId') profileId: number,
+    @Body() addLocalCart: any,
+  ): Promise<CartResponseDto> {
+    return this.cartService.addLocalCart(profileId, addLocalCart);
+  }
+
   @Post('items')
   async addToCart(
     @GetUser('profileId') profileId: number,
@@ -76,11 +84,11 @@ export class CartController {
     return this.cartService.applyDiscount(profileId, applyDiscountDto.code);
   }
 
-  @Get('shipping')
+  @Post('shipping')
   async calculateShipping(
     @GetUser('profileId') profileId: number,
-    @Query('zipCode') zipCode: string,
-    @Query('shippingType') shippingType: string = 'ALL',
+    @Body('zipCode') zipCode: string,
+    @Body('shippingType') shippingType: string = 'ALL',
   ): Promise<ShippingCalculationResponseDto> {
     try {
       this.logger.log(`Calculando frete para o carrinho do perfil ${profileId} com CEP ${zipCode} e tipo ${shippingType}`);

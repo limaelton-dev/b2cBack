@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CartItem } from '../entities/cart-item.entity';
 
 @Injectable()
@@ -9,6 +9,13 @@ export class CartItemRepository {
     @InjectRepository(CartItem)
     private readonly repository: Repository<CartItem>,
   ) {}
+
+  async verifyProduct(productsId: Array<number>, cartId: number): Promise<CartItem | null> {
+    return this.repository.findOne({
+      where: [{ cartId: cartId },{ productId: In(productsId)}],
+      relations: ['items', 'items.product'],
+    });
+  }
 
   async findOne(id: number): Promise<CartItem | null> {
     return this.repository.findOne({

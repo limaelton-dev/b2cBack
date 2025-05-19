@@ -44,6 +44,13 @@ export class CartService {
     return cart;
   }
 
+  // Método para buscar a existência desse produto no carrinho
+  async verifyProductsCart(productsId: Array<number>, cartId: number, ): Promise<boolean> {
+    console.log('CartService.getCartById:', { cartId });
+    const cart = await this.cartItemRepository.verifyProduct(productsId, cartId);
+    return cart ? true : false;
+  }
+
   // Método compatível com a nova interface do checkout
   async findByProfileId(profileId: number): Promise<Cart> {
     console.log('CartService.findByProfileId:', { profileId });
@@ -83,6 +90,27 @@ export class CartService {
       subtotal: 0,
       total: 0,
     });
+  }
+
+  async addLocalCart(profileId: number, addLocalCart: any): Promise<CartResponseDto> {
+    const cart = await this.getCart(profileId);
+    console.log(addLocalCart.dataItems)
+    if (cart && this.verifyProductsCart(addLocalCart.dataItems.map(p => p.id), cart.id)) {
+      
+      const cartItem = addLocalCart.dataItems.map(p => ({
+        cartId: cart.id,
+        productId: p.id,
+        quantity: p.quantity,
+        unitPrice: p.price,
+        totalPrice: Number(p.price) * Number(p.quantity),
+      }));
+      cart.items.push(cartItem);
+      await this.cartItemRepository.save(cartItem);
+      await this.updateCartTotals(cart);
+  
+      return this.getCartSimplified(profileId);
+    }
+
   }
 
   async addToCart(profileId: number, addToCartDto: AddToCartDto): Promise<CartResponseDto> {
