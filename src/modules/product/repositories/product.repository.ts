@@ -4,6 +4,7 @@ import { In, Repository } from 'typeorm';
 import { Product } from '../entities/product.entity';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { PaginationDto } from '../dto/pagination.dto';
+import { ProductFilterDto } from '../dto/product-filter.dto';
 
 @Injectable()
 export class ProductRepository {
@@ -27,6 +28,91 @@ export class ProductRepository {
       take: limit,
     });
 
+    return {
+      data: products,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+  
+  async findByFilters(filterDto: ProductFilterDto) {
+    const { 
+      page = 1, 
+      limit = 10,
+      categoryId,
+      categorySlug,
+      categoryName,
+      brandId,
+      brandSlug,
+      brandName,
+      productName,
+      sortBy = 'id',
+      sortDirection = 'ASC'
+    } = filterDto;
+    
+    const skip = (page - 1) * limit;
+    
+    const queryBuilder = this.productRepository.createQueryBuilder('product')
+      .leftJoinAndSelect('product.images', 'images')
+      .leftJoinAndSelect('product.discountProduct', 'discountProduct')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('product.categoryLevel1', 'categoryLevel1')
+      .leftJoinAndSelect('product.categoryLevel2', 'categoryLevel2')
+      .leftJoinAndSelect('product.categoryLevel3', 'categoryLevel3');
+      
+    // Filtro por categoria
+    if (categoryId) {
+      queryBuilder.andWhere(
+        '(product.categoryLevel1Id = :categoryId OR product.categoryLevel2Id = :categoryId OR product.categoryLevel3Id = :categoryId)',
+        { categoryId }
+      );
+    }
+    
+    if (categorySlug) {
+      queryBuilder.andWhere(
+        '(categoryLevel1.slug = :categorySlug OR categoryLevel2.slug = :categorySlug OR categoryLevel3.slug = :categorySlug)',
+        { categorySlug }
+      );
+    }
+    
+    if (categoryName) {
+      queryBuilder.andWhere(
+        '(LOWER(categoryLevel1.name) LIKE LOWER(:categoryName) OR LOWER(categoryLevel2.name) LIKE LOWER(:categoryName) OR LOWER(categoryLevel3.name) LIKE LOWER(:categoryName))',
+        { categoryName: `%${categoryName}%` }
+      );
+    }
+    
+    // Filtro por marca
+    if (brandId) {
+      queryBuilder.andWhere('product.brandId = :brandId', { brandId });
+    }
+    
+    if (brandSlug) {
+      queryBuilder.andWhere('brand.slug = :brandSlug', { brandSlug });
+    }
+    
+    if (brandName) {
+      queryBuilder.andWhere('LOWER(brand.name) LIKE LOWER(:brandName)', { brandName: `%${brandName}%` });
+    }
+    
+    // Filtro por nome do produto
+    if (productName) {
+      queryBuilder.andWhere('LOWER(product.name) LIKE LOWER(:productName)', { productName: `%${productName}%` });
+    }
+    
+    // Adicionar ordenação
+    queryBuilder.orderBy(`product.${sortBy}`, sortDirection);
+    
+    // Paginação
+    queryBuilder.skip(skip);
+    queryBuilder.take(limit);
+    
+    const [products, total] = await queryBuilder.getManyAndCount();
+    
     return {
       data: products,
       meta: {

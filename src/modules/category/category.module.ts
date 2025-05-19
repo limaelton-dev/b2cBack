@@ -6,10 +6,12 @@ import { Category } from './entities/category.entity';
 import { Brand } from './entities/brand.entity';
 import { CategoryRepository } from './repositories/category.repository';
 import { BrandRepository } from './repositories/brand.repository';
+import { ProductModule } from '../product/product.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Category, Brand]),
+    ProductModule,
   ],
   controllers: [CategoryController],
   providers: [CategoryService, CategoryRepository, BrandRepository],

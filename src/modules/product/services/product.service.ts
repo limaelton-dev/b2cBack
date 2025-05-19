@@ -6,6 +6,7 @@ import { Product } from '../entities/product.entity';
 import { ProductImageService } from './product.image.service';
 import { ProductImage } from '../entities/product.image.entity';
 import { PaginationDto } from '../dto/pagination.dto';
+import { ProductFilterDto } from '../dto/product-filter.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Brand } from 'src/modules/category/entities/brand.entity';
@@ -166,5 +167,9 @@ export class ProductService {
       throw new NotFoundException('Produto não encontrado');
     }
     return product.stock >= quantity;
+  }
+
+  async findByFilters(filterDto: ProductFilterDto) {
+    return this.productRepository.findByFilters(filterDto);
   }
 } 

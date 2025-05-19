@@ -5,6 +5,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from '../entities/category.entity';
 import { Repository } from 'typeorm';
 import { Brand } from '../entities/brand.entity';
+import { ProductFilterDto } from 'src/modules/product/dto/product-filter.dto';
+import { ProductService } from 'src/modules/product/services/product.service';
 
 @Injectable()
 export class CategoryService {
@@ -14,7 +16,40 @@ export class CategoryService {
 
     @InjectRepository(Brand)
     private readonly brandRepository: Repository<Brand>,
+
+    private readonly productService: ProductService,
   ) {}
+
+  async getAllBrands() {
+    const brands = await this.brandRepository.find({
+      order: {
+        name: 'ASC'
+      }
+    });
+
+    return {
+      data: brands,
+      count: brands.length
+    };
+  }
+
+  async getAllCategories(level?: number) {
+    const queryBuilder = this.categoryRepository.createQueryBuilder('category')
+      .leftJoinAndSelect('category.parent', 'parent')
+      .leftJoinAndSelect('category.brand', 'brand')
+      .orderBy('category.name', 'ASC');
+    
+    if (level) {
+      queryBuilder.where('category.level = :level', { level });
+    }
+    
+    const categories = await queryBuilder.getMany();
+    
+    return {
+      data: categories,
+      count: categories.length
+    };
+  }
 
   async getProdutosTipoLimit(limit: number): Promise<Category[]> {
     const query = this.categoryRepository
@@ -24,6 +59,10 @@ export class CategoryService {
         .limit(limit);
 
     return await query.getMany();
+  }
+
+  async filterProducts(filterDto: ProductFilterDto) {
+    return this.productService.findByFilters(filterDto);
   }
 
   async getCategoryMenu(): Promise<any[]> {

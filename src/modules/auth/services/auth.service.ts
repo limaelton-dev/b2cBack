@@ -63,15 +63,48 @@ export class AuthService {
       profileType: defaultProfile.profileType
     };
     
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: {
+    // Para perfil PF, buscar detalhes específicos
+    let userProfile = {};
+    
+    if (defaultProfile.profileType === ProfileType.PF) {
+      const profilePf = await this.profileService.findProfilePf(defaultProfile.id);
+      
+      userProfile = {
         id: user.id,
         email: user.email,
-        name: defaultProfile.profileType == 'PF' ? defaultProfile.profilePf.firstName + ' ' + defaultProfile.profilePf.lastName : defaultProfile.profilePj.companyName,
-        profileId: defaultProfile.id,
-        profileType: defaultProfile.profileType
-      },
+        profile: {
+          id: defaultProfile.id,
+          firstName: profilePf.firstName,
+          lastName: profilePf.lastName,
+          cpf: profilePf.cpf,
+          birthDate: profilePf.birthDate,
+          gender: profilePf.gender
+        },
+        profileType: defaultProfile.profileType,
+        profileId: defaultProfile.id
+      };
+    } else {
+      const profilePj = await this.profileService.findProfilePj(defaultProfile.id);
+      
+      userProfile = {
+        id: user.id,
+        email: user.email,
+        profile: {
+          id: defaultProfile.id,
+          companyName: profilePj.companyName,
+          cnpj: profilePj.cnpj,
+          tradingName: profilePj.tradingName,
+          stateRegistration: profilePj.stateRegistration,
+          municipalRegistration: profilePj.municipalRegistration
+        },
+        profileType: defaultProfile.profileType,
+        profileId: defaultProfile.id
+      };
+    }
+    
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: userProfile
     };
   }
 
@@ -111,13 +144,48 @@ export class AuthService {
       profileType: defaultProfile.profileType
     };
     
+    // Para perfil PF, buscar detalhes específicos
+    let userProfile = {};
+    
+    if (defaultProfile.profileType === ProfileType.PF) {
+      const profilePf = await this.profileService.findProfilePf(defaultProfile.id);
+      
+      userProfile = {
+        id: user.id,
+        email: user.email,
+        profile: {
+          id: defaultProfile.id,
+          firstName: profilePf.firstName,
+          lastName: profilePf.lastName,
+          cpf: profilePf.cpf,
+          birthDate: profilePf.birthDate,
+          gender: profilePf.gender
+        },
+        profileType: defaultProfile.profileType,
+        profileId: defaultProfile.id
+      };
+    } else {
+      const profilePj = await this.profileService.findProfilePj(defaultProfile.id);
+      
+      userProfile = {
+        id: user.id,
+        email: user.email,
+        profile: {
+          id: defaultProfile.id,
+          companyName: profilePj.companyName,
+          cnpj: profilePj.cnpj,
+          tradingName: profilePj.tradingName,
+          stateRegistration: profilePj.stateRegistration,
+          municipalRegistration: profilePj.municipalRegistration
+        },
+        profileType: defaultProfile.profileType,
+        profileId: defaultProfile.id
+      };
+    }
+    
     return {
       access_token: this.jwtService.sign(payload),
-      user: {
-        ...user,
-        profileId: defaultProfile.id,
-        profileType: defaultProfile.profileType
-      },
+      user: userProfile
     };
   }
 } 
