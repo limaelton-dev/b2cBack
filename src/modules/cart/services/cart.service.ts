@@ -75,23 +75,25 @@ export class CartService {
     responseDto.id = cart.id;
     responseDto.subtotal = cart.subtotal;
     responseDto.total = cart.total;
-    responseDto.items = cart.items.map(item => {
+    responseDto.items = cart.items?.map(item => {
       const itemDto = new CartItemResponseDto();
       itemDto.id = item.id;
       itemDto.productId = item.productId;
       itemDto.quantity = item.quantity;
       return itemDto;
-    });
+    }) || [];
     return responseDto;
   }
 
   private async createCart(profileId: number): Promise<Cart> {
     console.log('CartService.createCart:', { profileId });
-    return this.cartRepository.create({
+    const cart = await this.cartRepository.create({
       profileId,
       subtotal: 0,
       total: 0,
     });
+    cart.items = [];
+    return cart;
   }
 
   async addLocalCart(profileId: number, addLocalCart: any): Promise<CartResponseDto> {
@@ -171,10 +173,14 @@ export class CartService {
     // Certifica-se de que o preço total é um número formatado corretamente
     cartItem.totalPrice = Number((cartItem.quantity * Number(cartItem.unitPrice)).toFixed(2));
 
+    // Garantir que cartId está definido para evitar NULL
+    cartItem.cartId = cart.id;
+    
     await this.cartItemRepository.save(cartItem);
     
     // Recarregar o carrinho para ter os itens atualizados
-    const updatedCart = await this.getCart(profileId);
+    const updatedCart = await this.cartRepository.findOne(cart.id);
+    updatedCart.items = await this.cartItemRepository.findByCartId(cart.id);
     await this.updateCartTotals(updatedCart);
 
     return {
@@ -200,11 +206,12 @@ export class CartService {
       throw new NotFoundException(`Produto com ID ${productId} não encontrado no carrinho`);
     }
     
-    // Remove do banco de dados
+    // Remove do banco de dados usando delete em vez de remove
     await this.cartItemRepository.remove(cartItem);
     
-    // Recarregar o carrinho para ter os itens atualizados
-    const updatedCart = await this.getCart(profileId);
+    // Recarregar o carrinho diretamente do banco de dados
+    const updatedCart = await this.cartRepository.findOne(cart.id);
+    updatedCart.items = await this.cartItemRepository.findByCartId(cart.id);
     await this.updateCartTotals(updatedCart);
     
     // Retorna o ID do produto e o carrinho atualizado
@@ -251,7 +258,12 @@ export class CartService {
       cart.total = subtotal;
     }
 
-    await this.cartRepository.save(cart);
+    // Salvar apenas os campos que precisamos atualizar no carrinho
+    await this.cartRepository.update(cart.id, {
+      subtotal: cart.subtotal,
+      total: cart.total,
+      discountId: cart.discountId
+    });
   }
 
   private async calculateDiscountedTotal(
@@ -299,65 +311,16 @@ export class CartService {
     productId: number,
     updateCartItemDto: UpdateCartItemDto,
   ): Promise<UpdateCartItemResponseDto> {
-    // Obter o carrinho do usuário
-    const cart = await this.getCart(profileId);
-    
-    // Buscar todos os itens deste carrinho
-    const cartItems = await this.cartItemRepository.findByCartId(cart.id);
-    
-    // Encontrar o item com o productId desejado
-    const cartItem = cartItems.find(item => item.productId === productId);
-    
-    if (!cartItem) {
-      throw new NotFoundException(`Produto com ID ${productId} não encontrado no carrinho`);
-    }
-
-    // Atualizar a quantidade
-    cartItem.quantity = updateCartItemDto.quantity;
-    // Certifica-se de que o preço total é um número formatado corretamente
-    cartItem.totalPrice = Number((cartItem.quantity * Number(cartItem.unitPrice)).toFixed(2));
-
-    await this.cartItemRepository.save(cartItem);
-    
-    // Recarregar o carrinho para ter os itens atualizados
-    const updatedCart = await this.getCart(profileId);
-    await this.updateCartTotals(updatedCart);
-
-    return {
-      productId,
-      cart: this.mapToCartResponse(updatedCart)
-    };
+    // Simplesmente reutilizar o método updateCartItem, já que agora ele usa o productId
+    return this.updateCartItem(profileId, productId, updateCartItemDto);
   }
 
   async removeCartItemByProductId(
     profileId: number,
     productId: number,
   ): Promise<RemoveCartItemResponseDto> {
-    // Obter o carrinho do usuário
-    const cart = await this.getCart(profileId);
-    
-    // Buscar todos os itens deste carrinho
-    const cartItems = await this.cartItemRepository.findByCartId(cart.id);
-    
-    // Encontrar o item com o productId desejado
-    const cartItem = cartItems.find(item => item.productId === productId);
-    
-    if (!cartItem) {
-      throw new NotFoundException(`Produto com ID ${productId} não encontrado no carrinho`);
-    }
-    
-    // Remove do banco de dados
-    await this.cartItemRepository.remove(cartItem);
-    
-    // Recarregar o carrinho para ter os itens atualizados
-    const updatedCart = await this.getCart(profileId);
-    await this.updateCartTotals(updatedCart);
-    
-    // Retorna o ID do produto e o carrinho atualizado
-    return {
-      productId,
-      cart: this.mapToCartResponse(updatedCart)
-    };
+    // Simplesmente reutilizar o método removeCartItem, já que agora ele usa o productId
+    return this.removeCartItem(profileId, productId);
   }
 
   async calculateShipping(

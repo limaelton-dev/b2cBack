@@ -30,6 +30,11 @@ export class CartRepository {
     return this.repository.save(cart);
   }
 
+  async update(id: number, data: Partial<Cart>): Promise<void> {
+    console.log('CartRepository.update:', { id, data });
+    await this.repository.update(id, data);
+  }
+
   async create(data: Partial<Cart>): Promise<Cart> {
     console.log('CartRepository.create:', data);
     const cart = this.repository.create(data);
