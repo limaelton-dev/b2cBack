@@ -22,6 +22,9 @@ export class Card {
   isDefault: boolean;
 
   @Column()
+  cvv: number;
+
+  @Column()
   brand: string;
 
   @CreateDateColumn({ name: 'created_at' })

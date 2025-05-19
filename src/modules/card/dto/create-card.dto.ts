@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, IsBoolean, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsBoolean, IsOptional  } from 'class-validator';
 
 export class CreateCardDto {
   @IsOptional()
@@ -24,4 +24,7 @@ export class CreateCardDto {
   @IsNotEmpty({ message: 'Bandeira do cartão é obrigatória' })
   @IsString({ message: 'Bandeira do cartão deve ser uma string' })
   brand: string;
+
+  @IsNotEmpty({ message: 'CVV do cartão é obrigatória' })
+  cvv: number;
 } 
