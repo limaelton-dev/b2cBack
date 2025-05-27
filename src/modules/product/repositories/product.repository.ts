@@ -19,14 +19,23 @@ export class ProductRepository {
   }
 
   async findAll(paginationDto: PaginationDto) {
-    const { page = 1, limit = 10 } = paginationDto;
-    const skip = (page - 1) * limit;
+  const { page = 1, limit = 10, s } = paginationDto;
+  const skip = (page - 1) * limit;
 
-    const [products, total] = await this.productRepository.findAndCount({
-      relations: ['discountProduct', 'images'],
-      skip,
-      take: limit,
-    });
+  const query = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.discountProduct', 'discountProduct')
+      .leftJoinAndSelect('product.images', 'images');
+
+    // Se veio `s`, adiciona o WHERE
+    if (s) {
+      query.where('product.name ILIKE :search', { search: `%${s}%` });
+    }
+
+    // Paginação
+    query.skip(skip).take(limit);
+
+    const [products, total] = await query.getManyAndCount();
 
     return {
       data: products,
@@ -42,14 +51,14 @@ export class ProductRepository {
   async findByFilters(filterDto: ProductFilterDto) {
     const { 
       page = 1, 
-      limit = 10,
+      limit = 12,
       categoryId,
       categorySlug,
       categoryName,
       brandId,
       brandSlug,
       brandName,
-      productName,
+      s,
       sortBy = 'id',
       sortDirection = 'ASC'
     } = filterDto;
@@ -100,8 +109,8 @@ export class ProductRepository {
     }
     
     // Filtro por nome do produto
-    if (productName) {
-      queryBuilder.andWhere('LOWER(product.name) LIKE LOWER(:productName)', { productName: `%${productName}%` });
+    if (s) {
+      queryBuilder.andWhere('LOWER(product.name) LIKE LOWER(:productName)', { productName: `%${s}%` });
     }
     
     // Adicionar ordenação

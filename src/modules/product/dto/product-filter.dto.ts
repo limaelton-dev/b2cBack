@@ -32,7 +32,7 @@ export class ProductFilterDto {
 
   @IsOptional()
   @IsString()
-  productName?: string;
+  s?: string;
 
   @IsOptional()
   @IsInt()

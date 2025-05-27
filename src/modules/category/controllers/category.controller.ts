@@ -42,7 +42,7 @@ export class CategoryController {
       if (query) {
         // Se a consulta pode ser uma marca, categoria ou nome de produto,
         // atribuímos a todos os campos de pesquisa relevantes
-        filterDto.productName = query;
+        filterDto.s = query;
         filterDto.brandName = query;
         filterDto.categoryName = query;
       }
