@@ -24,6 +24,24 @@ export class CheckoutService implements ICheckoutService {
     private readonly profileService: ProfileService,
   ) {}
 
+async tempCheckout() {
+  const mockedResponse = {
+    success: true,
+    message: 'Pagamento processado com sucesso',
+    data: {
+      profileId: 1,
+      cartId: 1,
+      gateway: 'cielo',
+      gatewayInfo: {
+        name: 'Cielo',
+        description: 'Gateway de pagamento Cielo'
+      }
+    }
+  }
+
+  return mockedResponse;
+}
+
   async validateCheckout(profileId: number, gatewayName: string = this.DEFAULT_GATEWAY) {
     try {
       // Verifica se o perfil existe

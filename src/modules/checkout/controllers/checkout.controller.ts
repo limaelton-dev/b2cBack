@@ -17,7 +17,7 @@ export class CheckoutController {
     @Inject('CieloService') private readonly paymentService: IPaymentService
   ) {}
 
-  @Post('validate')
+  @Post('validateTrue')
   @ApiOperation({ summary: 'Valida o processo de checkout' })
   async validateCheckout(
     @GetUser('profileId') profileId: number,
@@ -30,6 +30,13 @@ export class CheckoutController {
     });
     
     return this.checkoutService.validateCheckout(profileId, gatewayName);
+  }
+
+  @Post('validate')
+  @ApiOperation({ summary: 'Valida o processo de checkout' })
+  async tempCheckout() {
+    
+    return this.checkoutService.tempCheckout();
   }
 
   @Post('process')

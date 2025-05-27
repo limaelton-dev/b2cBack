@@ -7,6 +7,12 @@ export interface ICheckoutService {
     data: any;
   }>;
 
+  tempCheckout(): Promise<{
+    success: boolean;
+    message: string;
+    data: any;
+  }>;
+
   processPayment(
     profileId: number,
     paymentMethod: string,
