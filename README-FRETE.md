@@ -57,7 +57,7 @@ Parâmetros:
         "isEstimated": false
       },
       {
-        "serviceCode": "04510",
+        "serviceCode": "04669",
         "serviceName": "PAC",
         "price": 10.25,
         "deliveryTime": 7,

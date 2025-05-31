@@ -103,7 +103,7 @@ export class ShippingController {
       // Determinar código de serviço com base no tipo de frete
       // Por padrão, usamos SEDEX (04014), mas a implementação atual calculará ambos
       // A opção ALL fará o serviço calcular todas as opções disponíveis (SEDEX e PAC)
-      const serviceCode = shippingType?.toUpperCase() === 'PAC' ? '04510' : '04014';
+      const serviceCode = shippingType?.toUpperCase() === 'PAC' ? '04669' : '04014';
 
       // Mapear produtos para o formato esperado pelo serviço
       const items = products.map(product => ({
@@ -168,7 +168,7 @@ export class ShippingController {
       // Determinar código de serviço com base no tipo de frete
       // Por padrão, usamos SEDEX (04014), mas a implementação atual calculará ambos
       // A opção ALL fará o serviço calcular todas as opções disponíveis (SEDEX e PAC)
-      const serviceCode = shippingType?.toUpperCase() === 'PAC' ? '04510' : '04014';
+      const serviceCode = shippingType?.toUpperCase() === 'PAC' ? '04669' : '04014';
 
       // Mapear produtos com suas dimensões e peso do banco
       const shippingItems = products.map(requestProduct => {

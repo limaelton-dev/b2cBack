@@ -366,7 +366,7 @@ export class CartService {
 
       // Determinar o código de serviço com base no tipo de frete
       // Por padrão, usamos o tipo ALL para calcular todas as opções
-      const serviceCode = shippingType?.toUpperCase() === 'PAC' ? '04510' : 
+      const serviceCode = shippingType?.toUpperCase() === 'PAC' ? '04669' : 
                           shippingType?.toUpperCase() === 'SEDEX' ? '04014' : 
                           '04014'; // SEDEX como padrão para cálculo conjunto
 

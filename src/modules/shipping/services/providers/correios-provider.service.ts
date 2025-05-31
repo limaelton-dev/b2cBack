@@ -459,7 +459,7 @@ export class CorreiosProviderService implements ShippingProviderInterface {
       // Definir os códigos de serviço para SEDEX e PAC
       const serviceOptions = [
         { code: '04014', name: 'SEDEX' },
-        { code: '04510', name: 'PAC' }
+        { code: '04669', name: 'PAC' }
       ];
       
       // Resultados para cada tipo de serviço
@@ -520,7 +520,7 @@ export class CorreiosProviderService implements ShippingProviderInterface {
           // Se o erro for sobre a classificação de preço (específico para o PAC em cartões sem essa modalidade)
           // Vamos criar um cálculo estimado baseado no SEDEX
           if (
-            service.code === '04510' && // É PAC
+            service.code === '04669' && // É PAC
             serviceResults.length > 0 // Já temos pelo menos um serviço calculado (SEDEX)
           ) {
             // Vamos usar o SEDEX como base e aplicar um desconto para estimar o PAC
@@ -541,14 +541,14 @@ export class CorreiosProviderService implements ShippingProviderInterface {
               // Criar itens com preços proporcionais ao desconto
               const pacItems = sedexResult.items.map(item => ({
                 ...item,
-                serviceCode: '04510',
+                serviceCode: '04669',
                 price: Math.round(item.price * discountFactor * 100) / 100,
                 deliveryTime: pacDeliveryTime
               }));
               
               // Adicionar resultado estimado do PAC
               serviceResults.push({
-                serviceCode: '04510',
+                serviceCode: '04669',
                 serviceName: 'PAC',
                 price: pacPrice,
                 deliveryTime: pacDeliveryTime,
