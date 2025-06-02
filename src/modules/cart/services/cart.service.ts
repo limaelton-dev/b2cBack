@@ -386,7 +386,7 @@ export class CartService {
     try {
       // Calcular o frete usando o serviço de frete
       return await this.shippingService.calculateShipping(
-        'correios', // Provedor padrão
+        'simulation', // Provedor padrão
         originZipCode,
         destinationZipCode,
         shippingItems
@@ -447,5 +447,107 @@ export class CartService {
       itemId: cartItem.id,
       productId: cartItem.productId
     };
+  }
+
+  async calculateShipping2(
+    profileId: number,
+    destinationZipCode: string,
+    shippingType: string = 'ALL',
+  ): Promise<ShippingCalculationResponseDto> {
+    const cart = await this.getCart(profileId);
+
+    if (!cart || !cart.items || cart.items.length === 0) {
+      return {
+        success: false,
+        message: 'O carrinho está vazio',
+      };
+    }
+
+    if (!destinationZipCode) {
+      return {
+        success: false,
+        message: 'CEP de destino é obrigatório',
+      };
+    }
+
+    // Buscar o CEP de origem nas configurações
+    const originZipCode = this.configService.get<string>('CORREIOS_CEP_ORIGEM');
+    if (!originZipCode) {
+      return {
+        success: false,
+        message: 'CEP de origem não configurado',
+      };
+    }
+
+    // Obter os dados dos produtos no carrinho
+    const productIds = cart.items.map(item => item.productId);
+    const products = await this.productService.findByIds(productIds);
+
+    // Transformar itens do carrinho em itens para cálculo de frete
+    const shippingItems: ShippingItemDto[] = [];
+    
+    for (const cartItem of cart.items) {
+      const product = products.find(p => p.id === cartItem.productId);
+      if (!product) continue;
+
+      // Determinar o código de serviço com base no tipo de frete
+      // Por padrão, usamos o tipo ALL para calcular todas as opções
+      const serviceCode = shippingType?.toUpperCase() === 'PAC' ? '04669' : 
+                          shippingType?.toUpperCase() === 'SEDEX' ? '04014' : 
+                          '04014'; // SEDEX como padrão para cálculo conjunto
+
+      shippingItems.push({
+        productId: cartItem.productId,
+        serviceCode: serviceCode,
+        quantity: cartItem.quantity,
+        weight: product.weight || 300, // 300g como padrão se não especificado
+        dimensions: {
+          height: product.height || 10, // 10cm como padrão
+          width: product.width || 10,   // 10cm como padrão
+          length: product.length || 10  // 10cm como padrão
+        }
+      });
+    }
+
+    try {
+      // Calcular o frete usando o serviço de frete
+      return await this.shippingService.calculateShipping(
+        'correios', // Provedor padrão
+        originZipCode,
+        destinationZipCode,
+        shippingItems
+      );
+    } catch (error) {
+      // Se o erro estiver relacionado com o PAC não disponível, fazer fallback para SEDEX apenas
+      if (error.message && 
+          (error.message.includes('400') || 
+           error.message.includes('Classificaçao de preço') || 
+           error.message.includes('não foi encontrada na proposta de preço'))) {
+        try {
+          // Forçar o cálculo apenas para SEDEX
+          console.log('Erro no cálculo de PAC, fazendo fallback para apenas SEDEX');
+          
+          // Atualizar todos os itens para usar apenas SEDEX
+          shippingItems.forEach(item => item.serviceCode = '04014');
+          
+          return await this.shippingService.calculateShipping(
+            'correios',
+            originZipCode,
+            destinationZipCode,
+            shippingItems
+          );
+        } catch (fallbackError) {
+          return {
+            success: false,
+            message: `Erro ao calcular frete (mesmo com fallback): ${fallbackError.message || 'Erro desconhecido'}`,
+          };
+        }
+      }
+      
+      return {
+        success: false,
+        message: `Erro ao calcular frete: ${error.message || 'Erro desconhecido'}`,
+      };
+    }
   }
 } 

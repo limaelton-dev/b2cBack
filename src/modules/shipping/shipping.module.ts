@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ShippingController } from './controllers/shipping.controller';
 import { ShippingService } from './services/shipping.service';
 import { CorreiosProviderService } from './services/providers/correios-provider.service';
+import { SimulationProviderService } from './services/providers/simulation-provider.service';
 import { ProductModule } from '../product/product.module';
 
 /**
@@ -19,6 +20,7 @@ import { ProductModule } from '../product/product.module';
   providers: [
     ShippingService,
     CorreiosProviderService,
+    SimulationProviderService,
   ],
   exports: [
     ShippingService,

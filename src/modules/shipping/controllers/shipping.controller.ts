@@ -192,7 +192,7 @@ export class ShippingController {
       });
 
       const result = await this.shippingService.calculateShipping(
-        'correios',
+        'simulation',
         originZipCode,
         destinationZipCode,
         shippingItems

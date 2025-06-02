@@ -5,6 +5,7 @@ import { ShippingItemDto } from '../dtos/shipping-item.dto';
 import { TrackingInfoDto } from '../dtos/tracking-info.dto';
 import { ShippingProviderInterface } from '../interfaces/shipping-provider.interface';
 import { CorreiosProviderService } from './providers/correios-provider.service';
+import { SimulationProviderService } from './providers/simulation-provider.service';
 
 /**
  * Serviço principal de frete
@@ -19,6 +20,7 @@ export class ShippingService {
   constructor(
     private readonly configService: ConfigService,
     private readonly correiosProvider: CorreiosProviderService,
+    private readonly simulationProvider: SimulationProviderService,
   ) {
     // Registrar provedores disponíveis
     this.registerProviders();
@@ -30,6 +32,7 @@ export class ShippingService {
   private registerProviders(): void {
     this.logger.log('Registrando provedores de frete');
     this.providers.set(this.correiosProvider.getProviderId(), this.correiosProvider);
+    this.providers.set(this.simulationProvider.getProviderId(), this.simulationProvider);
   }
 
   /**
