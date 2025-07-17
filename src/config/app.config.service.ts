@@ -38,6 +38,8 @@ export class AppConfigService {
     const port = this.getNumber('ORACLE_DB_PORT');
     const serviceNameOrSid = this.get('ORACLE_DB_DATABASE');
     const isServiceName = this.getBoolean('ORACLE_USE_SERVICE_NAME');
+    const isDevelopment = this.configService.get('NODE_ENV') !== 'production';
+    const enableQueryLogs = this.getBoolean('ORACLE_ENABLE_QUERY_LOGS') || isDevelopment;
   
     // Formato adequado para modo Thin
     const connectString = isServiceName
@@ -49,7 +51,8 @@ export class AppConfigService {
       password: this.get('ORACLE_DB_PASSWORD'),
       connectString,
       autoLoadEntities: true,
-      logging: this.configService.get('NODE_ENV') !== 'production',
+      logging: enableQueryLogs ? ["query", "error"] : false,
+      logger: enableQueryLogs ? "advanced-console" : undefined,
       thickMode: true,
     };
   }

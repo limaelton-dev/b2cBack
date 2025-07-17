@@ -9,7 +9,7 @@ export const CieloConfigProvider: Provider = {
     const merchantId = configService.get<string>('CIELO_MERCHANT_ID') || '168422a9-a87d-4cca-876d-728247d6c7a4';
     const merchantKey = configService.get<string>('CIELO_MERCHANT_KEY') || 'FSCJYHUIOOJZZYOABWBVSGGYJIAMIIFLFBSTUJFC';
     const environment = configService.get<string>('CIELO_ENVIRONMENT') || 'sandbox';
-    const returnUrl = configService.get<string>('CIELO_RETURN_URL') || 'https://www.seusite.com.br/checkout/return';
+    const returnUrl = configService.get<string>('CIELO_RETURN_URL');
     
     return {
       merchantId,

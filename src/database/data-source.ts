@@ -55,7 +55,9 @@ export const getOracleDataSourceOptions = (dbConfig: any): DataSourceOptions => 
     connectString: dbConfig.connectString,
     entities: ['dist/oracle/**/*.entity.js'],
     synchronize: false,
-    thickMode: dbConfig.thickMode
+    thickMode: dbConfig.thickMode,
+    logging: ["query", "error"],        // faz o log de todas as queries e erros
+    logger: "advanced-console",         // logger avançado no console
   };
 };
 
