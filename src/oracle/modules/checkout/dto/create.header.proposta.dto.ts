@@ -2,47 +2,47 @@ import { IsString, IsNumber } from 'class-validator';
 
 export class CreateHeaderPropostaDto {
     @IsNumber()
-    cliCodigo: number; // V_CLI_CODIGO
+    CLI_CODIGO: number; // V_CLI_CODIGO
 
     @IsNumber()
-    traCodigo: number; // V_TRA_CODIGO
+    TRA_CODIGO: number; // V_TRA_CODIGO
 
     @IsString()
-    prpNome: string; // V_PRP_NOME
+    PRP_NOME: string; // V_PRP_NOME
 
     @IsString()
-    prpEndereco: string; // V_PRP_ENDERECO
+    PRP_ENDERECO: string; // V_PRP_ENDERECO
 
     @IsString()
-    prpBairro: string; // V_PRP_BAIRRO
+    PRP_BAIRRO: string; // V_PRP_BAIRRO
 
     @IsString()
-    prpCidade: string; // V_PRP_CIDADE
+    PRP_CIDADE: string; // V_PRP_CIDADE
 
     @IsString()
-    prpUf: string; // V_PRP_UF
+    PRP_UF: string; // V_PRP_UF
 
     @IsString()
-    prpCep: string; // V_PRP_CEP
+    PRP_CEP: string; // V_PRP_CEP
 
     @IsString()
-    prpFone: string; // V_PRP_FONE
+    PRP_FONE: string; // V_PRP_FONE
 
     @IsString()
-    prpEmail: string; // V_PRP_EMAIL
+    PRP_EMAIL: string; // V_PRP_EMAIL
 
     @IsNumber()
-    prpValorFrete: number; 
+    PRP_VALOR_FRETE: number; 
 
     @IsNumber()
-    prpValorTotal: number;
+    PRP_VALOR_TOTAL: number;
 
     @IsNumber()
-    prtCodigo: number;
+    PRP_CODIGO: number;
 
     @IsNumber()
-    natCodigo: number;
+    NAT_CODIGO: number;
 
     @IsNumber()
-    traPrazoEntrega: number;
+    TRA_PRAZO_ENTREGA: number;
 } 

@@ -3,8 +3,10 @@ import { InjectDataSource } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
 import * as oracledb from 'oracledb';
 import { CreatePropostaDto } from "../dto/create.proposta.dto";
-import { CreatePropostaProcedureDto } from "../dto/create-proposta-procedure.dto";
 import { CreateHeaderPropostaDto } from "../dto/create.header.proposta.dto";
+import { CreatePropostaItemDto } from "../dto/create.proposta.item.dto";
+import { CalculateFeesDto } from "../dto/calculate-fees.dto";
+import { CalculateNatCodigoDto } from "../dto/calculate.nat.codigo";
 
 @Injectable()
 export class CheckoutOracleRepository {
@@ -177,7 +179,7 @@ export class CheckoutOracleRepository {
             proposta.prpIncluidoPor,
             new Date(proposta.prpAlteradaData),
             proposta.prpAlteradaPor,
-            proposta.prpTriangulacao ?? 0
+            proposta.prpTriangulacao ?? 2 //2 linkmarket
         ];
 
         try {
@@ -272,13 +274,13 @@ export class CheckoutOracleRepository {
                 V_PRP_COMPLEMENTAR                 => 0,
                 V_PRP_ABATECRED                    => 'N',
                 V_PRP_VALORCREDITO                 => 0,
-                V_PRP_TRIANGULACAO                 => 4,
+                V_PRP_TRIANGULACAO                 => 2, --2 linkmarket
                 V_PRT_CODIGO                       => :prtCodigo, -- deve ser aparantemente 1
                 V_PRP_TID                          => NULL,
                 V_TRA_PRAZO_ENTREGA                => :prazoEntrega, --0
                 V_ICMSDESONTOTAL                   => 0,
                 V_PRP_VALOROUTROS                  => 0,
-                V_PRP_FINALIDADE                   => 11,
+                V_PRP_FINALIDADE                   => 5,
                 V_NAT_CODIGO                       => :natCodigo
             );
 
@@ -288,20 +290,20 @@ export class CheckoutOracleRepository {
 
         const binds = {
             prpCodigoGerado:  { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
-            cliCodigo:        proposta.cliCodigo,
-            prpNome:          proposta.prpNome,
-            prpEndereco:      proposta.prpEndereco,
-            prpBairro:        proposta.prpBairro,
-            prpCidade:        proposta.prpCidade,
-            prpUf:            proposta.prpUf,
-            prpCep:           proposta.prpCep,
-            prpFone:          proposta.prpFone,
-            prpEmail:         proposta.prpEmail,
-            valorFrete:       proposta.prpValorFrete,
-            valorTotal:       proposta.prpValorTotal,
-            prtCodigo:        proposta.prtCodigo,
-            prazoEntrega:     proposta.traPrazoEntrega,
-            natCodigo:        proposta.natCodigo
+            cliCodigo:        proposta.CLI_CODIGO,
+            prpNome:          proposta.PRP_NOME,
+            prpEndereco:      proposta.PRP_ENDERECO,
+            prpBairro:        proposta.PRP_BAIRRO,
+            prpCidade:        proposta.PRP_CIDADE,
+            prpUf:            proposta.PRP_UF,
+            prpCep:           proposta.PRP_CEP,
+            prpFone:          proposta.PRP_FONE,
+            prpEmail:         proposta.PRP_EMAIL,
+            valorFrete:       proposta.PRP_VALOR_FRETE,
+            valorTotal:       proposta.PRP_VALOR_TOTAL,
+            prtCodigo:        proposta.PRP_CODIGO,
+            prazoEntrega:     proposta.TRA_PRAZO_ENTREGA,
+            natCodigo:        proposta.NAT_CODIGO
           };
 
         try {
@@ -319,5 +321,203 @@ export class CheckoutOracleRepository {
             this.logger.error(`Erro ao criar proposta via procedure: ${error.message}`);
             throw new Error(`Erro ao criar proposta via procedure: ${error.message}`);
         }
+    }
+
+    async createPropostaItem(propostaItem: CreatePropostaItemDto): Promise<any> {
+        const sql = `
+            BEGIN 
+                PCK_PROPOSTA.PRC_GRAVA_PROPOSTA_ITEM(
+                    V_PRP_CODIGO               => :prpCodigo,
+                    V_PRI_SEQUENCIA            => :priSequencia,
+                    V_PRO_CODIGO               => :proCodigo,
+                    V_PRI_TABELAVENDA          => :priTabelaVenda,
+                    V_PRI_QUANTIDADE           => :priQuantidade,
+                    V_PRI_UNIDADE              => :priUnidade,
+                    V_PRI_DESCRICAO            => :priDescricao,
+                    V_PRI_DESCRICAOTECNICA     => :priDescricaoTecnica,
+                    V_PRI_REFERENCIA           => :priReferencia,
+                    V_PRI_DESCONTO             => :priDesconto,
+                    V_PRI_VALORDESCONTO        => :priValorDesconto,
+                    V_PRI_VALORUNITARIO        => :priValorUnitario,
+                    V_PRI_VALORUNITARIOTABELA  => :priValorUnitarioTabela,
+                    V_PRI_VALORUNITARIOMAIOR   => :priValorUnitarioMaior,
+                    V_PRI_IPI                  => :priIpi,
+                    V_PRI_VALORIPI             => :priValorIpi,
+                    V_PRI_VALORTOTAL           => :priValorTotal,
+                    V_PRI_ENTREGA              => :priEntrega,
+                    V_PRI_DATAENTREGA          => :priDataEntrega,
+                    V_PRI_CODIGOPEDIDOCLIENTE  => :priCodigoPedidoCliente,
+                    V_PRI_CODIGOPRODUTOCLIENTE => :priCodigoProdutoCliente,
+                    V_PRI_CUSTO                => :priCusto,
+                    V_PRI_CUSTOMEDIO           => :priCustoMedio,
+                    V_PRI_CUSTOMARKUP          => :priCustoMarkup,
+                    V_PRI_VALORULTIMACOMPRA    => :priValorUltimaCompra,
+                    V_PRI_PERCENTUALMARKUP     => :priPercentualMarkup,
+                    V_PRI_TIPOIMPRESSAO        => :priTipoImpressao,
+                    V_PRI_MALA                 => :priMala,
+                    V_PRI_TIPOMALA             => :priTipoMala,
+                    V_PRI_FLAGVALE             => :priFlagVale,
+                    V_PRI_USUARIO              => :priUsuario,
+                    V_TIPO                     => :tipo,
+                    V_COMMIT                   => :commit,
+                    V_PRI_VALORICMSST          => :priValorIcmsSt,
+                    V_PRI_BASECALCULOICMSST    => :priBaseCalculoIcmsSt,
+                    V_PRI_BASECALCULOICMS      => :priBaseCalculoIcms,
+                    V_PRI_VALORICMS            => :priValorIcms,
+                    V_PRI_ICMSVENDA            => :priIcmsVenda,
+                    V_PRI_TIPOFISCAL           => :priTipoFiscal,
+                    V_PRI_DESCONTOESPECIAL     => :priDescontoEspecial,
+                    V_PRI_VALORDESCESP         => :priValorDescEsp,
+                    V_PRI_TIPODESC             => :priTipoDesc,
+                    V_PRP_TRIANGULACAO         => :prpTriangulacao,
+                    V_PRI_TIPOVPC              => :priTipoVpc,
+                    V_PRI_VALORCREDVPC         => :priValorCredVpc,
+                    V_PRI_PERDESCIN            => :priPerDescIn,
+                    V_PRI_VLRDESCIN            => :priVlrDescIn,
+                    V_PRI_ICMSDESON            => :priIcmsDesOn,
+                    V_PRI_VALORFRETE           => :priValorFrete,
+                    V_PRI_VALOROUTRO           => :priValorOutro,
+                    V_PRI_VALOR_UNITARIO_FINAL => :priValorUnitarioFinal,
+                    V_PRI_VALORSEMDIFAL        => :priValorSemDifal
+                );
+            END;
+        `;
+
+        const binds = {
+            prpCodigo: propostaItem.PRP_CODIGO,
+            priSequencia: propostaItem.PRI_SEQUENCIA,
+            proCodigo: propostaItem.PRO_CODIGO,
+            priTabelaVenda: propostaItem.PRI_TABELAVENDA,
+            priQuantidade: propostaItem.PRI_QUANTIDADE,
+            priUnidade: propostaItem.PRI_UNIDADE,
+            priDescricao: propostaItem.PRI_DESCRICAO,
+            priDescricaoTecnica: propostaItem.PRI_DESCRICAOTECNICA,
+            priReferencia: propostaItem.PRI_REFERENCIA,
+            priDesconto: propostaItem.PRI_DESCONTO,
+            priValorDesconto: propostaItem.PRI_VALORDESCONTO,
+            priValorUnitario: propostaItem.PRI_VALORUNITARIO,
+            priValorUnitarioTabela: propostaItem.PRI_VALORUNITARIOTABELA,
+            priValorUnitarioMaior: propostaItem.PRI_VALORUNITARIOMAIOR,
+            priIpi: propostaItem.PRI_IPI,
+            priValorIpi: propostaItem.PRI_VALORIPI,
+            priValorTotal: propostaItem.PRI_VALORTOTAL,
+            priEntrega: propostaItem.PRI_ENTREGA,
+            priDataEntrega: propostaItem.PRI_DATAENTREGA,
+            priCodigoPedidoCliente: propostaItem.PRI_CODIGOPEDIDOCLIENTE,
+            priCodigoProdutoCliente: propostaItem.PRI_CODIGOPRODUTOCLIENTE,
+            priCusto: propostaItem.PRI_CUSTO,
+            priCustoMedio: propostaItem.PRI_CUSTOMEDIO,
+            priCustoMarkup: propostaItem.PRI_CUSTOMARKUP,
+            priValorUltimaCompra: propostaItem.PRI_VALORULTIMACOMPRA,
+            priPercentualMarkup: propostaItem.PRI_PERCENTUALMARKUP,
+            priTipoImpressao: propostaItem.PRI_TIPOIMPRESSAO,
+            priMala: propostaItem.PRI_MALA,
+            priTipoMala: propostaItem.PRI_TIPOMALA,
+            priFlagVale: propostaItem.PRI_FLAGVALE,
+            priUsuario: propostaItem.PRI_USUARIO,
+            tipo: propostaItem.TIPO,
+            commit: propostaItem.COMMIT,
+            priValorIcmsSt: propostaItem.PRI_VALORICMSST,
+            priBaseCalculoIcmsSt: propostaItem.PRI_BASECALCULOICMSST,
+            priBaseCalculoIcms: propostaItem.PRI_BASECALCULOICMS,
+            priValorIcms: propostaItem.PRI_VALORICMS,
+            priIcmsVenda: propostaItem.PRI_ICMSVENDA,
+            priTipoFiscal: propostaItem.PRI_TIPOFISCAL,
+            priDescontoEspecial: propostaItem.PRI_DESCONTOESPECIAL,
+            priValorDescEsp: propostaItem.PRI_VALORDESCESP,
+            priTipoDesc: propostaItem.PRI_TIPODESC,
+            prpTriangulacao: propostaItem.PRP_TRIANGULACAO,
+            priTipoVpc: propostaItem.PRI_TIPOVPC,
+            priValorCredVpc: propostaItem.PRI_VALORCREDVPC,
+            priPerDescIn: propostaItem.PRI_PERDESCIN || 0,
+            priVlrDescIn: propostaItem.PRI_VLRDESCIN || 0,
+            priIcmsDesOn: propostaItem.PRI_ICMSDESON || 0,
+            priValorFrete: propostaItem.PRI_VALORFRETE || 0,
+            priValorOutro: propostaItem.PRI_VALOROUTRO || 0,
+            priValorUnitarioFinal: propostaItem.PRI_VALOR_UNITARIO_FINAL || 0,
+            priValorSemDifal: propostaItem.PRI_VALORSEMDIFAL || 0
+        }
+
+        this.logQueryWithParameters(sql, binds);
+
+        try {
+            const result = await this.oracleDataSource.query(sql, binds as any);
+            return result;
+        } catch (error) {
+            throw new Error(`Erro ao criar item da proposta: ${error.message}`);
+        }
+    }
+
+    async calculateFees(calculateFeesDto: CalculateFeesDto): Promise<any> {
+        const sql = `SELECT
+            ROUND(VLR_PROD, 2) VLR_PROD,
+            ROUND(VLR_DESC, 2) VLR_DESC,
+            ROUND(P_IPI, 2) P_IPI,
+            ROUND(VLR_IPI, 2) VLR_IPI,
+            ROUND(VLR_ICMSST, 2)VLR_ICMSST,
+            ROUND(BC_ICMSST, 2) BC_ICMSST,
+            ROUND(VLR_ICMS, 2) VLR_ICMS,
+            ROUND(BC_ICMS, 2) BC_ICMS,
+            ROUND(P_ICMS, 2) P_ICMS, 
+            ROUND(VLR_UNIT, 2) VLR_UNIT,
+            ROUND(VLR_FCPST, 2) VLR_FCPST
+            FROM
+            TABLE (
+                ORACLC.FNC_IMPOSTOS_NFE(
+                :PRO_CODIGO,
+                :NAT_CODIGO,
+                :PRP_FINALIDADE,
+                :CLI_CODIGO,
+                :PRI_VALORTOTAL,
+                :PRI_QUANTIDADE,
+                0
+                )
+            )
+        `;
+
+        const binds = {
+            PRO_CODIGO: calculateFeesDto.PRO_CODIGO,
+            NAT_CODIGO: calculateFeesDto.NAT_CODIGO,
+            PRP_FINALIDADE: calculateFeesDto.PRP_FINALIDADE,
+            CLI_CODIGO: calculateFeesDto.CLI_CODIGO,
+            PRI_VALORTOTAL: calculateFeesDto.PRI_VALORTOTAL,
+            PRI_QUANTIDADE: calculateFeesDto.PRI_QUANTIDADE
+        };
+
+        this.logQueryWithParameters(sql, binds);
+
+        try {
+            const result = await this.oracleDataSource.query(sql, binds as any);
+            
+            // Retorna o primeiro resultado da função de impostos
+            return result[0] || null;
+        } catch (error) {
+            throw new Error(`Erro ao calcular tarifas: ${error.message}`);
+        }
+    }
+
+    async calculateOperationNature(operationNature: CalculateNatCodigoDto): Promise<any> {
+        const sql = `
+            SELECT ORACLC.FNC_BUSCA_NATUREZA_OPERACAO(
+                    :CLI_CODIGO, 
+                    :PRP_TRIANGULACAO, 
+                    :PRP_FINALIDADE
+                ) AS NAT_CODIGO 
+            FROM DUAL
+        `;
+        const binds = { 
+            CLI_CODIGO: operationNature.CLI_CODIGO,
+            PRP_TRIANGULACAO: operationNature.PRP_TRIANGULACAO,
+            PRP_FINALIDADE: operationNature.PRP_FINALIDADE
+        };
+
+        this.logQueryWithParameters(sql, binds);
+
+        const result = await this.oracleDataSource.query(sql, binds as any);
+        const response = {
+            NAT_CODIGO: result[0]?.NAT_CODIGO ?? null
+        }
+
+        return response;
     }
 }

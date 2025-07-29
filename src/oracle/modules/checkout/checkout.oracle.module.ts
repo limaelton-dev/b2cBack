@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CheckoutOracleRepository } from './repositories/checkout.oracle.repository';
 import { CheckoutOracleService } from './services/checkout.oracle.service';
-import { Checkout2OracleController } from './controllers/checkout2.oracle.controller';
 import { CheckoutOracleController } from './controllers/checkout.oracle.controller';
 
 @Module({
@@ -12,7 +11,7 @@ import { CheckoutOracleController } from './controllers/checkout.oracle.controll
         'oracle'
     ),
   ],
-  controllers: [Checkout2OracleController, CheckoutOracleController],
+  controllers: [CheckoutOracleController],
   providers: [
     CheckoutOracleRepository,
     CheckoutOracleService,
