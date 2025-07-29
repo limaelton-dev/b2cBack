@@ -7,11 +7,10 @@ import { CreateHeaderPropostaDto } from "../dto/create.header.proposta.dto";
 import { CreatePropostaItemDto } from "../dto/create.proposta.item.dto";
 import { CalculateFeesDto } from "../dto/calculate-fees.dto";
 import { CalculateNatCodigoDto } from "../dto/calculate.nat.codigo";
-import { CreateCabecalhoPropostaDto } from "../dto/create.cabecalho.proposta.dto";
 
 @Injectable()
-export class CheckoutOracleRepository {
-    private readonly logger = new Logger(CheckoutOracleRepository.name);
+export class CheckoutBkpOracleRepository {
+    private readonly logger = new Logger(CheckoutBkpOracleRepository.name);
 
     constructor(
         @InjectDataSource('oracle') private readonly oracleDataSource: DataSource,
@@ -65,6 +64,11 @@ export class CheckoutOracleRepository {
         return await this.oracleDataSource.query(query, parameters);
     }
 
+    /*
+    * @param TRA_CODIGO:
+    * 153 = CORREIOS - PAC
+    * 5 = CORREIOS - SEDEX
+    */
     async createProposta(proposta: CreatePropostaDto): Promise<any> {
         const query = `
             INSERT INTO PROPOSTA 
@@ -178,14 +182,6 @@ export class CheckoutOracleRepository {
             proposta.prpTriangulacao ?? 2 //2 linkmarket
         ];
 
-        const result = {teste: 'teste'};
-
-        return {
-            success: true,
-            message: 'Proposta criada com sucesso',
-            data: result
-        };
-
         try {
             this.logQueryWithParameters(query, parameters);
             const result = await this.oracleDataSource.query(query, parameters);
@@ -199,101 +195,11 @@ export class CheckoutOracleRepository {
         }
     }
 
-    async createHeaderProposal(createCabecalhoPropostaDto: CreateCabecalhoPropostaDto): Promise<any> {
-        const sql = `DECLARE
-                            V_PROPOSTA NUMBER;
-                        BEGIN
-                            SELECT SQN_PROPOSTA.NEXTVAL
-                                INTO V_PROPOSTA
-                            FROM DUAL;
-
-                            INSERT INTO
-                                B2B_PROPOSTA (
-                                PRP_CODIGO,
-                                RAT_CODIGO,
-                                CLI_CODIGO,
-                                ORI_CODIGO,
-                                CPG_CODIGO,
-                                PTP_CODIGO,
-                                PRP_SITUACAO,
-                                PRP_NOME,
-                                PRP_ENDERECO,
-                                PRP_BAIRRO,
-                                PRP_CIDADE,
-                                PRP_UF,
-                                PRP_CEP,
-                                PRP_EMAIL,
-                                PRP_VENDEDORINTERNO,
-                                PRP_VENDEDOREXTERNO,
-                                PRP_VENDEDOROPERACIONAL,
-                                PRP_DATAEMISSAO,
-                                PRP_FRETEPAGO,
-                                PRP_FORMACONFIRMA,
-                                PRP_TIPOFATURAMENTO,
-                                PRP_TIPOENTREGA,
-                                PRP_INCLUIDATA,
-                                PRP_INCLUIPOR,
-                                PRP_ALTERADATA,
-                                PRP_ALTERAPOR,
-                                PRP_FINALIDADE,
-                                NAT_CODIGO,
-                                PRP_TRIANGULACAO
-                            ) VALUES (
-                                V_PROPOSTA,
-                                '2', --:RAT_CODIGO2 = Comercial(padrão) - rateio
-                                :CLI_CODIGO,
-                                '20', --:ORI_CODIGO = B2C - origem
-                                '1', --:CPG_CODIGO = 00 (A VISTA) - condição de pagamento
-                                '1', --:PTP_CODIGO = OK-1 LIBERADO P/ FATURAR - tipo de proposta
-                                'PN', --:PRP_SITUACAO = PN - proposta em andamento - Situação da proposta('CA', 'FT', 'OK', 'PE', 'PK', 'PN', 'PR')
-                                :CLI_NOME,
-                                :CLI_ENDERECO,
-                                :CLI_BAIRRO,
-                                :CLI_CIDADE,
-                                :CLI_UF,
-                                :CLI_CEP,
-                                :CLI_EMAIL,
-                                3, -- :PRP_VENDEDORINTERNO = CONTA ADMINISTRATIVA
-                                3, -- :PRP_VENDEDOREXTERNO = CONTA ADMINISTRATIVA
-                                3, -- :PRP_VENDEDOROPERACIONAL = CONTA ADMINISTRATIVA
-                                SYSDATE,
-                                'S', --:PRP_FRETEPAGO = S - Frete pago
-                                'O', --:PRP_FORMACONFIRMA = O - Otimização - Forma de confirmacao da proposta V, F, E ou O verbalmente, por fax, email ou outras.
-                                'F', --:PRP_TIPOFATURAMENTO = F - Fatura - Tipo de faturamento da proposta vale, fatura, a definir V, F, D
-                                'E', --:PRP_TIPOENTREGA = E - Entrega - Tipo de entrega da proposta E ou R entrega ou retira
-                                SYSDATE,
-                                'PORTAL B2C', --:INCLUIPOR - usuário que incluiu a proposta
-                                SYSDATE,
-                                'PORTAL B2C', --:INCLUIPOR - usuário que alterou a proposta
-                                5, --:PRP_FINALIDADE = 5 - Venda - Finalidade da proposta
-                                :NAT_CODIGO,
-                                2 --:PRP_TRIANGULACAO = 2 - Linkmarket
-                            );
-                        END;
-                    `;
-
-        const binds = {
-            CLI_CODIGO: createCabecalhoPropostaDto.CLI_CODIGO,
-            CLI_NOME: createCabecalhoPropostaDto.CLI_NOME,
-            CLI_ENDERECO: createCabecalhoPropostaDto.CLI_ENDERECO,
-            CLI_BAIRRO: createCabecalhoPropostaDto.CLI_BAIRRO,
-            CLI_CIDADE: createCabecalhoPropostaDto.CLI_CIDADE,
-            CLI_UF: createCabecalhoPropostaDto.CLI_UF,
-            CLI_CEP: createCabecalhoPropostaDto.CLI_CEP,
-            CLI_EMAIL: createCabecalhoPropostaDto.CLI_EMAIL,
-            NAT_CODIGO: createCabecalhoPropostaDto.NAT_CODIGO
-        }
-
-        try {
-            this.logQueryWithParameters(sql, binds);
-            const result = await this.oracleDataSource.query(sql, binds as any);
-            return result;
-        } catch (error) {
-            throw new Error(`Erro ao criar cabeçalho de proposta: ${error.message}`);
-        }
-    }
-    
-
+    /*
+    * @param TRA_CODIGO:
+    * 153 = CORREIOS - PAC
+    * 5 = CORREIOS - SEDEX
+    */
     async createHeaderProposta(proposta: CreateHeaderPropostaDto): Promise<number> {
         const sql = `
             DECLARE

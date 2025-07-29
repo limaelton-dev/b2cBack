@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CheckoutOracleRepository } from '../repositories/checkout.oracle.repository';
 import { CreatePropostaDto } from '../dto/create.proposta.dto';
 import { CreatePropostaProcedureDto } from '../dto/create-proposta-procedure.dto';
@@ -6,6 +6,7 @@ import { CreateHeaderPropostaDto } from '../dto/create.header.proposta.dto';
 import { CreatePropostaItemDto } from '../dto/create.proposta.item.dto';
 import { CalculateFeesDto, CalculateFeesResponseDto } from '../dto/calculate-fees.dto';
 import { CalculateNatCodigoDto } from '../dto/calculate.nat.codigo';
+import { CreateCabecalhoPropostaDto } from '../dto/create.cabecalho.proposta.dto';
 
 @Injectable()
 export class CheckoutOracleService {
@@ -14,53 +15,6 @@ export class CheckoutOracleService {
     constructor(
         private readonly checkoutOracleRepository: CheckoutOracleRepository,
     ) {}
-
-    async createPropostaViaProcedure(createHeaderPropostaDto: CreateHeaderPropostaDto) {
-        try {
-            this.logger.log('Criando proposta via stored procedure Oracle');
-
-            const operationNature = await this.calculateOperationNature({
-                CLI_CODIGO: createHeaderPropostaDto.CLI_CODIGO,
-                PRP_TRIANGULACAO: 2, //linkmarket
-                PRP_FINALIDADE: 5 //Nesta finalidade somente CPF e CNPJ (com IE Isento) poderão estar habilitados.
-            });
-
-            if (!operationNature.NAT_CODIGO) {
-                throw new Error('Não foi possível calcular a natureza de operação');
-            }
-
-            createHeaderPropostaDto.NAT_CODIGO = operationNature.NAT_CODIGO;
-
-            const result = await this.checkoutOracleRepository.createHeaderProposta(createHeaderPropostaDto);
-
-            this.logger.log('Proposta criada com sucesso via stored procedure!');
-            return result;
-
-        } catch (error) {
-            this.logger.error(`Erro ao criar proposta via stored procedure: ${error.message}`, error.stack);
-            throw error;
-        }
-    }
-
-    async createProposta(createPropostaDto: CreatePropostaDto) {
-        try {
-            this.logger.log(`Criando proposta: ${createPropostaDto.prpCodigo}`);
-            
-            // Verifica se a proposta já existe
-            const existingProposta = await this.getProposta(createPropostaDto.prpCodigo);
-            if (existingProposta) {
-                throw new Error(`Proposta com código ${createPropostaDto.prpCodigo} já existe`);
-            }
-
-            const result = await this.checkoutOracleRepository.createProposta(createPropostaDto);
-            
-            this.logger.log(`Proposta criada com sucesso: ${createPropostaDto.prpCodigo}`);
-            return result;
-        } catch (error) {
-            this.logger.error(`Erro ao criar proposta: ${error.message}`, error.stack);
-            throw error;
-        }
-    }
 
     async getProposta(prpCodigo: number) {
         try {
@@ -98,51 +52,14 @@ export class CheckoutOracleService {
         }
     }
 
-    async createPropostaItem(createPropostaItemDto: CreatePropostaItemDto) {
-        //verificar se a proposta existe
-        const propostaDto = await this.getProposta(createPropostaItemDto.PRP_CODIGO);
-
-        //verificar disponibilidade do produto
-        // const available = await this.checkoutOracleRepository.getAvaliableProduct();
-        // if (!available) {
-        //     throw new Error('Não conseguimos finalizar a compra, pois esse produto não está mais disponível');
-        // }
-
-        //calcular o preço e impostos
-        const fees = await this.calculateFees({
-            PRO_CODIGO: createPropostaItemDto.PRO_CODIGO,
-            NAT_CODIGO: propostaDto.NAT_CODIGO,
-            PRP_FINALIDADE: propostaDto.PRP_FINALIDADE,
-            CLI_CODIGO: propostaDto.CLI_CODIGO,
-            PRI_VALORTOTAL: createPropostaItemDto.PRI_VALORTOTAL,
-            PRI_QUANTIDADE: createPropostaItemDto.PRI_QUANTIDADE
-        });
-
-
-        /*
-            -- SQL_CODIGO 116: Valor produto
-            -- Chama função :CLI_EMPRESA.FNC_IMPOSTOS_NFE para calcular
-
-            Impostos calculados:
-            VLR_PROD: Valor base do produto
-            VLR_IPI: Valor do IPI
-            VLR_ICMSST: Valor do ICMS ST + FCP
-            VLR_ICMS: Valor do ICMS
-            VLR_UNIT: Valor unitário final
-        */ 
-
-        //Verificar se o produto existe na proposta(futuro) e atualizar o item da proposta
-
-
+    async createProposta(proposta: CreateCabecalhoPropostaDto) {
+        this.logger.log(`Criando proposta: ${proposta.CLI_CODIGO}`);
         try {
-            this.logger.log(`Criando item da proposta: ${createPropostaItemDto.PRP_CODIGO} - Sequência: ${createPropostaItemDto.PRI_SEQUENCIA}`);
-            
-            const result = await this.checkoutOracleRepository.createPropostaItem(createPropostaItemDto);
-            
-            this.logger.log(`Item da proposta criado com sucesso: ${createPropostaItemDto.PRP_CODIGO} - Sequência: ${createPropostaItemDto.PRI_SEQUENCIA}`);
-            return result;
+            //criação de cabeçalho
+            const resultHeaderProposal = await this.createHeaderProposal(proposta);
+            return resultHeaderProposal;
         } catch (error) {
-            this.logger.error(`Erro ao criar item da proposta: ${error.message}`, error.stack);
+            this.logger.error(`Erro ao criar proposta: ${error.message}`, error.stack);
             throw error;
         }
     }
@@ -184,5 +101,20 @@ export class CheckoutOracleService {
             this.logger.error(`Erro ao buscar natureza de operação: ${error.message}`, error.stack);
             throw error;
         }
+    }
+
+    async createHeaderProposal(createPropostaDto: CreateCabecalhoPropostaDto) {
+        const cabecalhoProposta: CreateCabecalhoPropostaDto = {
+            CLI_CODIGO: createPropostaDto.CLI_CODIGO,
+            CLI_NOME: createPropostaDto.CLI_NOME,
+            CLI_ENDERECO: createPropostaDto.CLI_ENDERECO,
+            CLI_BAIRRO: createPropostaDto.CLI_BAIRRO,
+            CLI_CIDADE: createPropostaDto.CLI_CIDADE,
+            CLI_UF: createPropostaDto.CLI_UF,
+            CLI_CEP: createPropostaDto.CLI_CEP,
+            CLI_EMAIL: createPropostaDto.CLI_EMAIL,
+            NAT_CODIGO: createPropostaDto.NAT_CODIGO
+        }
+        return this.checkoutOracleRepository.createHeaderProposal(cabecalhoProposta);
     }
 } 

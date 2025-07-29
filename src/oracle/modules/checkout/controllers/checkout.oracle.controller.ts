@@ -17,6 +17,7 @@ import { CreateHeaderPropostaDto } from '../dto/create.header.proposta.dto';
 import { CreatePropostaItemDto } from '../dto/create.proposta.item.dto';
 import { CalculateFeesDto } from '../dto/calculate-fees.dto';
 import { CalculateNatCodigoDto } from '../dto/calculate.nat.codigo';
+import { CreateCabecalhoPropostaDto } from '../dto/create.cabecalho.proposta.dto';
 
 @Controller('oracle/checkout')
 export class CheckoutOracleController {
@@ -26,22 +27,28 @@ export class CheckoutOracleController {
         private readonly checkoutOracleService: CheckoutOracleService,
     ) {}
 
-    @Post('proposta/procedure')
-    @UsePipes(new ValidationPipe({ transform: true }))
-    async createPropostaViaProcedure(
-        @Body() createHeaderPropostaDto: CreateHeaderPropostaDto
+    @Post('proposta')
+    @UsePipes(new ValidationPipe({ 
+        transform: true, 
+        whitelist: true, 
+        forbidNonWhitelisted: true,
+        validateCustomDecorators: true 
+    }))
+    async createPropostaCabecalho(
+        @Body() createCabecalhoPropostaDto: CreateCabecalhoPropostaDto
     ) {
         try {
-            this.logger.log('Criando proposta via stored procedure');
-            const result = await this.checkoutOracleService.createPropostaViaProcedure(createHeaderPropostaDto);
+            this.logger.log('Criando cabeçalho da proposta');
+
+            const result = await this.checkoutOracleService.createProposta(createCabecalhoPropostaDto);
             
             return {
                 statusCode: HttpStatus.CREATED,
-                message: 'Proposta criada com sucesso via stored procedure',
+                message: 'Cabeçalho da proposta criado com sucesso',
                 data: result
             };
         } catch (error) {
-            this.logger.error(`Erro ao criar proposta: ${error.message}`);
+            this.logger.error(`Erro ao criar cabeçalho da proposta: ${error.message}`);
             throw new HttpException(
                 {
                     statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -77,32 +84,32 @@ export class CheckoutOracleController {
         }
     }
 
-    @Post('proposta/item')
-    @UsePipes(new ValidationPipe({ transform: true }))
-    async createPropostaItem(
-        @Body() createPropostaItemDto: CreatePropostaItemDto
-    ) {
-        try {
-            this.logger.log('Criando item da proposta');
-            const result = await this.checkoutOracleService.createPropostaItem(createPropostaItemDto);
+    // @Post('proposta/item')
+    // @UsePipes(new ValidationPipe({ transform: true }))
+    // async createPropostaItem(
+    //     @Body() createPropostaItemDto: CreatePropostaItemDto
+    // ) {
+    //     try {
+    //         this.logger.log('Criando item da proposta');
+    //         const result = await this.checkoutOracleService.createPropostaItem(createPropostaItemDto);
             
-            return {
-                statusCode: HttpStatus.CREATED,
-                message: 'Item da proposta criado com sucesso',
-                data: result
-            };
-        } catch (error) {
-            this.logger.error(`Erro ao criar item da proposta: ${error.message}`);
-            throw new HttpException(
-                {
-                    statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-                    message: error.message,
-                    error: 'Internal Server Error'
-                },
-                HttpStatus.INTERNAL_SERVER_ERROR
-            );
-        }
-    }
+    //         return {
+    //             statusCode: HttpStatus.CREATED,
+    //             message: 'Item da proposta criado com sucesso',
+    //             data: result
+    //         };
+    //     } catch (error) {
+    //         this.logger.error(`Erro ao criar item da proposta: ${error.message}`);
+    //         throw new HttpException(
+    //             {
+    //                 statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+    //                 message: error.message,
+    //                 error: 'Internal Server Error'
+    //             },
+    //             HttpStatus.INTERNAL_SERVER_ERROR
+    //         );
+    //     }
+    // }
 
     @Post('proposta/item/calculate-fees')
     @UsePipes(new ValidationPipe({ transform: true }))
