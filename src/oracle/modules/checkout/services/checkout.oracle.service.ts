@@ -52,19 +52,55 @@ export class CheckoutOracleService {
         }
     }
 
-    async createProposta(proposta: CreateCabecalhoPropostaDto) {
+    async createProposta(proposta: CreateCabecalhoPropostaDto & { PRP_CODIGO?: number }) {
         this.logger.log(`Criando proposta: ${proposta.CLI_CODIGO}`);
         try {
             //criação de cabeçalho
-            const resultHeaderProposal = await this.createHeaderProposal(proposta);
-            return resultHeaderProposal;
+            // const proposta.PRP_CODIGO = await this.criarCabecalhoProposta(proposta);
+            //cli_codigo = 39413
+            proposta.PRP_CODIGO = 555405;
+
+            const produtos = [
+                {
+                    PRO_CODIGO: 25238
+                },
+                {
+                    PRO_CODIGO: 25230
+                },
+                {
+                    PRO_CODIGO: 48267 //deve existir na proposta
+                }
+            ];
+            
+            const resultItens = await this.adicionarProdutosProposta(produtos, proposta.PRP_CODIGO);
+
+            return resultItens;
         } catch (error) {
             this.logger.error(`Erro ao criar proposta: ${error.message}`, error.stack);
             throw error;
         }
     }
 
-    async calculateFees(calculateFeesDto: CalculateFeesDto) {
+    async adicionarProdutosProposta(produtos: { PRO_CODIGO: number; IMPOSTOS?: any }[], prpCodigo: number) {
+        // await this.verificarDisponibilidadeEstoque(produtos);
+        produtos = await this.calcularTarifas2(produtos);
+        let result = [];
+
+        for (const produto of produtos) {
+            let prp_item = await this.checkoutOracleRepository.verficarSeProdutoExisteNaProposta({ PRO_CODIGO: produto.PRO_CODIGO, PRP_CODIGO: prpCodigo });
+            
+            if(prp_item.length > 0) {
+                await this.checkoutOracleRepository.atualizarPropostaItem(produto);
+                continue;
+            }
+
+            await this.checkoutOracleRepository.criarPropostaItem(produto);
+        }
+
+        return result;
+    }
+
+    async calcularTarifas(calculateFeesDto: CalculateFeesDto) {
         try {
             this.logger.log(`Calculando tarifas para produto: ${calculateFeesDto.PRO_CODIGO}`);
             
@@ -92,7 +128,25 @@ export class CheckoutOracleService {
         }
     }
 
-    async calculateOperationNature(calculateNatCodigoDto: CalculateNatCodigoDto) {
+async calcularTarifas2(produtos: { PRO_CODIGO: number; IMPOSTOS?: any }[]) {
+    for (const produto of produtos) {
+        const imposto = await this.calcularTarifas({
+            PRO_CODIGO: produto.PRO_CODIGO,
+            NAT_CODIGO: 456,
+            PRP_FINALIDADE: 5,
+            CLI_CODIGO: 39413,
+            PRI_VALORTOTAL: 100,
+            PRI_QUANTIDADE: 3
+        });
+
+        produto.IMPOSTOS = imposto;
+    }
+
+    this.logger.log(`Calculando tarifas para produtos: ${produtos.map(produto => produto.PRO_CODIGO).join(', ')}`);
+    return produtos;
+}
+
+    async calcularNaturezaOperacao(calculateNatCodigoDto: CalculateNatCodigoDto) {
         try {
             this.logger.log(`Buscando natureza de operação: ${calculateNatCodigoDto.PRP_TRIANGULACAO}`);
             const result = await this.checkoutOracleRepository.calculateOperationNature(calculateNatCodigoDto);
@@ -103,7 +157,7 @@ export class CheckoutOracleService {
         }
     }
 
-    async createHeaderProposal(createPropostaDto: CreateCabecalhoPropostaDto) {
+    async criarCabecalhoProposta(createPropostaDto: CreateCabecalhoPropostaDto) {
         const cabecalhoProposta: CreateCabecalhoPropostaDto = {
             CLI_CODIGO: createPropostaDto.CLI_CODIGO,
             CLI_NOME: createPropostaDto.CLI_NOME,
@@ -116,5 +170,33 @@ export class CheckoutOracleService {
             NAT_CODIGO: createPropostaDto.NAT_CODIGO
         }
         return this.checkoutOracleRepository.createHeaderProposal(cabecalhoProposta);
+    }
+
+    async verificarDisponibilidadeEstoque(produtos: { PRO_CODIGO: number }[]) {
+        this.logger.log(`Verificando disponibilidade de estoque para o produtos`);
+        let avaliable = [];
+        let unavaliable = [];
+        try {
+            for (const produto of produtos) {
+                const result = await this.checkoutOracleRepository.verificarDisponibilidadeEstoque(produto);
+                if(result) {
+                    avaliable.push(produto.PRO_CODIGO);
+                } else {
+                    unavaliable.push(produto.PRO_CODIGO);
+                }
+            }
+
+            //TODO:comparar com a quantidade por produto..
+            return {
+                avaliable: avaliable,
+                unavaliable: unavaliable
+            };
+        } catch (error) {
+            this.logger.error(`Erro ao verificar disponibilidade: ${error.message}`);
+            return {
+                errorText: 'deu pau',
+                ERROR: error.message
+            };
+        }
     }
 } 

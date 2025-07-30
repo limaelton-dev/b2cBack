@@ -116,7 +116,7 @@ export class CheckoutOracleController {
     async calculateFees(
         @Body() calculateFeesDto: CalculateFeesDto
     ) {
-        const result = await this.checkoutOracleService.calculateFees(calculateFeesDto);
+        const result = await this.checkoutOracleService.calcularTarifas(calculateFeesDto);
 
         return {
             statusCode: HttpStatus.OK,
@@ -131,7 +131,7 @@ export class CheckoutOracleController {
         @Body() calculateNatCodigoDto: CalculateNatCodigoDto
     ) {
         this.logger.log('Calculando natureza de operação');
-        const result = await this.checkoutOracleService.calculateOperationNature(calculateNatCodigoDto);
+        const result = await this.checkoutOracleService.calcularNaturezaOperacao(calculateNatCodigoDto);
 
         return {
             statusCode: HttpStatus.OK,

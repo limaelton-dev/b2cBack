@@ -417,6 +417,39 @@ export class CheckoutOracleRepository {
         }
     }
 
+    async verificarDisponibilidadeEstoque(produto: { PRO_CODIGO: number }): Promise<any> {
+        //parece que não está funcionando no HML essa função
+        const sql = `
+            SELECT
+            (RATEIO - CARRINHO) DISPONIVEL
+            FROM
+            (
+                SELECT
+                e.DISPONIVEL RATEIO,
+                (
+                    CASE WHEN b.PRI_QUANTIDADE IS NULL THEN 0 ELSE b.PRI_QUANTIDADE END
+                ) CARRINHO
+                FROM
+                snap$_estoque_rateio e
+                LEFT JOIN B2B_PROPOSTA_ITEM b ON e.PRO_CODIGO = b.PRO_CODIGO(+)
+                WHERE
+                e.PRO_CODIGO = :PRO_CODIGO
+                AND e.RAT_CODIGO = 2
+            )
+        `;
+        const binds = { PRO_CODIGO: produto.PRO_CODIGO };
+        
+        try {
+            const result = await this.oracleDataSource.query(sql, binds as any);
+            console.log(`[ESTOQUE] Resultado para produto ${produto.PRO_CODIGO}:`, JSON.stringify(result));
+            
+            return result;
+        } catch (error) {
+            console.error(`[ESTOQUE] Erro ao consultar produto ${produto.PRO_CODIGO}:`, error.message);
+            throw new Error(`Erro ao verificar estoque do produto ${produto.PRO_CODIGO}: ${error.message}`);
+        }
+    }
+
     async createPropostaItem(propostaItem: CreatePropostaItemDto): Promise<any> {
         const sql = `
             BEGIN 
@@ -613,5 +646,197 @@ export class CheckoutOracleRepository {
         }
 
         return response;
+    }
+
+    async verficarSeProdutoExisteNaProposta(produto: { PRO_CODIGO: number; PRP_CODIGO: number }) {
+        const sql = `
+            SELECT
+                D.*,
+                SUM(D.PRI_QUANTIDADE) OVER() CONTA
+            FROM (
+
+            SELECT
+            *
+                -- PRI_VALORIPI,
+                -- PRI_VALORICMSST,
+                -- PRO_CODIGO,
+                -- PRI_QUANTIDADE
+            FROM
+            PROPOSTA_ITEM
+            WHERE
+            PRP_CODIGO = :PRP_CODIGO
+            AND PRO_CODIGO = :PRO_CODIGO
+            ) D
+        `;
+        const binds = { 
+            PRO_CODIGO: produto.PRO_CODIGO, 
+            PRP_CODIGO: produto.PRP_CODIGO 
+        };
+
+        const result = await this.oracleDataSource.query(sql, binds as any);
+        return result;
+    }
+
+    async criarPropostaItem(propostaItem: any) {
+        const sql = `
+            DECLARE 
+                V_PRO_QTDVENMULTIPLO NUMBER;
+                    V_RESTO NUMBER;
+                E_MULTIPLO EXCEPTION;
+                PRAGMA EXCEPTION_INIT(E_MULTIPLO, -20001);
+
+            BEGIN
+                SELECT 
+                    PRO.PRO_QTDVENMULTIPLO
+                INTO 
+                    V_PRO_QTDVENMULTIPLO
+                FROM :OWNER.PRODUTO PRO
+                WHERE PRO.PRO_CODIGO = :PRO_CODIGO;
+                    
+                    V_RESTO := MOD(:PRI_QUANTIDADE,V_PRO_QTDVENMULTIPLO);
+                    
+                    DBMS_OUTPUT.put_line(V_RESTO);
+                    
+                    IF V_RESTO = 0 THEN
+                        
+                    INSERT INTO B2B_PROPOSTA_ITEM (
+                        PRP_CODIGO,
+                        PRI_SEQUENCIA,
+                        PRO_CODIGO,
+                        PRI_QUANTIDADE,
+                        PRI_TIPOVPC,
+                        PRI_UNIDADE,
+                        PRI_DESCRICAO,
+                        PRI_DESCRICAOTECNICA,
+                        PRI_REFERENCIA,
+                        --PRI_TIPOVPC,
+                        PRI_VALORUNITARIO,
+                        PRI_VALORUNITARIOTABELA,
+                        PRI_VALORUNITARIOMAIOR,    
+                        PRI_VALORTOTAL,
+                        PRI_IPI,
+                        PRI_VALORIPI,
+                        PRI_VALORDESCONTO,
+                        PRI_INCLUIDATA,
+                        PRI_INCLUIPOR,
+                        PRI_ALTERADATA,
+                        PRI_ALTERAPOR,
+                        PRI_VALORICMSST,
+                        PRI_BASECALCULOICMSST,
+                        PRI_VALORICMS,
+                        PRI_BASECALCULOICMS,
+                        PRI_ICMSVENDA,
+                        PRI_DESCONTOESPECIAL,
+                        PRI_MALA,
+                        PRI_ITEM,
+                        PRI_TABELAVENDA,
+                        PRI_VALORUNITARIOVENDA,
+                        PRI_TIPOFISCAL,
+                        PRI_DESCONTO,
+                        PRI_VALORTOTALCIMP,
+                        PRI_FCP,
+                        PRI_VALOR_UNITARIO_FINAL
+                    ) VALUES (
+                        :PRP_CODIGO,
+                        (SELECT (COUNT(*) +1) CONTA FROM B2B_PROPOSTA_ITEM WHERE PRP_CODIGO=:PRP_CODIGO),
+                        :PRO_CODIGO,
+                        :PRI_QUANTIDADE,
+                        :PRI_TIPOVPC,
+                        :PRI_UNIDADE,
+                        :PRI_DESCRICAO,
+                        :PRI_DESCRICAOTECNICA,
+                        :PRI_REFERENCIA,
+                        --:PRI_TIPOVPC,
+                        :VLR_UNITARIO,
+                        :VLR_UNITARIOMAIOR,    
+                        :VLR_UNITARIOMAIOR, -- mudança em 26/07/2022, por conta de que na tabela do webmanager o valor é iguala ao campo acima :VLR_UNIT,
+                        :VLR_COMIMP * :PRI_QUANTIDADE,
+                        :P_IPI,
+                        :VLR_IPI,
+                        '0',
+                        :DATAITEM,
+                        'B2B',
+                        :DATAITEM,
+                        'B2B',
+                        :VLR_ICMSST,
+                        :BC_ICMSST,
+                        :VLR_ICMS,
+                        :BC_ICMS,
+                        :P_ICMS,
+                        'N',
+                        'C',
+                        (SELECT (COUNT(*) +1) CONTA FROM B2B_PROPOSTA_ITEM WHERE PRP_CODIGO=:PRP_CODIGO),
+                        :TABELA,
+                        :VLR_UNITARIO,
+                        '2',
+                        :DESCONTO,
+                        :PRI_VALORTOTALCIMP,
+                        :PRI_FCP,
+                        :PRI_VALOR_UNITARIO_FINAL 
+                        ); 
+                    
+                ELSE
+                    RAISE E_MULTIPLO;
+                    END IF;
+                
+                EXCEPTION  
+                    WHEN E_MULTIPLO THEN
+                        RAISE_APPLICATION_ERROR(-20001,'Produto só vendido em multiplo de '||V_PRO_QTDVENMULTIPLO || '!' );
+                    WHEN OTHERS THEN 
+                        ROLLBACK; 
+                        RAISE;
+
+            END;
+        `;
+
+        const binds = {
+            PRP_CODIGO: propostaItem.PRP_CODIGO //terminar os binds
+        }
+    }
+
+    async atualizarPropostaItem(propostaItem: any) {
+        const sql = `
+            DECLARE 
+                V_PRO_QTDVENMULTIPLO NUMBER;
+                E_EXCECAO EXCEPTION;
+                PRAGMA EXCEPTION_INIT(E_EXCECAO, -20000);
+            BEGIN
+            
+                SELECT 
+                    PRO.PRO_QTDVENMULTIPLO
+                INTO 
+                    V_PRO_QTDVENMULTIPLO
+                FROM :OWNER.PRODUTO PRO
+                WHERE PRO.PRO_CODIGO = :PRO_CODIGO;
+
+                IF  MOD(:PRI_QUANTIDADE,V_PRO_QTDVENMULTIPLO)  <> 0 THEN
+                        RAISE E_EXCECAO;        
+                    END IF;
+
+                UPDATE
+                    B2B_PROPOSTA_ITEM
+                    SET
+                    PRI_QUANTIDADE = :PRI_QUANTIDADE,
+                    PRI_VALORTOTAL = :VLR_TOTAL,
+                    PRI_VALORTOTALCIMP = :PRI_VALORTOTALCIMP,  
+                    PRI_VALORICMS = :PRI_VALORICMS,
+                    PRI_VALORIPI = :PRI_VALORIPI,
+                    PRI_FCP = :PRI_FCP,
+                    PRI_VALORICMSST = :PRI_VALORICMSST,
+                    PRI_BASECALCULOICMSST = :PRI_BASECALCULOICMSST,
+                    PRI_BASECALCULOICMS = :PRI_BASECALCULOICMS
+                    WHERE
+                    PRP_CODIGO = :CLI_CODIGO
+                    AND PRO_CODIGO = :PRO_CODIGO;
+                
+                EXCEPTION  
+                    WHEN E_EXCECAO THEN
+                        RAISE_APPLICATION_ERROR(-20000,'Produto só vendido em multiplo de '||V_PRO_QTDVENMULTIPLO ||' !');
+                WHEN OTHERS THEN 
+                    ROLLBACK; 
+                    RAISE;
+
+            END;
+        `;
     }
 }
