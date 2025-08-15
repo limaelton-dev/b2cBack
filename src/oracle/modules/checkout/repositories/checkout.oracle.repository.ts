@@ -65,7 +65,7 @@ export class CheckoutOracleRepository {
         return await this.oracleDataSource.query(query, parameters);
     }
 
-    async createProposta(proposta: CreatePropostaDto): Promise<any> {
+    async createPropostaVELHO(proposta: CreatePropostaDto): Promise<any> {
         const query = `
             INSERT INTO PROPOSTA 
             (
@@ -199,7 +199,7 @@ export class CheckoutOracleRepository {
         }
     }
 
-    async createHeaderProposal(createCabecalhoPropostaDto: CreateCabecalhoPropostaDto): Promise<any> {
+    async criarCabecalhoPropostaB2B(createCabecalhoPropostaDto: CreateCabecalhoPropostaDto): Promise<any> {
         const sql = `DECLARE
                             V_PROPOSTA NUMBER;
                         BEGIN
@@ -208,7 +208,7 @@ export class CheckoutOracleRepository {
                             FROM DUAL;
 
                             INSERT INTO
-                                B2B_PROPOSTA (
+                            B2B_PROPOSTA (
                                 PRP_CODIGO,
                                 RAT_CODIGO,
                                 CLI_CODIGO,
@@ -287,14 +287,16 @@ export class CheckoutOracleRepository {
         try {
             this.logQueryWithParameters(sql, binds);
             const result = await this.oracleDataSource.query(sql, binds as any);
+            
+            this.logger.log(`Cabeçalho de proposta criado com sucesso. Código gerado: ${result}`);
             return result;
         } catch (error) {
+            this.logger.error(`Erro ao criar cabeçalho de proposta: ${error.message}`);
             throw new Error(`Erro ao criar cabeçalho de proposta: ${error.message}`);
         }
     }
-    
 
-    async createHeaderProposta(proposta: CreateHeaderPropostaDto): Promise<number> {
+    async cabecalhoVELHO(proposta: CreateHeaderPropostaDto): Promise<number> {
         const sql = `
             DECLARE
                 v_prp_codigo   PROPOSTA.PRP_CODIGO%TYPE;
@@ -575,7 +577,7 @@ export class CheckoutOracleRepository {
         }
     }
 
-    async calculateFees(calculateFeesDto: CalculateFeesDto): Promise<any> {
+    async calcularTarifas(calculateFeesDto: CalculateFeesDto): Promise<any> {
         const sql = `SELECT
             ROUND(VLR_PROD, 2) VLR_PROD,
             ROUND(VLR_DESC, 2) VLR_DESC,
@@ -623,7 +625,7 @@ export class CheckoutOracleRepository {
         }
     }
 
-    async calculateOperationNature(operationNature: CalculateNatCodigoDto): Promise<any> {
+    async calcularNaturezaOperacao(operationNature: CalculateNatCodigoDto): Promise<any> {
         const sql = `
             SELECT ORACLC.FNC_BUSCA_NATUREZA_OPERACAO(
                     :CLI_CODIGO, 
@@ -662,7 +664,7 @@ export class CheckoutOracleRepository {
                 -- PRO_CODIGO,
                 -- PRI_QUANTIDADE
             FROM
-            PROPOSTA_ITEM
+            B2B_PROPOSTA_ITEM
             WHERE
             PRP_CODIGO = :PRP_CODIGO
             AND PRO_CODIGO = :PRO_CODIGO
@@ -678,120 +680,249 @@ export class CheckoutOracleRepository {
     }
 
     async criarPropostaItem(propostaItem: any) {
+        const sql = `INSERT INTO B2B_PROPOSTA_ITEM (
+                    PRP_CODIGO,                    -- Código da proposta
+                    PRI_SEQUENCIA,                 -- Sequência do item na proposta
+                    PRO_CODIGO,                    -- Código do produto
+                    PRI_QUANTIDADE,                -- Quantidade do item
+                    PRI_TIPOVPC,                   -- Tipo de produto: 0 - Reposição / 1 - Inclusão s/ VPC / 2 - Inclusão Alto Giro/Giro / 3 - Inclusão Lançamento
+                    PRI_UNIDADE,                   -- Unidade de medida do produto
+                    PRI_DESCRICAO,                 -- Descrição do produto
+                    PRI_DESCRICAOTECNICA,          -- Descrição técnica do produto
+                    PRI_REFERENCIA,                -- Referência interna ou do fabricante
+                    PRI_VALORUNITARIO,             -- Valor unitário bruto
+                    PRI_VALORUNITARIOTABELA,       -- Valor unitário da tabela original
+                    PRI_VALORUNITARIOMAIOR,        -- Valor unitário maior (repetido por regra antiga)
+                    PRI_VALORTOTAL,                -- Valor total do item (unitário * quantidade)
+                    PRI_IPI,                       -- Alíquota de IPI
+                    PRI_VALORIPI,                  -- Valor em R$ do IPI
+                    PRI_VALORDESCONTO,             -- Valor do desconto (aqui está como '0' fixo)
+                    PRI_INCLUIDATA,                -- Data de inclusão do item
+                    PRI_INCLUIPOR,                 -- Usuário que incluiu o item
+                    PRI_ALTERADATA,                -- Data da última alteração
+                    PRI_ALTERAPOR,                 -- Usuário da última alteração
+                    PRI_VALORICMSST,               -- Valor do ICMS-ST
+                    PRI_BASECALCULOICMSST,         -- Base de cálculo do ICMS-ST
+                    PRI_VALORICMS,                 -- Valor do ICMS normal
+                    PRI_BASECALCULOICMS,           -- Base de cálculo do ICMS normal
+                    PRI_ICMSVENDA,                 -- Alíquota de ICMS utilizada na venda
+                    PRI_DESCONTOESPECIAL,          -- Indica se há desconto especial ('N' fixo)
+                    PRI_MALA,                      -- Tipo de mala (provavelmente de venda) ('C' fixo)
+                    PRI_ITEM,                      -- Número sequencial do item (igual ao PRI_SEQUENCIA)
+                    PRI_TABELAVENDA,               -- Código da tabela de venda
+                    PRI_VALORUNITARIOVENDA,        -- Valor unitário final aplicado (com ou sem desconto)
+                    PRI_TIPOFISCAL,                -- Tipo fiscal (fixo como '2', pode ser venda, bonificação, etc.)
+                    PRI_DESCONTO,                  -- Valor do desconto aplicado
+                    PRI_VALORTOTALCIMP,            -- Valor total dos impostos CIMP
+                    PRI_FCP,                       -- Valor de FCP (Fundo de Combate à Pobreza)
+                    PRI_VALOR_UNITARIO_FINAL       -- Valor final unitário com impostos/descontos aplicados
+                ) VALUES (
+                    :PRP_CODIGO,                                     -- PRP_CODIGO
+                    (SELECT (COUNT(*) +1) FROM B2B_PROPOSTA_ITEM WHERE PRP_CODIGO = :PRP_CODIGO), -- PRI_SEQUENCIA
+                    :PRO_CODIGO,                                     -- PRO_CODIGO
+                    :PRI_QUANTIDADE,                                 -- PRI_QUANTIDADE
+                    0,                                               -- PRI_TIPOVPC gera bonus
+                    :PRI_UNIDADE,                                    -- PRI_UNIDADE
+                    :PRI_DESCRICAO,                                  -- PRI_DESCRICAO
+                    :PRI_DESCRICAOTECNICA,                           -- PRI_DESCRICAOTECNICA
+                    :PRI_REFERENCIA,                                 -- PRI_REFERENCIA
+                    :VLR_UNITARIO,                                   -- PRI_VALORUNITARIO
+                    :VLR_UNITARIOMAIOR,                              -- PRI_VALORUNITARIOTABELA
+                    :VLR_UNITARIOMAIOR,                              -- PRI_VALORUNITARIOMAIOR (repetido)
+                    :VLR_COMIMP * :PRI_QUANTIDADE,                   -- PRI_VALORTOTAL
+                    :P_IPI,                                          -- PRI_IPI
+                    :VLR_IPI,                                        -- PRI_VALORIPI
+                    '0',                                             -- PRI_VALORDESCONTO (fixo)
+                    :DATAITEM,                                       -- PRI_INCLUIDATA
+                    'PORTAL B2C',                                    -- PRI_INCLUIPOR
+                    :DATAITEM,                                       -- PRI_ALTERADATA
+                    'PORTAL B2C',                                    -- PRI_ALTERAPOR
+                    :VLR_ICMSST,                                     -- PRI_VALORICMSST
+                    :BC_ICMSST,                                      -- PRI_BASECALCULOICMSST
+                    :VLR_ICMS,                                       -- PRI_VALORICMS
+                    :BC_ICMS,                                        -- PRI_BASECALCULOICMS
+                    :P_ICMS,                                         -- PRI_ICMSVENDA
+                    'N',                                             -- PRI_DESCONTOESPECIAL
+                    'C',                                             -- PRI_MALA
+                    (SELECT (COUNT(*) +1) FROM B2B_PROPOSTA_ITEM WHERE PRP_CODIGO = :PRP_CODIGO), -- PRI_ITEM
+                    6,                                               -- PRI_TABELAVENDA
+                    :VLR_UNITARIO,                                   -- PRI_VALORUNITARIOVENDA
+                    '2',                                             -- PRI_TIPOFISCAL
+                    0,                                               -- PRI_DESCONTO
+                    :PRI_VALORTOTALCIMP,                             -- PRI_VALORTOTALCIMP
+                    :PRI_FCP,                                        -- PRI_FCP
+                    :PRI_VALOR_UNITARIO_FINAL                        -- PRI_VALOR_UNITARIO_FINAL
+                )`;
+
+        const binds = {
+            // Códigos de identificação
+            PRP_CODIGO: propostaItem.PRP_CODIGO,
+            PRO_CODIGO: propostaItem.PRO_CODIGO,
+            
+            // Dados do item
+            PRI_QUANTIDADE: propostaItem.PRI_QUANTIDADE || 1,
+            PRI_UNIDADE: propostaItem.PRI_UNIDADE || 'UN',
+            PRI_DESCRICAO: propostaItem.PRI_DESCRICAO || '',
+            PRI_DESCRICAOTECNICA: propostaItem.PRI_DESCRICAOTECNICA || '',
+            PRI_REFERENCIA: propostaItem.PRI_REFERENCIA || '',
+            
+            // Valores de produto
+            VLR_UNITARIO: propostaItem.VLR_UNITARIO || 0,
+            VLR_UNITARIOMAIOR: propostaItem.VLR_UNITARIOMAIOR || propostaItem.VLR_UNITARIO || 0,
+            VLR_COMIMP: propostaItem.VLR_COMIMP || propostaItem.VLR_UNITARIO || 0,
+            
+            // Impostos - IPI
+            P_IPI: propostaItem.P_IPI || 0,
+            VLR_IPI: propostaItem.VLR_IPI || 0,
+            
+            // Impostos - ICMS
+            VLR_ICMS: propostaItem.VLR_ICMS || 0,
+            BC_ICMS: propostaItem.BC_ICMS || 0,
+            P_ICMS: propostaItem.P_ICMS || 0,
+            
+            // Impostos - ICMS-ST
+            VLR_ICMSST: propostaItem.VLR_ICMSST || 0,
+            BC_ICMSST: propostaItem.BC_ICMSST || 0,
+            
+            // Outros impostos e valores
+            PRI_FCP: propostaItem.PRI_FCP || 0,
+            PRI_VALORTOTALCIMP: propostaItem.PRI_VALORTOTALCIMP || 0,
+            PRI_VALOR_UNITARIO_FINAL: propostaItem.PRI_VALOR_UNITARIO_FINAL || propostaItem.VLR_UNITARIO || 0,
+            
+            // Data de criação
+            DATAITEM: new Date()
+        };
+
+        try {
+            // this.logQueryWithParameters(sql, binds);
+            this.logger.log(`Executando INSERT para produto ${propostaItem.PRO_CODIGO}`);
+            this.logger.log(`Binds: ${JSON.stringify(binds, null, 2)}`);
+            const result = await this.oracleDataSource.query(sql, binds as any);
+            
+            this.logger.log(`Item da proposta criado com sucesso - PRP_CODIGO: ${propostaItem.PRP_CODIGO}, PRO_CODIGO: ${propostaItem.PRO_CODIGO}`);
+            return result;
+        } catch (error) {
+            this.logger.error(`Erro ao criar item da proposta: ${error.message}`);
+            throw new Error(`Erro ao criar item da proposta: ${error.message}`);
+        }
+    }
+
+    async confirmarProposta(proposta: any) {
         const sql = `
-            DECLARE 
-                V_PRO_QTDVENMULTIPLO NUMBER;
-                    V_RESTO NUMBER;
-                E_MULTIPLO EXCEPTION;
-                PRAGMA EXCEPTION_INIT(E_MULTIPLO, -20001);
+            DECLARE
+                P_COD_PROPOSTA PROPOSTA.PRP_CODIGO%TYPE;
+                P_CPG_CODIGO PROPOSTA.CPG_CODIGO%TYPE;
+                P_TRA_CODIGO PROPOSTA.TRA_CODIGO%TYPE;
+                P_PRP_NUMEROPEDIDOCLIENTE PROPOSTA.PRP_NUMEROPEDIDOCLIENTE%TYPE;
+                P_PRP_VALORFRETE PROPOSTA.PRP_VALORFRETE%TYPE;
+                P_PRP_FRETEPAGO PROPOSTA.PRP_FRETEPAGO%TYPE;
+                P_PRP_TIPOFATURAMENTO PROPOSTA.PRP_TIPOFATURAMENTO%TYPE;
+                P_PRP_TIPOENTREGA PROPOSTA.PRP_TIPOENTREGA%TYPE;
+                P_PRP_TIPOCONFIRMACAO PROPOSTA.PRP_TIPOCONFIRMACAO%TYPE;
+                P_PRP_ISOACEITEPEDIDO PROPOSTA.PRP_ISOACEITEPEDIDO%TYPE;
+                P_PRP_INCLUIPOR PROPOSTA.PRP_INCLUIPOR%TYPE;
+                P_PRP_TRIANGULACAO PROPOSTA.PRP_TRIANGULACAO%TYPE;
+                P_PRP_OBSERVACAONOTA PROPOSTA.PRP_OBSERVACAONOTA%TYPE; 
+                BEGIN
 
-            BEGIN
-                SELECT 
-                    PRO.PRO_QTDVENMULTIPLO
-                INTO 
-                    V_PRO_QTDVENMULTIPLO
-                FROM :OWNER.PRODUTO PRO
-                WHERE PRO.PRO_CODIGO = :PRO_CODIGO;
+                    --Inicia a finalização da proposta
+                    --RAISE_APPLICATION_ERROR(-20000,'Finalização de pedido indisponível no momento.');       
                     
-                    V_RESTO := MOD(:PRI_QUANTIDADE,V_PRO_QTDVENMULTIPLO);
-                    
-                    DBMS_OUTPUT.put_line(V_RESTO);
-                    
-                    IF V_RESTO = 0 THEN
+                    --Atualiza campos da proposta (opções na finalização)
+                    UPDATE B2B_PROPOSTA SET 
+                        PRP_OBSERVACAONOTA = :PRP_OBSERVACAONOTA,
+                        TRA_CODIGO = :TRA_CODIGO,
+                        PRP_FRETEPAGO = :PRP_FRETEPAGO,
+                        PRP_TIPOENTREGA = :PRP_TIPOENTREGA,
+                        CPG_CODIGO = :CPG_CODIGO,
+                        PTP_CODIGO = :PTP_CODIGO
+                    WHERE PRP_CODIGO= :PRP_CODIGO;
+
+                    --Espelha a proposta temporária na tabela PROPOSTA (definitiva)
+                    P_COD_PROPOSTA := :PRP_CODIGO;
+                    PCK_PROPOSTA.PRC_PROPOSTA_B2B(P_COD_PROPOSTA, 0, :TIPO, :COMMITAR);
+
+                    --Coleta dados da proposta definitiva através da proposta retornada pelo espelhamento (P_COD_PROPOSTA)
+                    SELECT  
+                        P.CPG_CODIGO,
+                        P.TRA_CODIGO,
+                        P.PRP_NUMEROPEDIDOCLIENTE,
+                        P.PRP_VALORFRETE,
+                        P.PRP_FRETEPAGO,
+                        P.PRP_TIPOFATURAMENTO,
+                        P.PRP_TIPOENTREGA,
+                        P.PRP_OBSERVACAONOTA,
+                        P.PRP_TIPOCONFIRMACAO,
+                        P.PRP_ISOACEITEPEDIDO,
+                        P.PRP_INCLUIPOR,
+                        P.PRP_TRIANGULACAO,
+                        P.PRP_OBSERVACAONOTA
+                    INTO
+                        P_CPG_CODIGO,
+                        P_TRA_CODIGO,
+                        P_PRP_NUMEROPEDIDOCLIENTE,
+                        P_PRP_VALORFRETE,
+                        P_PRP_FRETEPAGO,
+                        P_PRP_TIPOFATURAMENTO,
+                        P_PRP_TIPOENTREGA,
+                        P_PRP_OBSERVACAONOTA,
+                        P_PRP_TIPOCONFIRMACAO,
+                        P_PRP_ISOACEITEPEDIDO,
+                        P_PRP_INCLUIPOR,
+                        P_PRP_TRIANGULACAO,
+                        P_PRP_OBSERVACAONOTA
+                    FROM PROPOSTA P
+                    WHERE P.PRP_CODIGO = P_COD_PROPOSTA;
                         
-                    INSERT INTO B2B_PROPOSTA_ITEM (
-                        PRP_CODIGO,
-                        PRI_SEQUENCIA,
-                        PRO_CODIGO,
-                        PRI_QUANTIDADE,
-                        PRI_TIPOVPC,
-                        PRI_UNIDADE,
-                        PRI_DESCRICAO,
-                        PRI_DESCRICAOTECNICA,
-                        PRI_REFERENCIA,
-                        --PRI_TIPOVPC,
-                        PRI_VALORUNITARIO,
-                        PRI_VALORUNITARIOTABELA,
-                        PRI_VALORUNITARIOMAIOR,    
-                        PRI_VALORTOTAL,
-                        PRI_IPI,
-                        PRI_VALORIPI,
-                        PRI_VALORDESCONTO,
-                        PRI_INCLUIDATA,
-                        PRI_INCLUIPOR,
-                        PRI_ALTERADATA,
-                        PRI_ALTERAPOR,
-                        PRI_VALORICMSST,
-                        PRI_BASECALCULOICMSST,
-                        PRI_VALORICMS,
-                        PRI_BASECALCULOICMS,
-                        PRI_ICMSVENDA,
-                        PRI_DESCONTOESPECIAL,
-                        PRI_MALA,
-                        PRI_ITEM,
-                        PRI_TABELAVENDA,
-                        PRI_VALORUNITARIOVENDA,
-                        PRI_TIPOFISCAL,
-                        PRI_DESCONTO,
-                        PRI_VALORTOTALCIMP,
-                        PRI_FCP,
-                        PRI_VALOR_UNITARIO_FINAL
-                    ) VALUES (
-                        :PRP_CODIGO,
-                        (SELECT (COUNT(*) +1) CONTA FROM B2B_PROPOSTA_ITEM WHERE PRP_CODIGO=:PRP_CODIGO),
-                        :PRO_CODIGO,
-                        :PRI_QUANTIDADE,
-                        :PRI_TIPOVPC,
-                        :PRI_UNIDADE,
-                        :PRI_DESCRICAO,
-                        :PRI_DESCRICAOTECNICA,
-                        :PRI_REFERENCIA,
-                        --:PRI_TIPOVPC,
-                        :VLR_UNITARIO,
-                        :VLR_UNITARIOMAIOR,    
-                        :VLR_UNITARIOMAIOR, -- mudança em 26/07/2022, por conta de que na tabela do webmanager o valor é iguala ao campo acima :VLR_UNIT,
-                        :VLR_COMIMP * :PRI_QUANTIDADE,
-                        :P_IPI,
-                        :VLR_IPI,
-                        '0',
-                        :DATAITEM,
-                        'B2B',
-                        :DATAITEM,
-                        'B2B',
-                        :VLR_ICMSST,
-                        :BC_ICMSST,
-                        :VLR_ICMS,
-                        :BC_ICMS,
-                        :P_ICMS,
-                        'N',
-                        'C',
-                        (SELECT (COUNT(*) +1) CONTA FROM B2B_PROPOSTA_ITEM WHERE PRP_CODIGO=:PRP_CODIGO),
-                        :TABELA,
-                        :VLR_UNITARIO,
-                        '2',
-                        :DESCONTO,
-                        :PRI_VALORTOTALCIMP,
-                        :PRI_FCP,
-                        :PRI_VALOR_UNITARIO_FINAL 
-                        ); 
+                    --Confirma a proposta definitiva
+                    PCK_PROPOSTA.PRC_CONFIRMA_PROPOSTA( 
+                        P_COD_PROPOSTA,
+                        P_CPG_CODIGO, 
+                        P_TRA_CODIGO, 
+                        P_PRP_NUMEROPEDIDOCLIENTE,
+                        P_PRP_VALORFRETE,
+                        P_PRP_FRETEPAGO,
+                        P_PRP_TIPOFATURAMENTO,
+                        P_PRP_TIPOENTREGA,
+                        P_PRP_OBSERVACAONOTA,
+                        P_PRP_TIPOCONFIRMACAO,   
+                        SYSDATE,  
+                        P_PRP_ISOACEITEPEDIDO,
+                        P_PRP_INCLUIPOR,
+                        P_PRP_TRIANGULACAO
+                    );
+                        
+                    -- Exclui itens da proposta temporaria
+                    DELETE FROM B2B_PROPOSTA_ITEM WHERE PRP_CODIGO = :PRP_CODIGO; 
+                        
+                    --Exclui cabeçalho da proposta temporaria
+                    DELETE FROM B2B_PROPOSTA WHERE PRP_CODIGO = :PRP_CODIGO;   
+                        
+                        --Conclusão da finalização da proposta
+                    COMMIT;
                     
-                ELSE
-                    RAISE E_MULTIPLO;
-                    END IF;
-                
-                EXCEPTION  
-                    WHEN E_MULTIPLO THEN
-                        RAISE_APPLICATION_ERROR(-20001,'Produto só vendido em multiplo de '||V_PRO_QTDVENMULTIPLO || '!' );
-                    WHEN OTHERS THEN 
-                        ROLLBACK; 
-                        RAISE;
-
-            END;
+                    EXCEPTION  
+                        WHEN OTHERS THEN 
+                            ROLLBACK; 
+                            RAISE;
+                END;   
         `;
 
         const binds = {
-            PRP_CODIGO: propostaItem.PRP_CODIGO //terminar os binds
+            PRP_OBSERVACAONOTA: 'teste',
+            TRA_CODIGO: 1,
+            PRP_FRETEPAGO: 'S',
+            PRP_TIPOENTREGA: 'E',
+            CPG_CODIGO: 1,
+            PTP_CODIGO: 1,
+            PRP_CODIGO: proposta.PRP_CODIGO,
+            TIPO: 1,
+            COMMITAR: 'S'
         }
+
+        this.logQueryWithParameters(sql, binds);
+        const result = await this.oracleDataSource.query(sql, binds as any);
+        return result;
     }
 
     async atualizarPropostaItem(propostaItem: any) {
@@ -806,7 +937,7 @@ export class CheckoutOracleRepository {
                     PRO.PRO_QTDVENMULTIPLO
                 INTO 
                     V_PRO_QTDVENMULTIPLO
-                FROM :OWNER.PRODUTO PRO
+                FROM PRODUTO PRO
                 WHERE PRO.PRO_CODIGO = :PRO_CODIGO;
 
                 IF  MOD(:PRI_QUANTIDADE,V_PRO_QTDVENMULTIPLO)  <> 0 THEN
@@ -838,5 +969,27 @@ export class CheckoutOracleRepository {
 
             END;
         `;
+    }
+
+    async buscarCabecalhoProposta(CLI_CODIGO: number) {
+    const sql = `SELECT  
+                    CPG_CODIGO, TRA_CODIGO, PRP_NUMEROPEDIDOCLIENTE,
+                    PRP_VALORFRETE, PRP_FRETEPAGO, PRP_TIPOFATURAMENTO,
+                    PRP_TIPOENTREGA, PRP_OBSERVACAONOTA, PRP_TIPOCONFIRMACAO,
+                    PRP_ISOACEITEPEDIDO, PRP_INCLUIPOR, PRP_TRIANGULACAO
+                FROM B2B_PROPOSTA 
+                WHERE CLI_CODIGO=:CLI_CODIGO 
+                AND ORI_CODIGO='20' 
+                ORDER BY PRP_INCLUIDATA DESC
+            `;
+
+        const binds = {
+            CLI_CODIGO: CLI_CODIGO
+        }
+
+        this.logQueryWithParameters(sql, binds);
+
+        const result = await this.oracleDataSource.query(sql, binds as any);
+        return result;
     }
 }

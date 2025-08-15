@@ -30,25 +30,25 @@ export class CheckoutOracleController {
     @Post('proposta')
     @UsePipes(new ValidationPipe({ 
         transform: true, 
-        whitelist: true, 
-        forbidNonWhitelisted: true,
+        whitelist: false, 
+        forbidNonWhitelisted: false,
         validateCustomDecorators: true 
     }))
-    async createPropostaCabecalho(
+    async criarProposta(
         @Body() createCabecalhoPropostaDto: CreateCabecalhoPropostaDto
     ) {
         try {
-            this.logger.log('Criando cabeçalho da proposta');
+            this.logger.log('Criando proposta');
 
             const result = await this.checkoutOracleService.createProposta(createCabecalhoPropostaDto);
             
             return {
                 statusCode: HttpStatus.CREATED,
-                message: 'Cabeçalho da proposta criado com sucesso',
+                message: 'Proposta criado com sucesso',
                 data: result
             };
         } catch (error) {
-            this.logger.error(`Erro ao criar cabeçalho da proposta: ${error.message}`);
+            this.logger.error(`Erro ao criar proposta: ${error.message}`);
             throw new HttpException(
                 {
                     statusCode: HttpStatus.INTERNAL_SERVER_ERROR,

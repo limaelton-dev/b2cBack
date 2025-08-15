@@ -53,28 +53,38 @@ export class CheckoutOracleService {
     }
 
     async createProposta(proposta: CreateCabecalhoPropostaDto & { PRP_CODIGO?: number }) {
-        this.logger.log(`Criando proposta: ${proposta.CLI_CODIGO}`);
+        console.log('Dados recebidos na proposta:', proposta);
+
+        // this.logger.log(`Criando proposta: ${proposta}`);
+
         try {
             //criação de cabeçalho
-            // const proposta.PRP_CODIGO = await this.criarCabecalhoProposta(proposta);
-            //cli_codigo = 39413
-            proposta.PRP_CODIGO = 555405;
-
-            const produtos = [
-                {
-                    PRO_CODIGO: 25238
-                },
-                {
-                    PRO_CODIGO: 25230
-                },
-                {
-                    PRO_CODIGO: 48267 //deve existir na proposta
-                }
-            ];
+            // const prpCodigoGerado = await this.criarCabecalhoPropostaB2B(proposta);
+            // this.logger.log(`Código da proposta gerado: ${prpCodigoGerado}`);
             
-            const resultItens = await this.adicionarProdutosProposta(produtos, proposta.PRP_CODIGO);
+            // // Usar o código gerado ao invés de hardcode
+            // proposta.PRP_CODIGO = prpCodigoGerado;
 
-            return resultItens;
+            // //criação de cabeçalho
+            // const resultCabecalho = await this.criarCabecalhoProposta(proposta);
+            // // proposta.PRP_CODIGO = cabecalho.PRP_CODIGO;
+            // //cli_codigo = 39413
+            // proposta.PRP_CODIGO = 555405;
+            proposta.PRP_CODIGO = 719311;
+            
+            // await this.adicionarProdutosProposta(proposta.PRODUTOS, proposta.PRP_CODIGO);
+
+            const cabecalhoProposta = await this.checkoutOracleRepository.buscarCabecalhoProposta(proposta.CLI_CODIGO);
+            cabecalhoProposta.PRP_CODIGO = proposta.PRP_CODIGO;
+            console.log('cabecalhoProposta', cabecalhoProposta);
+
+            const result = await this.checkoutOracleRepository.confirmarProposta(cabecalhoProposta);
+
+            return {
+                prpCodigo: proposta.PRP_CODIGO,
+                cabecalho: 'Criado com sucesso',
+                itens: result
+            };
         } catch (error) {
             this.logger.error(`Erro ao criar proposta: ${error.message}`, error.stack);
             throw error;
@@ -83,28 +93,82 @@ export class CheckoutOracleService {
 
     async adicionarProdutosProposta(produtos: { PRO_CODIGO: number; IMPOSTOS?: any }[], prpCodigo: number) {
         // await this.verificarDisponibilidadeEstoque(produtos);
-        produtos = await this.calcularTarifas2(produtos);
+        const produtosComImpostos = await this.calcularTarifas2(produtos)
+
+        console.log('produtosComImpostos', produtosComImpostos);
+
         let result = [];
 
-        for (const produto of produtos) {
-            let prp_item = await this.checkoutOracleRepository.verficarSeProdutoExisteNaProposta({ PRO_CODIGO: produto.PRO_CODIGO, PRP_CODIGO: prpCodigo });
+        for (const produto of produtosComImpostos) {
+            // let prp_item = await this.checkoutOracleRepository.verficarSeProdutoExisteNaProposta({ PRO_CODIGO: produto.PRO_CODIGO, PRP_CODIGO: prpCodigo });
             
-            if(prp_item.length > 0) {
-                await this.checkoutOracleRepository.atualizarPropostaItem(produto);
-                continue;
-            }
+            // if(prp_item.length > 0) {
+            //     await this.checkoutOracleRepository.atualizarPropostaItem(produto);
+            //     continue;
+            // }
 
-            await this.checkoutOracleRepository.criarPropostaItem(produto);
+            // Formatar dados do produto para inserção
+            const propostaItem = this.formatarDadosPropostaItem(produto, prpCodigo);
+            console.log('propostaItem-->', propostaItem);
+            
+            try {
+                const resultItem = await this.checkoutOracleRepository.criarPropostaItem(propostaItem);
+                this.logger.log(`Item inserido com sucesso para produto ${produto.PRO_CODIGO}`);
+                result.push(resultItem);
+            } catch (error) {
+                this.logger.error(`Erro ao inserir produto ${produto.PRO_CODIGO}: ${error.message}`);
+                throw error;
+            }
         }
 
         return result;
+    }
+
+    private formatarDadosPropostaItem(produto: any, prpCodigo: number) {
+        const impostos = produto.IMPOSTOS || {};
+        
+        return {
+            // Códigos de identificação
+            PRP_CODIGO: prpCodigo,
+            PRO_CODIGO: produto.PRO_CODIGO,
+            
+            // Dados do item (valores padrão se não fornecidos)
+            PRI_QUANTIDADE: produto.PRI_QUANTIDADE || 1,
+            PRI_UNIDADE: produto.PRI_UNIDADE || 'UN',
+            PRI_DESCRICAO: produto.PRI_DESCRICAO || `Produto ${produto.PRO_CODIGO}`,
+            PRI_DESCRICAOTECNICA: produto.PRI_DESCRICAOTECNICA || '',
+            PRI_REFERENCIA: produto.PRI_REFERENCIA || '',
+            
+            // Valores de produto (usando impostos calculados)
+            VLR_UNITARIO: impostos.VALOR_UNITARIO || produto.VLR_UNITARIO || 0,
+            VLR_UNITARIOMAIOR: impostos.VALOR_UNITARIO || produto.VLR_UNITARIO || 0,
+            VLR_COMIMP: impostos.VALOR_TOTAL || produto.VLR_COMIMP || produto.VLR_UNITARIO || 0,
+            
+            // Impostos - IPI
+            P_IPI: impostos.PERCENTUAL_IPI || 0,
+            VLR_IPI: impostos.VALOR_IPI || 0,
+            
+            // Impostos - ICMS
+            VLR_ICMS: impostos.VALOR_ICMS || 0,
+            BC_ICMS: impostos.VALOR_ICMS_BASE || 0,
+            P_ICMS: impostos.PERCENTUAL_ICMS || 0,
+            
+            // Impostos - ICMS-ST
+            VLR_ICMSST: impostos.VALOR_ICMSST || 0,
+            BC_ICMSST: impostos.VALOR_ICMSST_BASE || 0,
+            
+            // Outros impostos e valores
+            PRI_FCP: impostos.VALOR_FCPST || 0,
+            PRI_VALORTOTALCIMP: impostos.VALOR_TOTAL || 0,
+            PRI_VALOR_UNITARIO_FINAL: impostos.VALOR_UNITARIO || produto.VLR_UNITARIO || 0
+        };
     }
 
     async calcularTarifas(calculateFeesDto: CalculateFeesDto) {
         try {
             this.logger.log(`Calculando tarifas para produto: ${calculateFeesDto.PRO_CODIGO}`);
             
-            const result = await this.checkoutOracleRepository.calculateFees(calculateFeesDto);
+            const result = await this.checkoutOracleRepository.calcularTarifas(calculateFeesDto);
 
             const fees: CalculateFeesResponseDto = {
                 VALOR_TOTAL: result.VLR_PROD,
@@ -128,28 +192,28 @@ export class CheckoutOracleService {
         }
     }
 
-async calcularTarifas2(produtos: { PRO_CODIGO: number; IMPOSTOS?: any }[]) {
-    for (const produto of produtos) {
-        const imposto = await this.calcularTarifas({
-            PRO_CODIGO: produto.PRO_CODIGO,
-            NAT_CODIGO: 456,
-            PRP_FINALIDADE: 5,
-            CLI_CODIGO: 39413,
-            PRI_VALORTOTAL: 100,
-            PRI_QUANTIDADE: 3
-        });
+    async calcularTarifas2(produtos: any) {
+        for (const produto of produtos) {
+            const imposto = await this.calcularTarifas({
+                PRO_CODIGO: produto.PRO_CODIGO,
+                NAT_CODIGO: 456,
+                PRP_FINALIDADE: 5,
+                CLI_CODIGO: 39413,
+                PRI_VALORTOTAL: produto.PRI_VALORTOTAL,
+                PRI_QUANTIDADE: produto.PRI_QUANTIDADE
+            });
 
-        produto.IMPOSTOS = imposto;
+            produto.IMPOSTOS = imposto;
+        }
+
+        this.logger.log(`Calculando tarifas para produtos: ${produtos.map(produto => produto.PRO_CODIGO).join(', ')}`);
+        return produtos;
     }
-
-    this.logger.log(`Calculando tarifas para produtos: ${produtos.map(produto => produto.PRO_CODIGO).join(', ')}`);
-    return produtos;
-}
 
     async calcularNaturezaOperacao(calculateNatCodigoDto: CalculateNatCodigoDto) {
         try {
             this.logger.log(`Buscando natureza de operação: ${calculateNatCodigoDto.PRP_TRIANGULACAO}`);
-            const result = await this.checkoutOracleRepository.calculateOperationNature(calculateNatCodigoDto);
+            const result = await this.checkoutOracleRepository.calcularNaturezaOperacao(calculateNatCodigoDto);
             return result;
         } catch (error) {
             this.logger.error(`Erro ao buscar natureza de operação: ${error.message}`, error.stack);
@@ -157,7 +221,7 @@ async calcularTarifas2(produtos: { PRO_CODIGO: number; IMPOSTOS?: any }[]) {
         }
     }
 
-    async criarCabecalhoProposta(createPropostaDto: CreateCabecalhoPropostaDto) {
+    async criarCabecalhoPropostaB2B(createPropostaDto: CreateCabecalhoPropostaDto): Promise<any> {
         const cabecalhoProposta: CreateCabecalhoPropostaDto = {
             CLI_CODIGO: createPropostaDto.CLI_CODIGO,
             CLI_NOME: createPropostaDto.CLI_NOME,
@@ -169,7 +233,8 @@ async calcularTarifas2(produtos: { PRO_CODIGO: number; IMPOSTOS?: any }[]) {
             CLI_EMAIL: createPropostaDto.CLI_EMAIL,
             NAT_CODIGO: createPropostaDto.NAT_CODIGO
         }
-        return this.checkoutOracleRepository.createHeaderProposal(cabecalhoProposta);
+
+        return this.checkoutOracleRepository.criarCabecalhoPropostaB2B(cabecalhoProposta);
     }
 
     async verificarDisponibilidadeEstoque(produtos: { PRO_CODIGO: number }[]) {
