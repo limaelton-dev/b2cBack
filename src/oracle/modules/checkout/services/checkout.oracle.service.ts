@@ -16,7 +16,7 @@ export class CheckoutOracleService {
         private readonly checkoutOracleRepository: CheckoutOracleRepository,
     ) {}
 
-    async getProposta(prpCodigo: number) {
+    async buscarProposta(prpCodigo: number) {
         try {
             this.logger.log(`Buscando proposta: ${prpCodigo}`);
             const result = await this.checkoutOracleRepository.getProposta(prpCodigo);
@@ -37,11 +37,11 @@ export class CheckoutOracleService {
         }
     }
 
-    async getAllPropostas() {
+    async buscarTodasPropostas() {
         try {
             this.logger.log('Buscando todas as propostas');
             // Método simples para listar propostas (pode ser otimizado com paginação)
-            const query = 'SELECT * FROM PROPOSTA ORDER BY PRP_INCLUIDATA DESC';
+            const query = `SELECT * FROM PROPOSTA WHERE ORI_CODIGO = '20' ORDER BY PRP_INCLUIDATA DESC`;
             const result = await this.checkoutOracleRepository['oracleDataSource'].query(query);
             
             this.logger.log(`Encontradas ${result.length} propostas`);
@@ -52,38 +52,29 @@ export class CheckoutOracleService {
         }
     }
 
-    async createProposta(proposta: CreateCabecalhoPropostaDto & { PRP_CODIGO?: number }) {
+    async criarProposta(proposta: CreateCabecalhoPropostaDto & { PRP_CODIGO?: number }) {
         console.log('Dados recebidos na proposta:', proposta);
 
-        // this.logger.log(`Criando proposta: ${proposta}`);
+        this.logger.log(`Criando proposta: ${proposta}`);
 
         try {
             //criação de cabeçalho
-            // const prpCodigoGerado = await this.criarCabecalhoPropostaB2B(proposta);
-            // this.logger.log(`Código da proposta gerado: ${prpCodigoGerado}`);
+            const prpCodigoGerado = await this.criarCabecalhoPropostaB2B(proposta);
+            this.logger.log(`Código da proposta gerado: ${prpCodigoGerado}`);
             
-            // // Usar o código gerado ao invés de hardcode
-            // proposta.PRP_CODIGO = prpCodigoGerado;
-
-            // //criação de cabeçalho
-            // const resultCabecalho = await this.criarCabecalhoProposta(proposta);
-            // // proposta.PRP_CODIGO = cabecalho.PRP_CODIGO;
-            // //cli_codigo = 39413
-            // proposta.PRP_CODIGO = 555405;
-            proposta.PRP_CODIGO = 719311;
+            proposta.PRP_CODIGO = prpCodigoGerado;
             
-            // await this.adicionarProdutosProposta(proposta.PRODUTOS, proposta.PRP_CODIGO);
+            await this.adicionarProdutosProposta(proposta.PRODUTOS, proposta.PRP_CODIGO);
 
             const cabecalhoProposta = await this.checkoutOracleRepository.buscarCabecalhoProposta(proposta.CLI_CODIGO);
             cabecalhoProposta.PRP_CODIGO = proposta.PRP_CODIGO;
             console.log('cabecalhoProposta', cabecalhoProposta);
 
-            const result = await this.checkoutOracleRepository.confirmarProposta(cabecalhoProposta);
+            await this.checkoutOracleRepository.confirmarProposta(cabecalhoProposta);
 
             return {
                 prpCodigo: proposta.PRP_CODIGO,
-                cabecalho: 'Criado com sucesso',
-                itens: result
+                cabecalho: 'Criado com sucesso'
             };
         } catch (error) {
             this.logger.error(`Erro ao criar proposta: ${error.message}`, error.stack);
@@ -221,7 +212,7 @@ export class CheckoutOracleService {
         }
     }
 
-    async criarCabecalhoPropostaB2B(createPropostaDto: CreateCabecalhoPropostaDto): Promise<any> {
+    async criarCabecalhoPropostaB2B(createPropostaDto: CreateCabecalhoPropostaDto): Promise<number> {
         const cabecalhoProposta: CreateCabecalhoPropostaDto = {
             CLI_CODIGO: createPropostaDto.CLI_CODIGO,
             CLI_NOME: createPropostaDto.CLI_NOME,

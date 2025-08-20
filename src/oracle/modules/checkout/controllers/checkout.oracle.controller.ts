@@ -40,7 +40,7 @@ export class CheckoutOracleController {
         try {
             this.logger.log('Criando proposta');
 
-            const result = await this.checkoutOracleService.createProposta(createCabecalhoPropostaDto);
+            const result = await this.checkoutOracleService.criarProposta(createCabecalhoPropostaDto);
             
             return {
                 statusCode: HttpStatus.CREATED,
@@ -61,10 +61,10 @@ export class CheckoutOracleController {
     }
 
     @Get('propostas')
-    async getAllPropostas() {
+    async buscarTodasPropostas() {
         try {
             this.logger.log('Buscando todas as propostas');
-            const result = await this.checkoutOracleService.getAllPropostas();
+            const result = await this.checkoutOracleService.buscarTodasPropostas();
             
             return {
                 statusCode: HttpStatus.OK,

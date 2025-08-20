@@ -199,102 +199,94 @@ export class CheckoutOracleRepository {
         }
     }
 
-    async criarCabecalhoPropostaB2B(createCabecalhoPropostaDto: CreateCabecalhoPropostaDto): Promise<any> {
-        const sql = `DECLARE
-                            V_PROPOSTA NUMBER;
-                        BEGIN
-                            SELECT SQN_PROPOSTA.NEXTVAL
-                                INTO V_PROPOSTA
-                            FROM DUAL;
-
-                            INSERT INTO
-                            B2B_PROPOSTA (
-                                PRP_CODIGO,
-                                RAT_CODIGO,
-                                CLI_CODIGO,
-                                ORI_CODIGO,
-                                CPG_CODIGO,
-                                PTP_CODIGO,
-                                PRP_SITUACAO,
-                                PRP_NOME,
-                                PRP_ENDERECO,
-                                PRP_BAIRRO,
-                                PRP_CIDADE,
-                                PRP_UF,
-                                PRP_CEP,
-                                PRP_EMAIL,
-                                PRP_VENDEDORINTERNO,
-                                PRP_VENDEDOREXTERNO,
-                                PRP_VENDEDOROPERACIONAL,
-                                PRP_DATAEMISSAO,
-                                PRP_FRETEPAGO,
-                                PRP_FORMACONFIRMA,
-                                PRP_TIPOFATURAMENTO,
-                                PRP_TIPOENTREGA,
-                                PRP_INCLUIDATA,
-                                PRP_INCLUIPOR,
-                                PRP_ALTERADATA,
-                                PRP_ALTERAPOR,
-                                PRP_FINALIDADE,
-                                NAT_CODIGO,
-                                PRP_TRIANGULACAO
-                            ) VALUES (
-                                V_PROPOSTA,
-                                '2', --:RAT_CODIGO2 = Comercial(padrão) - rateio
-                                :CLI_CODIGO,
-                                '20', --:ORI_CODIGO = B2C - origem
-                                '1', --:CPG_CODIGO = 00 (A VISTA) - condição de pagamento
-                                '1', --:PTP_CODIGO = OK-1 LIBERADO P/ FATURAR - tipo de proposta
-                                'PN', --:PRP_SITUACAO = PN - proposta em andamento - Situação da proposta('CA', 'FT', 'OK', 'PE', 'PK', 'PN', 'PR')
-                                :CLI_NOME,
-                                :CLI_ENDERECO,
-                                :CLI_BAIRRO,
-                                :CLI_CIDADE,
-                                :CLI_UF,
-                                :CLI_CEP,
-                                :CLI_EMAIL,
-                                3, -- :PRP_VENDEDORINTERNO = CONTA ADMINISTRATIVA
-                                3, -- :PRP_VENDEDOREXTERNO = CONTA ADMINISTRATIVA
-                                3, -- :PRP_VENDEDOROPERACIONAL = CONTA ADMINISTRATIVA
-                                SYSDATE,
-                                'S', --:PRP_FRETEPAGO = S - Frete pago
-                                'O', --:PRP_FORMACONFIRMA = O - Otimização - Forma de confirmacao da proposta V, F, E ou O verbalmente, por fax, email ou outras.
-                                'F', --:PRP_TIPOFATURAMENTO = F - Fatura - Tipo de faturamento da proposta vale, fatura, a definir V, F, D
-                                'E', --:PRP_TIPOENTREGA = E - Entrega - Tipo de entrega da proposta E ou R entrega ou retira
-                                SYSDATE,
-                                'PORTAL B2C', --:INCLUIPOR - usuário que incluiu a proposta
-                                SYSDATE,
-                                'PORTAL B2C', --:INCLUIPOR - usuário que alterou a proposta
-                                5, --:PRP_FINALIDADE = 5 - Venda - Finalidade da proposta
-                                :NAT_CODIGO,
-                                2 --:PRP_TRIANGULACAO = 2 - Linkmarket
-                            );
-                        END;
-                    `;
-
+    async criarCabecalhoPropostaB2B(
+        createCabecalhoPropostaDto: CreateCabecalhoPropostaDto
+      ): Promise<number> {
+        const sql = `
+          DECLARE
+            V_PROPOSTA NUMBER;
+          BEGIN
+            SELECT SQN_PROPOSTA.NEXTVAL
+            INTO V_PROPOSTA
+            FROM DUAL;
+      
+            INSERT INTO B2B_PROPOSTA (
+              PRP_CODIGO, RAT_CODIGO, CLI_CODIGO, ORI_CODIGO, CPG_CODIGO, 
+              PTP_CODIGO, PRP_SITUACAO, PRP_NOME, PRP_ENDERECO, PRP_BAIRRO, 
+              PRP_CIDADE, PRP_UF, PRP_CEP, PRP_EMAIL, PRP_VENDEDORINTERNO, 
+              PRP_VENDEDOREXTERNO, PRP_VENDEDOROPERACIONAL, PRP_DATAEMISSAO, 
+              PRP_FRETEPAGO, PRP_FORMACONFIRMA, PRP_TIPOFATURAMENTO, 
+              PRP_TIPOENTREGA, PRP_INCLUIDATA, PRP_INCLUIPOR, PRP_ALTERADATA, 
+              PRP_ALTERAPOR, PRP_FINALIDADE, NAT_CODIGO, PRP_TRIANGULACAO
+            ) VALUES (
+              V_PROPOSTA,
+              '2',
+              :CLI_CODIGO,
+              '20',
+              '1',
+              '1',
+              'PN',
+              :CLI_NOME,
+              :CLI_ENDERECO,
+              :CLI_BAIRRO,
+              :CLI_CIDADE,
+              :CLI_UF,
+              :CLI_CEP,
+              :CLI_EMAIL,
+              3,
+              3,
+              3,
+              SYSDATE,
+              'S',
+              'O',
+              'F',
+              'E',
+              SYSDATE,
+              'PORTAL B2C',
+              SYSDATE,
+              'PORTAL B2C',
+              5,
+              :NAT_CODIGO,
+              2
+            );
+      
+            :OUT_PRP_CODIGO := V_PROPOSTA;
+          END;
+        `;
+      
         const binds = {
-            CLI_CODIGO: createCabecalhoPropostaDto.CLI_CODIGO,
-            CLI_NOME: createCabecalhoPropostaDto.CLI_NOME,
-            CLI_ENDERECO: createCabecalhoPropostaDto.CLI_ENDERECO,
-            CLI_BAIRRO: createCabecalhoPropostaDto.CLI_BAIRRO,
-            CLI_CIDADE: createCabecalhoPropostaDto.CLI_CIDADE,
-            CLI_UF: createCabecalhoPropostaDto.CLI_UF,
-            CLI_CEP: createCabecalhoPropostaDto.CLI_CEP,
-            CLI_EMAIL: createCabecalhoPropostaDto.CLI_EMAIL,
-            NAT_CODIGO: createCabecalhoPropostaDto.NAT_CODIGO
-        }
-
+          CLI_CODIGO: createCabecalhoPropostaDto.CLI_CODIGO,
+          CLI_NOME: createCabecalhoPropostaDto.CLI_NOME,
+          CLI_ENDERECO: createCabecalhoPropostaDto.CLI_ENDERECO,
+          CLI_BAIRRO: createCabecalhoPropostaDto.CLI_BAIRRO,
+          CLI_CIDADE: createCabecalhoPropostaDto.CLI_CIDADE,
+          CLI_UF: createCabecalhoPropostaDto.CLI_UF,
+          CLI_CEP: createCabecalhoPropostaDto.CLI_CEP,
+          CLI_EMAIL: createCabecalhoPropostaDto.CLI_EMAIL,
+          NAT_CODIGO: createCabecalhoPropostaDto.NAT_CODIGO,
+          OUT_PRP_CODIGO: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+        };
+      
         try {
-            this.logQueryWithParameters(sql, binds);
-            const result = await this.oracleDataSource.query(sql, binds as any);
-            
-            this.logger.log(`Cabeçalho de proposta criado com sucesso. Código gerado: ${result}`);
-            return result;
+                     // this.logQueryWithParameters(sql, binds);
+           this.logger.log(`Executando criação de cabeçalho para cliente: ${createCabecalhoPropostaDto.CLI_CODIGO}`);
+           const result = await this.oracleDataSource.query(sql, binds as any);
+       
+           // TypeORM Oracle retorna OUT binds diretamente no result
+           const prpCodigo = result.OUT_PRP_CODIGO || result.outBinds?.OUT_PRP_CODIGO;
+           this.logger.log(`Cabeçalho criado com sucesso. PRP_CODIGO: ${prpCodigo}`);
+           
+           if (!prpCodigo) {
+               this.logger.error('Falha ao obter código da proposta gerada. Result:', JSON.stringify(result, null, 2));
+               throw new Error('Falha ao obter código da proposta gerada');
+           }
+           
+           return prpCodigo;
         } catch (error) {
-            this.logger.error(`Erro ao criar cabeçalho de proposta: ${error.message}`);
-            throw new Error(`Erro ao criar cabeçalho de proposta: ${error.message}`);
+          this.logger.error(`Erro ao criar cabeçalho: ${error.message}`);
+          throw new Error(`Erro ao criar cabeçalho: ${error.message}`);
         }
-    }
+      }
 
     async cabecalhoVELHO(proposta: CreateHeaderPropostaDto): Promise<number> {
         const sql = `
