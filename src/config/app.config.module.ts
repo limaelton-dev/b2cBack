@@ -1,13 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { AppConfigService } from './app.config.service';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-  ],
+  imports: [HttpModule],
   providers: [AppConfigService],
   exports: [AppConfigService],
 })

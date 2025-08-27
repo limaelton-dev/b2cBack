@@ -9,17 +9,25 @@ import {
 } from '@nestjs/common';
 import { ProductService } from '../services/product.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { UpdateProductDto } from '../dto/update-product.dto';
-import { PaginationDto } from '../dto/pagination.dto';
-import { Brand } from 'src/modules/category/entities/brand.entity';
+import { ListProductsByCategoryQueryDto } from '../dto/list-products-by-category.query.dto';
+import { ListProductsQueryDto } from '../dto/list-products.query.dto';
 
-@Controller('product')
+
+@Controller('products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Get()
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return this.productService.findAll(paginationDto);
+  async findAll(@Query() query: ListProductsQueryDto) {
+    return this.productService.findAll(query);
+  }
+
+  @Get('category/:categoryId')
+  async findByCategory(
+    @Param('categoryId') categoryId: string, 
+    @Query() query: ListProductsByCategoryQueryDto
+  ) {
+    return this.productService.findByCategory(categoryId, query);
   }
 
   @Get('search')
@@ -39,7 +47,7 @@ export class ProductController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard)
-  async update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
+  async update(@Param('id') id: string, @Body() updateProductDto) {
     return this.productService.update(+id, updateProductDto);
   }
 } 

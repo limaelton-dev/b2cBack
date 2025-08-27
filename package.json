@@ -28,6 +28,7 @@
     "db:reset": "ts-node -r tsconfig-paths/register src/database/script/reset-database.ts"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.2.3",
     "@nestjs/core": "^10.0.0",

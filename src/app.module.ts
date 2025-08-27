@@ -17,6 +17,7 @@ import { OracleModule } from './oracle/oracle.module';
 import { CategoryModule } from './modules/category/category.module';
 import { CheckoutModule } from './modules/checkout/checkout.module';
 import { ShippingModule } from './modules/shipping/shipping.module';
+import { ProductsModule } from './modules/products/products.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { ShippingModule } from './modules/shipping/shipping.module';
       },
     ]),
     CategoryModule,
+    ProductsModule,
   ],
   controllers: [ConnectionController],
 })
