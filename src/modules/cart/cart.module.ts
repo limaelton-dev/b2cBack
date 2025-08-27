@@ -6,7 +6,7 @@ import { CartRepository } from './repositories/cart.repository';
 import { CartItemRepository } from './repositories/cart-item.repository';
 import { Cart } from './entities/cart.entity';
 import { CartItem } from './entities/cart-item.entity';
-import { ProductModule } from '../product/product.module';
+import { ProductV1Module } from '../product-v1/product-v1.module';
 import { DiscountModule } from '../discount/discount.module';
 import { ShippingModule } from '../shipping/shipping.module';
 import { ConfigModule } from '@nestjs/config';
@@ -14,7 +14,7 @@ import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Cart, CartItem]),
-    ProductModule,
+    ProductV1Module,
     DiscountModule,
     ShippingModule,
     ConfigModule,
@@ -23,4 +23,4 @@ import { ConfigModule } from '@nestjs/config';
   providers: [CartService, CartRepository, CartItemRepository],
   exports: [CartService],
 })
-export class CartModule {} 
+export class CartModule {}

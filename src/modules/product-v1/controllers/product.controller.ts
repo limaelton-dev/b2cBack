@@ -27,6 +27,12 @@ export class ProductController {
     return this.productService.search(query);
   }
 
+  @Get('generate-images')
+  @UseGuards(JwtAuthGuard)
+  async generateImagesForAllProducts() {
+    return this.productService.generateImagesForAllProducts();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string | number) {
     if(typeof id === 'number') {
@@ -41,5 +47,10 @@ export class ProductController {
   @UseGuards(JwtAuthGuard)
   async update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
     return this.productService.update(+id, updateProductDto);
+  }
+
+  @Get('fabricator')
+  async getProdutoFabricanteLimit(@Query('limit') limit: number): Promise<Brand[]> {
+    return this.productService.getProdutosFabricanteLimit(limit);
   }
 } 

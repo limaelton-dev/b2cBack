@@ -5,7 +5,7 @@ import { UserModule } from './modules/user/user.module';
 import { AddressModule } from './modules/address/address.module';
 import { PhoneModule } from './modules/phone/phone.module';
 import { CardModule } from './modules/card/card.module';
-import { ProductModule } from './modules/product/product.module';
+import { ProductV1Module } from './modules/product-v1/product-v1.module';
 import { DiscountModule } from './modules/discount/discount.module';
 import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
@@ -28,12 +28,11 @@ import { ShippingModule } from './modules/shipping/shipping.module';
     AddressModule,
     PhoneModule,
     CardModule,
-    ProductModule,
+    ProductV1Module,
     DiscountModule,
     OrderModule,
     PaymentModule,
     AuthModule,
-    OracleModule,
     CheckoutModule,
     ShippingModule,
     RouterModule.register([

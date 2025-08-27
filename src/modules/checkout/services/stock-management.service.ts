@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ProductService } from '../../product/services/product.service';
+import { ProductService } from '../../product-v1/services/product.service';
 import { CartItem } from '../interfaces/checkout.interface';
 import { CheckoutException } from '../interfaces/checkout.interface';
 

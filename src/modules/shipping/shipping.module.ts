@@ -4,7 +4,7 @@ import { ShippingController } from './controllers/shipping.controller';
 import { ShippingService } from './services/shipping.service';
 import { CorreiosProviderService } from './services/providers/correios-provider.service';
 import { SimulationProviderService } from './services/providers/simulation-provider.service';
-import { ProductModule } from '../product/product.module';
+import { ProductV1Module } from '../product-v1/product-v1.module';
 
 /**
  * Módulo para gerenciamento de serviços de frete
@@ -12,7 +12,7 @@ import { ProductModule } from '../product/product.module';
 @Module({
   imports: [
     ConfigModule,
-    ProductModule,
+    ProductV1Module,
   ],
   controllers: [
     ShippingController,

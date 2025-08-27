@@ -14,7 +14,7 @@ import { ShippingService } from '../services/shipping.service';
 import { ShippingRequestDto } from '../dtos/shipping-request.dto';
 import { ShippingCalculationResponseDto } from '../dtos/shipping-calculation-response.dto';
 import { TrackingInfoDto } from '../dtos/tracking-info.dto';
-import { ProductService } from '../../product/services/product.service';
+import { ProductService } from '../../product-v1/services/product.service';
 
 /**
  * Controller para gerenciamento de frete e rastreamento

@@ -5,12 +5,12 @@ import { DiscountProduct } from './entities/discount-product.entity';
 import { DiscountRepository } from './repositories/discount.repository';
 import { DiscountService } from './services/discount.service';
 import { DiscountController } from './controllers/discount.controller';
-import { ProductModule } from '../product/product.module';
+import { ProductV1Module } from '../product-v1/product-v1.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Discount, DiscountProduct]),
-    ProductModule,
+    ProductV1Module,
   ],
   controllers: [DiscountController],
   providers: [DiscountService, DiscountRepository],

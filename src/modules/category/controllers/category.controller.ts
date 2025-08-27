@@ -1,6 +1,6 @@
 import { Controller, Get, Query, Param, ValidationPipe, UsePipes } from '@nestjs/common';
 import { CategoryService } from '../services/category.service';
-import { ProductFilterDto } from 'src/modules/product/dto/product-filter.dto';
+import { ProductFilterDto } from 'src/modules/product-v1/dto/product-filter.dto';
 
 @Controller('category')
 export class CategoryController {

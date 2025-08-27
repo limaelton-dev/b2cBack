@@ -8,9 +8,9 @@ import { Produto } from './entities/produto.entity';
 import { Fabricante } from './entities/fabricante.entity';
 import { CategoriasSyncModule } from '../categorias/categorias.sync.module';
 import { CategoryModule } from 'src/modules/category/category.module';
-import { ProductModule } from 'src/modules/product/product.module';
+import { ProductV1Module } from 'src/modules/product-v1/product-v1.module';
 import { Brand } from 'src/modules/category/entities/brand.entity';
-import { Product } from 'src/modules/product/entities/product.entity';
+import { Product } from 'src/modules/product-v1/entities/product.entity';
 import { Category } from 'src/modules/category/entities/category.entity';
 
 @Module({
@@ -26,7 +26,7 @@ import { Category } from 'src/modules/category/entities/category.entity';
     TypeOrmModule.forFeature([Brand, Product, Category]),
     CategoriasSyncModule,
     CategoryModule,
-    ProductModule,
+    ProductV1Module,
   ],
   controllers: [ProdutoSyncController],
   providers: [ProdutosSyncService, ProdutosSyncRepository],
