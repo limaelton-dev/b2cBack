@@ -34,20 +34,4 @@ export class ProductController {
   async search(@Query('query') query: string) {
     return this.productService.search(query);
   }
-
-  @Get(':id')
-  async findOne(@Param('id') id: string | number) {
-    if(typeof id === 'number') {
-      return this.productService.findOne(+id);
-    }
-    else {
-      return this.productService.find(id);
-    }
-  }
-
-  @Put(':id')
-  @UseGuards(JwtAuthGuard)
-  async update(@Param('id') id: string, @Body() updateProductDto) {
-    return this.productService.update(+id, updateProductDto);
-  }
 } 

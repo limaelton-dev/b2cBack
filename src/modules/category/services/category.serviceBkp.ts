@@ -7,10 +7,9 @@ import { Repository } from 'typeorm';
 import { Brand } from '../entities/brand.entity';
 import { ProductFilterDto } from 'src/modules/product-v1/dto/product-filter.dto';
 import { ProductService } from 'src/modules/product-v1/services/product.service';
-import { CategoryAnymarketRepository } from '../repositories/category-anymarket.repository';
 
 @Injectable()
-export class CategoryService {
+export class CategoryServiceBkp {
   constructor(
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
@@ -19,13 +18,7 @@ export class CategoryService {
     private readonly brandRepository: Repository<Brand>,
 
     private readonly productService: ProductService,
-
-    private readonly categoryAnyMktRepositiry: CategoryAnymarketRepository
   ) {}
-
-  async findAll() {
-    return await this.categoryAnyMktRepositiry.findAll();
-  }
 
   async getAllBrands() {
     const brands = await this.brandRepository.find({

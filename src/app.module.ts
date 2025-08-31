@@ -18,6 +18,7 @@ import { CategoryModule } from './modules/category/category.module';
 import { CheckoutModule } from './modules/checkout/checkout.module';
 import { ShippingModule } from './modules/shipping/shipping.module';
 import { ProductsModule } from './modules/products/products.module';
+import { BrandModule } from './modules/brands/brand.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { ProductsModule } from './modules/products/products.module';
       },
     ]),
     CategoryModule,
+    BrandModule,
     ProductsModule,
   ],
   controllers: [ConnectionController],

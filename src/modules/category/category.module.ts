@@ -7,14 +7,17 @@ import { Brand } from './entities/brand.entity';
 import { CategoryRepository } from './repositories/category.repository';
 import { BrandRepository } from './repositories/brand.repository';
 import { ProductV1Module } from '../product-v1/product-v1.module';
+import { CategoryAnymarketRepository } from './repositories/category-anymarket.repository';
+import { AnyMarketModule } from '../../shared/anymarket';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Category, Brand]),
     ProductV1Module,
+    AnyMarketModule
   ],
   controllers: [CategoryController],
-  providers: [CategoryService, CategoryRepository, BrandRepository],
-  exports: [CategoryService, CategoryRepository, BrandRepository],
+  providers: [CategoryService, CategoryRepository, BrandRepository, CategoryAnymarketRepository],
+  exports: [CategoryService ],
 })
 export class CategoryModule {}

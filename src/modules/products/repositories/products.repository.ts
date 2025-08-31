@@ -3,6 +3,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
 import { AnyMarketProduct } from '../interfaces/anymarket-product.interface';
+import { ConfigService } from '@nestjs/config';
 
 type FetchProductsParams = { offset: number; limit: number; categoryId?: string };
 
@@ -11,7 +12,10 @@ export class ProductsRepository {
   private readonly baseUrl = process.env.ANYMARKET_BASE_URL?.replace(/\/$/, '') || 'https://api.anymarket.com.br';
   private readonly apiPrefix = '/v2';
 
-  constructor(private readonly http: HttpService) {}
+  constructor(
+    private readonly http: HttpService,
+    private readonly config: ConfigService
+  ) {}
 
   async fetchProducts(params: FetchProductsParams): Promise<{
     items: AnyMarketProduct[];
@@ -37,8 +41,8 @@ export class ProductsRepository {
         this.http.get(`${url}?${searchParams.toString()}`, {
           headers: {
             'Content-Type': 'application/json',
-            gumgaToken: process.env.ANYMARKET_GUMGA_TOKEN as string,
-            platform: process.env.ANYMARKET_PLATFORM as string,
+            gumgaToken: this.config.get<string>('ANYMARKET_GUMGA_TOKEN')!,
+            platform: this.config.get<string>('ANYMARKET_PLATFORM')!
           },
         }),
       );
