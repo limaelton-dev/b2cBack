@@ -1,23 +1,14 @@
-import { HttpService } from '@nestjs/axios';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
-import { AxiosError } from 'axios';
 import { AnyMarketProduct } from '../interfaces/anymarket-product.interface';
-import { ConfigService } from '@nestjs/config';
+import { AnyMarketApiProvider } from '../../../shared/anymarket';
 
 type FetchProductsParams = { offset: number; limit: number; categoryId?: string };
 
 @Injectable()
 export class ProductsRepository {
-  private readonly baseUrl = process.env.ANYMARKET_BASE_URL?.replace(/\/$/, '') || 'https://api.anymarket.com.br';
-  private readonly apiPrefix = '/v2';
+  constructor(private readonly anyMarketApi: AnyMarketApiProvider) {}
 
-  constructor(
-    private readonly http: HttpService,
-    private readonly config: ConfigService
-  ) {}
-
-  async fetchProducts(params: FetchProductsParams): Promise<{
+  async findAll(params: FetchProductsParams): Promise<{
     items: AnyMarketProduct[];
     offset: number;
     limit: number;
@@ -26,7 +17,6 @@ export class ProductsRepository {
     raw: any;
   }> {
     try {
-      const url = `${this.baseUrl}${this.apiPrefix}/products`;
       const searchParams = new URLSearchParams();
       searchParams.set('offset', String(params.offset));
       searchParams.set('limit', String(params.limit));
@@ -37,15 +27,8 @@ export class ProductsRepository {
         searchParams.set('categoryId', params.categoryId);
       }
 
-      const { data } = await firstValueFrom(
-        this.http.get(`${url}?${searchParams.toString()}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            gumgaToken: this.config.get<string>('ANYMARKET_GUMGA_TOKEN')!,
-            platform: this.config.get<string>('ANYMARKET_PLATFORM')!
-          },
-        }),
-      );
+      const endpoint = `/products?${searchParams.toString()}`;
+      const data = await this.anyMarketApi.get(endpoint);
 
       // Estruturas podem variar (alguns retornam content/links; outros retornam items + paginação).
       const items: AnyMarketProduct[] =
@@ -66,11 +49,10 @@ export class ProductsRepository {
         total,
         raw: data,
       };
-    } catch (err) {
-      const e = err as AxiosError;
+    } catch (error) {
       throw new InternalServerErrorException({
         message: 'Failed to fetch products from AnyMarket',
-        details: e.response?.data ?? e.message,
+        details: error.message || 'Erro desconhecido',
       });
     }
   }

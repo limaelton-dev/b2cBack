@@ -7,8 +7,8 @@ export class BrandService {
     private readonly brandRepository: BrandRepository
   ) {}
 
-  async listBrands(): Promise<[]> {
-    const brands = await this.brandRepository.fetchAll();
+  async findAll(): Promise<[]> {
+    const brands = await this.brandRepository.findAll();
     return brands;
   }
 }

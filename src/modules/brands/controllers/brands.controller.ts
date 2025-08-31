@@ -8,6 +8,6 @@ export class BrandController {
   ) {}
     @Get()
     async findAll() {
-      return this.brandService.listBrands();
+      return this.brandService.findAll();
     }
 }

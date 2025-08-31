@@ -18,12 +18,12 @@ export class ProductService {
 
   async findAll(query: ListProductsQueryDto) {
     const { offset, limit } = this.toOffsetLimit(query.page, query.size, query.offset, query.limit);
-    return this.productsRepository.fetchProducts({offset, limit})
+    return this.productsRepository.findAll({offset, limit})
   }
 
   async findByCategory(categoryId: string, query: ListProductsByCategoryQueryDto) {
     const { offset, limit } = this.toOffsetLimit(query.page, query.size, query.offset, query.limit);
-    return this.productsRepository.fetchProducts({ offset, limit, categoryId });
+    return this.productsRepository.findAll({ offset, limit, categoryId });
   }
 
   async find(ids: string | number) {
