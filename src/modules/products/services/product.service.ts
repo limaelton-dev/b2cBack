@@ -1,74 +1,101 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProductsRepository } from '../repositories/products.repository';
-import { ListProductsQueryDto } from '../dto/list-products.query.dto';
 import { ListProductsByCategoryQueryDto } from '../dto/list-products-by-category.query.dto';
+import { ProductFiltersDto } from '../dto/product-filters.dto';
+import { normalizePagination } from '../../../shared/anymarket/util/util';
+import { ProductFilterService, Product, ProductFilterInput } from './product-filter.service';
 
-interface OffsetLimit {
-  offset: number;
-  limit: number;
-}
+
 
 @Injectable()
 export class ProductService {
   constructor(
     private readonly productsRepository: ProductsRepository,
+    private readonly productFilterService: ProductFilterService,
   ) {}
 
+  /**
+   * Busca produtos com filtro obrigatório isProductActive = true
+   * Sempre aplica filtros via stream para garantir que apenas produtos ativos sejam retornados
+   */
+  async findAll(filters: ProductFiltersDto) {
+    const { offset, limit } = normalizePagination({ 
+      page: filters.page, 
+      size: filters.size, 
+      rawOffset: filters.offset, 
+      rawLimit: filters.limit,
+    });
 
+    // Sempre aplicar filtros para garantir isProductActive = true
+    const filterInput: ProductFilterInput = {
+      term: filters.term,
+      categoryIds: filters.categoryIds,
+      brandIds: filters.brandIds,
+    };
 
-  async findAll(query: ListProductsQueryDto) {
-    const { offset, limit } = this.toOffsetLimit(query.page, query.size, query.offset, query.limit);
-    return this.productsRepository.findAll({offset, limit})
+    // Usar stream para processar todas as páginas e aplicar filtros
+    const stream = this.productsRepository.findAllStream();
+    
+    return this.productFilterService.takeSliceFromStream(
+      stream,
+      filterInput,
+      offset,
+      limit,
+      true // computeTotalMatched para paginação correta
+    );
   }
 
-  async findByCategory(categoryId: string, query: ListProductsByCategoryQueryDto) {
-    const { offset, limit } = this.toOffsetLimit(query.page, query.size, query.offset, query.limit);
+  /**
+   * Busca produtos com filtros aplicados (termo, categorias, marcas)
+   * Redireciona para findAll que já aplica todos os filtros incluindo isProductActive = true
+   */
+  async findByFilters(filters: ProductFiltersDto) {
+    // findAll agora sempre aplica filtros, incluindo isProductActive = true
+    return this.findAll(filters);
+  }
+
+  /**
+   * Busca produtos por categoria (mantendo compatibilidade)
+   */
+  async findByCategory(categoryId: string, filters: ListProductsByCategoryQueryDto) {
+    const { offset, limit } = normalizePagination({ 
+      page: filters.page, 
+      size: filters.size, 
+      rawOffset: filters.offset, 
+      rawLimit: filters.limit,
+    });
     return this.productsRepository.findAll({ offset, limit, categoryId });
   }
 
-  async find(ids: string | number) {
+  /**
+   * Busca um produto específico por ID
+   */
+  async findOne(id: number) {
+    const product = await this.productsRepository.findOne(id);
+    if (!product) {
+      throw new NotFoundException(`Produto com ID ${id} não encontrado`);
+    }
+    return product;
   }
 
-  async findOne(id: number){
-  }
-
+  /**
+   * Busca produtos por múltiplos IDs
+   */
   async findByIds(ids: number[]) {
-  }
-
-  async search(query: string) {
-  }
-
-  async update(id: number, updateProductDto) {
-  }
-
-  async getProdutosFabricanteLimit(limit: number) {
-  }
-
-  async remove(id: number): Promise<void> {
-
-  }
-
-  private toOffsetLimit(
-    page?: number,
-    size?: number,
-    rawOffset?: number,
-    rawLimit?: number,
-  ): OffsetLimit {
-    if(typeof page === 'number' && typeof size === 'number') {
-      return {
-        offset: rawOffset ?? 0, limit: rawLimit ?? 50 }
+    if (!ids || ids.length === 0) {
+      return [];
     }
-    if(typeof page === 'number' && typeof size === 'number') {
-      const safePage = Math.max(page, 0);
-      const safeSize = Math.min(Math.max(size, 1), 200);
-      return {
-        offset: safePage * safeSize,
-        limit: safeSize
-      }
-    }
-    return {
-      offset: rawOffset ?? 0,
-      limit: rawLimit ?? 50
-    }
+    return this.productsRepository.findByIds(ids);
+  }
+
+  /**
+   * Busca por termo (compatibilidade - redireciona para findByFilters)
+   */
+  async search(term: string, paginationFilters?: Partial<ProductFiltersDto>) {
+    const filters: ProductFiltersDto = {
+      ...paginationFilters,
+      term,
+    };
+    return this.findByFilters(filters);
   }
 }

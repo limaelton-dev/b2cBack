@@ -40,6 +40,11 @@ export class AnyMarketApiProvider {
       const url = this.AnyMarketConfig.getFullUrl(endpoint);
       const headers = this.AnyMarketConfig.getHeaders();
 
+      // LOG DA REQUEST
+      // this.logger.log(`🚀 REQUEST GET: ${url}`);
+      // this.logger.debug(`📋 Headers: ${JSON.stringify(headers, null, 2)}`);
+
+      const startTime = Date.now();
       const { data } = await firstValueFrom(
         this.http.get<T>(url, { headers }).pipe(
           catchError((error) => {
@@ -47,6 +52,11 @@ export class AnyMarketApiProvider {
           })
         )
       );
+      // const duration = Date.now() - startTime;
+
+      // LOG DA RESPONSE
+      // this.logger.log(`✅ RESPONSE GET: ${url} (${duration}ms)`);
+      // this.logger.debug(`📦 Response Data: ${JSON.stringify(data, null, 2)}`);
 
       return data;
     } catch (error) {
@@ -59,6 +69,12 @@ export class AnyMarketApiProvider {
       const url = this.AnyMarketConfig.getFullUrl(endpoint);
       const headers = this.AnyMarketConfig.getHeaders();
 
+      // LOG DA REQUEST
+      // this.logger.log(`🚀 REQUEST POST: ${url}`);
+      // this.logger.debug(`📋 Headers: ${JSON.stringify(headers, null, 2)}`);
+      // this.logger.debug(`📤 Body: ${JSON.stringify(body, null, 2)}`);
+
+      const startTime = Date.now();
       const { data } = await firstValueFrom(
         this.http.post<T>(url, body, { headers }).pipe(
           catchError((error) => {
@@ -67,6 +83,11 @@ export class AnyMarketApiProvider {
           })
         )
       );
+      const duration = Date.now() - startTime;
+
+      // LOG DA RESPONSE
+      // this.logger.log(`✅ RESPONSE POST: ${url} (${duration}ms)`);
+      // this.logger.debug(`📦 Response Data: ${JSON.stringify(data, null, 2)}`);
 
       return data;
     } catch (error) {
@@ -107,6 +128,34 @@ export class AnyMarketApiProvider {
           })
         )
       );
+
+      return data;
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  async getByUrl<T = any>(url: string): Promise<T> {
+    try {
+      const headers = this.AnyMarketConfig.getHeaders();
+
+      // LOG DA REQUEST
+      // this.logger.log(`🚀 REQUEST GET (Full URL): ${url}`);
+      // this.logger.debug(`📋 Headers: ${JSON.stringify(headers, null, 2)}`);
+
+      const startTime = Date.now();
+      const { data } = await firstValueFrom(
+        this.http.get<T>(url, { headers }).pipe(
+          catchError((error) => {
+            this.handleError(error);
+          })
+        )
+      );
+      const duration = Date.now() - startTime;
+
+      // LOG DA RESPONSE
+      // this.logger.log(`✅ RESPONSE GET (Full URL): ${url} (${duration}ms)`);
+      // this.logger.debug(`📦 Response Data: ${JSON.stringify(data, null, 2)}`);
 
       return data;
     } catch (error) {

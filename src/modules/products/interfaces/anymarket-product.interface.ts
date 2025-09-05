@@ -8,5 +8,5 @@ export interface AnyMarketProduct {
     salePrice?: number;
     brand?: { id?: number | string; name?: string };
     categories?: Array<{ id: number | string; name?: string; fullPath?: string }>;
-    // adicione campos conforme sua conta/de/retorno
+    isProductActive?: boolean;
   }
