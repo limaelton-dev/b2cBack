@@ -47,10 +47,28 @@ export interface PaginatedSlice<T> {
     offset: number;
     limit: number;
     totalMatched?: number;
+    currentPage?: number;
+    lastPage?: number;
 }
 
 @Injectable()
 export class ProductFilterService {
+    /**
+     * Calcula a página atual baseada no offset e limit (baseado em 1)
+     */
+    private calculateCurrentPage(offset: number, limit: number): number {
+        if (limit <= 0) return 1;
+        return Math.floor(offset / limit) + 1;
+    }
+
+    /**
+     * Calcula o total de páginas baseado no total de itens e limit
+     */
+    private calculateTotalPages(totalItems: number, limit: number): number {
+        if (limit <= 0 || totalItems <= 0) return 0;
+        return Math.ceil(totalItems / limit);
+    }
+
     /**
      * Normaliza texto para busca "humana": minúsculo + sem acentos.
     */
@@ -111,15 +129,15 @@ export class ProductFilterService {
                     return haystack.some((word) => word.includes(term));
                 })();
 
-            // const okCategory = !hasCategory
-            //     ? true
-            //     : categorySet.has(String(p.category?.id));
+            const okCategory = !hasCategory
+                ? true
+                : categorySet.has(String(p.category?.id));
 
-            // const okBrand = !hasBrand
-            //     ? true
-            //     : brandSet.has(String(p.brand?.id));
+            const okBrand = !hasBrand
+                ? true
+                : brandSet.has(String(p.brand?.id));
 
-            return okTerm;
+            return okTerm && okCategory && okBrand;
         };
     }
 
@@ -173,11 +191,18 @@ export class ProductFilterService {
             if(!computeTotalMatched && result.length >= desiredLimit) break;
         }
 
+        const currentPage = this.calculateCurrentPage(desiredOffset, desiredLimit);
+        const lastPage = computeTotalMatched && matchedCount > 0 
+            ? this.calculateTotalPages(matchedCount, desiredLimit)
+            : undefined;
+
         return {
             items: result,
             offset: desiredOffset,
             limit: desiredLimit,
             totalMatched: computeTotalMatched ? matchedCount : undefined,
+            currentPage,
+            lastPage,
         };
     }
 }

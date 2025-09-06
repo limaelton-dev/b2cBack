@@ -14,4 +14,14 @@ export class CategoryAnymarketRepository {
       throw error;
     }
   }
+
+  async findRootCategories() {
+    try {
+      const data = await this.anyMarketApi.get("/categories");
+      return data;
+    } catch (error) {
+      console.error("Erro ao buscar menu de categorias:", error);
+      throw error;
+    }
+  }
 }

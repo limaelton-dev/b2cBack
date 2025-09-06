@@ -56,15 +56,19 @@ export class ProductService {
 
   /**
    * Busca produtos por categoria (mantendo compatibilidade)
+   * Aplica filtro isProductActive = true automaticamente
    */
   async findByCategory(categoryId: string, filters: ListProductsByCategoryQueryDto) {
-    const { offset, limit } = normalizePagination({ 
-      page: filters.page, 
-      size: filters.size, 
-      rawOffset: filters.offset, 
-      rawLimit: filters.limit,
-    });
-    return this.productsRepository.findAll({ offset, limit, categoryId });
+    // Usar o sistema de filtros para garantir isProductActive = true
+    const productFilters: ProductFiltersDto = {
+      page: filters.page,
+      size: filters.size,
+      offset: filters.offset,
+      limit: filters.limit,
+      categoryIds: [categoryId], // Converter categoryId para array
+    };
+    
+    return this.findAll(productFilters);
   }
 
   /**

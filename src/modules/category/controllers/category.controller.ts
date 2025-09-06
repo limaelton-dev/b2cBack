@@ -7,6 +7,12 @@ export class CategoryController {
   constructor(
     private readonly categoryService: CategoryService
   ) {}
+  
+    @Get()
+    async findRootCategories() {
+      return this.categoryService.findRootCategories();
+    }
+
     @Get('menu')
     async findAll() {
       return this.categoryService.findAll();

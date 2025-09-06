@@ -24,7 +24,53 @@ export class CategoryService {
   ) {}
 
   async findAll() {
-    return await this.categoryAnyMktRepositiry.findAll();
+    const categories = await this.categoryAnyMktRepositiry.findAll();
+    return this.filterCategoriesWithProducts(categories);
+  }
+
+  /**
+   * Filtra categorias recursivamente, mantendo apenas aquelas que têm produtos
+   * Verifica primeiro os filhos mais profundos da cadeia
+   */
+  private filterCategoriesWithProducts(categories: any[]): any[] {
+    return categories
+      .map(category => this.filterCategoryRecursively(category))
+      .filter(category => category !== null);
+  }
+
+  /**
+   * Filtra uma categoria recursivamente
+   * Retorna null se a categoria não deve ser incluída
+   */
+  private filterCategoryRecursively(category: any): any | null {
+    // Se a categoria tem filhos, processa os filhos primeiro
+    if (category.children && category.children.length > 0) {
+      const filteredChildren = category.children
+        .map((child: any) => this.filterCategoryRecursively(child))
+        .filter((child: any) => child !== null);
+
+      // Se após filtrar os filhos, não sobrou nenhum filho E a categoria não tem produtos próprios
+      if (filteredChildren.length === 0 && (!category.totalProducts || category.totalProducts === 0)) {
+        return null; // Remove esta categoria
+      }
+
+      // Retorna a categoria com os filhos filtrados
+      return {
+        ...category,
+        children: filteredChildren
+      };
+    }
+
+    // Se é uma categoria folha (sem filhos), só mantém se tiver produtos
+    if (!category.totalProducts || category.totalProducts === 0) {
+      return null;
+    }
+
+    return category;
+  }
+
+  async findRootCategories() {
+    return await this.categoryAnyMktRepositiry.findRootCategories()
   }
 
   async getAllBrands() {
