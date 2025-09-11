@@ -7,7 +7,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 export class ConnectionController {
   constructor(
     @InjectDataSource('default') private readonly postgres: DataSource,
-    @InjectDataSource('oracle') private readonly oracle: DataSource,
+    // @InjectDataSource('oracle') private readonly oracle: DataSource,
   ) {}
 
   @Get()
@@ -16,14 +16,17 @@ export class ConnectionController {
       ? 'Postgres conectado ✅'
       : 'Postgres falhou ❌';
 
-    let oracleStatus = 'Oracle não testado';
-    try {
-      const conn = await this.oracle.createQueryRunner().connect();
-      await conn.release();
-      oracleStatus = 'Oracle conectado ✅';
-    } catch (error) {
-      oracleStatus = `Oracle falhou ❌: ${error.message}`;
-    }
+    // Oracle temporariamente desabilitado
+    const oracleStatus = 'Oracle desabilitado temporariamente 🔒';
+    
+    // let oracleStatus = 'Oracle não testado';
+    // try {
+    //   const conn = await this.oracle.createQueryRunner().connect();
+    //   await conn.release();
+    //   oracleStatus = 'Oracle conectado ✅';
+    // } catch (error) {
+    //   oracleStatus = `Oracle falhou ❌: ${error.message}`;
+    // }
 
     return { pgStatus, oracleStatus };
   }

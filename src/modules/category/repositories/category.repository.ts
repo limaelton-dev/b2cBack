@@ -2,8 +2,9 @@ import { Injectable } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { Category } from "../entities/category.entity";
 import { InjectRepository } from "@nestjs/typeorm";
-import { generateCategorySlug  } from "src/common/helpers/category.util";
+// import { generateCategorySlug  } from "src/common/helpers/category.util";
 import { Brand } from "../entities/brand.entity";
+import { generateSlugFromPath } from "src/common/helpers/category.util";
 
 @Injectable()
 export class CategoryRepository {
@@ -21,7 +22,7 @@ export class CategoryRepository {
         sourceTable: string;
         sourceColumn: string;
     }): Promise<Category> {
-        const slug = generateCategorySlug(data.name, data.level, data.oracleId);
+        const slug = generateSlugFromPath(data.name);
 
         const existing = await this.categoryRepository.findOne({
             where: {

@@ -13,7 +13,7 @@ export class CategoryController {
       return this.categoryService.findRootCategories();
     }
 
-    @Get('menu')
+    @Get('tree')
     async findAll() {
       return this.categoryService.findAll();
     }

@@ -13,7 +13,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { ConnectionController } from './test/connection/connection.controller';
-import { OracleModule } from './oracle/oracle.module';
+// import { OracleModule } from './oracle/oracle.module';
 import { CategoryModule } from './modules/category/category.module';
 import { CheckoutModule } from './modules/checkout/checkout.module';
 import { ShippingModule } from './modules/shipping/shipping.module';

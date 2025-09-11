@@ -3,7 +3,7 @@ import { ProdutosSyncRepository } from '../repositories/produtos.sync.repository
 import { BrandRepository } from 'src/modules/category/repositories/brand.repository';
 import { CategoryRepository } from 'src/modules/category/repositories/category.repository';
 import { ProductRepository } from 'src/modules/product-v1/repositories/product.repository';
-import { normalizeFabCodigo } from 'src/common/helpers/category.util';
+// import { normalizeFabCodigo } from 'src/common/helpers/category.util';
 import { generateSlug } from 'src/common/helpers/category.util';
 import { generateUniqueProductSlug } from 'src/common/helpers/product.util';
 
@@ -21,7 +21,8 @@ export class ProdutosSyncService {
     const rawData = await this.produtoOracleRepository.getProdutosToSync(limit, offset);
 
     for (const item of rawData) {
-      const normalizedFabCodigo = normalizeFabCodigo(item.FAB_CODIGO);
+      // const normalizedFabCodigo = normalizeFabCodigo(item.FAB_CODIGO);
+      const normalizedFabCodigo = item.FAB_CODIGO
 
       const brandId = await this.brandRepository.getId({
         oracleId: normalizedFabCodigo

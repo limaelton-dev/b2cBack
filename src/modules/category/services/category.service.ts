@@ -8,6 +8,7 @@ import { Brand } from '../entities/brand.entity';
 import { ProductFilterDto } from 'src/modules/product-v1/dto/product-filter.dto';
 import { ProductService } from 'src/modules/product-v1/services/product.service';
 import { CategoryAnymarketRepository } from '../repositories/category-anymarket.repository';
+import { generateSlugFromPath } from '../../../common/helpers/category.util';
 
 @Injectable()
 export class CategoryService {
@@ -25,7 +26,8 @@ export class CategoryService {
 
   async findAll() {
     const categories = await this.categoryAnyMktRepositiry.findAll();
-    return this.filterCategoriesWithProducts(categories);
+    const filteredCategories = this.filterCategoriesWithProducts(categories);
+    return this.addSlugsToCategories(filteredCategories);
   }
 
   /**
@@ -67,6 +69,32 @@ export class CategoryService {
     }
 
     return category;
+  }
+
+  /**
+   * Adiciona slugs às categorias recursivamente baseado no path
+   */
+  private addSlugsToCategories(categories: any[]): any[] {
+    return categories.map(category => this.addSlugToCategoryRecursively(category));
+  }
+
+  /**
+   * Adiciona slug a uma categoria e seus filhos recursivamente
+   */
+  private addSlugToCategoryRecursively(category: any): any {
+    const categoryWithSlug = {
+      ...category,
+      slug: generateSlugFromPath(category.path)
+    };
+
+    // Se a categoria tem filhos, adiciona slug recursivamente
+    if (category.children && category.children.length > 0) {
+      categoryWithSlug.children = category.children.map((child: any) => 
+        this.addSlugToCategoryRecursively(child)
+      );
+    }
+
+    return categoryWithSlug;
   }
 
   async findRootCategories() {

@@ -9,22 +9,12 @@ export function generateSlug(text: string): string {
     return normalizedText;
 }
 
-export function generateCategorySlug(
-    name: string,
-    level: number,
-    oracleId: number
-  ): string {
-    return `${generateSlug(name)}-${level}-${oracleId}`;
-  }
-
-// Slug para a marca
-export function generateBrandSlug(brandName: string): string {
-    return generateSlug(brandName);
-}
-
-export function normalizeFabCodigo(originalFabCodigo: number): number {
-  if ([290, 423].includes(originalFabCodigo)) return 197; // HP
-  if ([344].includes(originalFabCodigo)) return 136; // PLUSCABLE
-  if ([230, 419].includes(originalFabCodigo)) return 36; // C3TECH
-  return originalFabCodigo;
+/**
+ * Gera slug baseado no path da categoria do AnyMarket
+ * Converte "Acessórios/Mouse Pad/Gamer" em "acessorios-mouse-pad-gamer"
+ */
+export function generateSlugFromPath(path: string): string {
+    if (!path) return '';
+    
+    return generateSlug(path.replace(/\//g, '-'));
 }

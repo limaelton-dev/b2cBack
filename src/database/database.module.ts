@@ -20,18 +20,18 @@ import { AppConfigModule } from '../config/app.config.module';
         };
       },
     }),
-    TypeOrmModule.forRootAsync({
-      name: 'oracle',
-      imports: [ConfigModule, AppConfigModule],
-      inject: [ConfigService, AppConfigService],
-      useFactory: async (configService: ConfigService, appConfigService: AppConfigService) => {
-        const dbConfig = appConfigService.getOracleDatabaseConfig();
-        const options = getOracleDataSourceOptions(dbConfig);
-        return {
-          ...options
-        };
-      },
-    }),
+    // TypeOrmModule.forRootAsync({
+    //   name: 'oracle',
+    //   imports: [ConfigModule, AppConfigModule],
+    //   inject: [ConfigService, AppConfigService],
+    //   useFactory: async (configService: ConfigService, appConfigService: AppConfigService) => {
+    //     const dbConfig = appConfigService.getOracleDatabaseConfig();
+    //     const options = getOracleDataSourceOptions(dbConfig);
+    //     return {
+    //       ...options
+    //     };
+    //   },
+    // }),
   ],
 })
 export class DatabaseModule {} 

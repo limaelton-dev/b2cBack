@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CategoriasSyncRepository } from '../repositories/categorias.sync.repository';
 import { BrandRepository } from 'src/modules/category/repositories/brand.repository';
 import { CategoryRepository } from 'src/modules/category/repositories/category.repository';
-import { normalizeFabCodigo } from 'src/common/helpers/category.util';
+// import { normalizeFabCodigo } from 'src/common/helpers/category.util';
 
 @Injectable()
 export class CategoriasSyncService {
@@ -21,7 +21,8 @@ export class CategoriasSyncService {
         const processedCategoryKeys = new Set<string>();
 
         for(const item of rawData) {
-            const normalizedFabCodigo = normalizeFabCodigo(item.FAB_CODIGO);
+            // const normalizedFabCodigo = normalizeFabCodigo(item.FAB_CODIGO);
+            const normalizedFabCodigo = item.FAB_CODIGO;
 
             const brand = await this.brandRepository.upsert({
                 oracleId: normalizedFabCodigo,
