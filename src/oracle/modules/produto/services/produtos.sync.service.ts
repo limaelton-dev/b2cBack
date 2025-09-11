@@ -61,11 +61,7 @@ export class ProdutosSyncService {
       const length = item.PRO_COMPRIMENTO_PRO || item.PRO_COMPRIMENTO_EMB;
       const weight = item.PRO_PESO_PRO || item.PRO_PESO_EMB;
 
-      const slug = await generateUniqueProductSlug(
-        item.PRO_URL_AMIGAVEL || item.PRO_DESCRICAO,
-        item.PRO_CODIGO,
-        this.productRepository.getRepository()
-      );
+      const slug =  '';//await generateUniqueProductSlug(
 
       const productData = {
         oracleId: item.PRO_CODIGO,
@@ -92,9 +88,8 @@ export class ProdutosSyncService {
         categoryLevel2: { id: categoryLevel2Id },
         categoryLevel3: { id: categoryLevel3Id }
       };
-
       this.logger.log(`Product Data: ${JSON.stringify(productData)}`);
-      await this.productRepository.upsert(productData);
+      await this.productRepository.upsert({...productData, slug: slug || ''});
     }
   }
 

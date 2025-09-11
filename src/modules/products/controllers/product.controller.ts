@@ -25,24 +25,6 @@ export class ProductController {
   }
 
   /**
-   * POST /products/filters - Lista produtos com filtros aplicados
-   * Body: { term?, categoryIds?, brandIds?, page?, size?, offset?, limit? }
-   */
-  @Post('filters')
-  async findByFilters(@Body() filters: ProductFiltersDto) {
-    return this.productService.findByFilters(filters);
-  }
-
-  /**
-   * GET /products/filters - Lista produtos com filtros via query params
-   * Query params: term, categoryIds (comma-separated), brandIds (comma-separated), page, size, offset, limit
-   */
-  @Get('filters')
-  async findByFiltersQuery(@Query() filters: ProductFiltersDto) {
-    return this.productService.findByFilters(filters);
-  }
-
-  /**
    * GET /products/:id - Busca produto específico por ID
    */
   @Get(':id')
@@ -80,5 +62,10 @@ export class ProductController {
     @Query() query: ListProductsByCategoryQueryDto
   ) {
     return this.productService.findByCategory(categoryId, query);
+  }
+
+  @Get('slug/:slug')
+  async findBySlug(@Param('slug') slug: string) {
+    return this.productService.findBySlug(slug);
   }
 } 

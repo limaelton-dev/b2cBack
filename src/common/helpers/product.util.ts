@@ -1,45 +1,22 @@
-import { Repository } from 'typeorm';
-import { generateSlug } from './category.util';
-
-/**
- * Gera um slug único para produto, adicionando um sufixo numérico se necessário
- * @param name Nome do produto
- * @param oracleId ID do produto no Oracle
- * @param repository Repositório de produtos para verificar existência do slug
- * @returns Slug único
- */
-export async function generateUniqueProductSlug(
-  name: string,
-  oracleId: number,
-  repository: Repository<any>
-): Promise<string> {
-  // Gera o slug base
-  const baseSlug = generateSlug(name);
-  
-  // Verifica se o slug já existe
-  const existingProduct = await repository.findOne({
-    where: { slug: baseSlug }
-  });
-  
-  // Se não existir, retorna o slug base
-  if (!existingProduct) {
-    return baseSlug;
+export function normalizeToSlug(text: string): string {
+    return text
+      .normalize("NFD")                  // remove acentos
+      .replace(/[\u0300-\u036f]/g, "")   // remove marcas diacríticas
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")      // remove caracteres inválidos
+      .replace(/\s+/g, "-")              // espaços -> hífen
+      .replace(/-+/g, "-");              // hífens duplicados
   }
 
-  // Se existir, adiciona o oracleId como sufixo para torná-lo único
-  const uniqueSlug = `${baseSlug}-${oracleId}`;
-  
-  // Verifica se mesmo o slug com o oracleId já existe
-  const existingWithSuffix = await repository.findOne({
-    where: { slug: uniqueSlug }
-  });
-  
-  // Se não existir, retorna o slug com sufixo
-  if (!existingWithSuffix) {
-    return uniqueSlug;
-  }
-  
-  // Se mesmo com o oracleId ainda houver conflito, adiciona um timestamp
-  const timestamp = new Date().getTime();
-  return `${baseSlug}-${oracleId}-${timestamp}`;
+export function generateUniqueProductSlug(baseText: string, existingSlugs: Set<string>): string {
+    const baseSlug = normalizeToSlug(baseText);    
+    let counter = 1;
+
+    let newSlug = `${baseSlug}-${counter}`;
+
+    while(existingSlugs.has(newSlug)) {
+        newSlug = `${normalizeToSlug(baseSlug)}-${counter++}`;
+    }
+    return newSlug;
 } 

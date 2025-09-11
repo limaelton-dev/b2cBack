@@ -4,6 +4,7 @@ import { ListProductsByCategoryQueryDto } from '../dto/list-products-by-category
 import { ProductFiltersDto } from '../dto/product-filters.dto';
 import { normalizePagination } from '../../../shared/anymarket/util/util';
 import { ProductFilterService, Product, ProductFilterInput } from './product-filter.service';
+import { ProductSlugService } from './product-slug.service';
 
 
 
@@ -12,6 +13,7 @@ export class ProductService {
   constructor(
     private readonly productsRepository: ProductsRepository,
     private readonly productFilterService: ProductFilterService,
+    private readonly productsSlugService: ProductSlugService,
   ) {}
 
   /**
@@ -36,22 +38,20 @@ export class ProductService {
     // Usar stream para processar todas as páginas e aplicar filtros
     const stream = this.productsRepository.findAllStream();
     
-    return this.productFilterService.takeSliceFromStream(
+    const filtredProducts = await this.productFilterService.takeSliceFromStream(
       stream,
       filterInput,
       offset,
       limit,
       true // computeTotalMatched para paginação correta
     );
-  }
 
-  /**
-   * Busca produtos com filtros aplicados (termo, categorias, marcas)
-   * Redireciona para findAll que já aplica todos os filtros incluindo isProductActive = true
-   */
-  async findByFilters(filters: ProductFiltersDto) {
-    // findAll agora sempre aplica filtros, incluindo isProductActive = true
-    return this.findAll(filters);
+    const productsWithSlug = this.productsSlugService.addSlugsToProducts(filtredProducts.items);
+
+    return {
+      ...filtredProducts,
+      items: productsWithSlug
+    };
   }
 
   /**
@@ -100,6 +100,22 @@ export class ProductService {
       ...paginationFilters,
       term,
     };
-    return this.findByFilters(filters);
+    return this.findAll(filters);
+  }
+
+  async findBySlug(slug: string) {
+    const stream = this.productsRepository.findAllStream();
+    
+    for await (const product of stream) {
+      if (!product.isProductActive) continue;
+      
+      const productWithSlug = this.productsSlugService.addSlugsToProducts([product])[0];
+      
+      if (productWithSlug.slug === slug) {
+        return productWithSlug;
+      }
+    }
+    
+    throw new NotFoundException(`Produto com slug '${slug}' não encontrado`);
   }
 }
