@@ -1,13 +1,13 @@
-import { Controller, Get, Query, Param, ValidationPipe, UsePipes } from '@nestjs/common';
-import { BrandService } from '../services/brand.service';
+import { Controller, Get } from '@nestjs/common';
+import { BrandsService } from '../services/brands.service';
 
 @Controller('brands')
-export class BrandController {
+export class BrandsController {
   constructor(
-    private readonly brandService: BrandService
+    private readonly brandsService: BrandsService
   ) {}
     @Get()
     async findAll() {
-      return this.brandService.findAll();
+      return this.brandsService.findAll();
     }
 }

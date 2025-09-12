@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
-import { ProductService } from './services/products.service';
-import { ProductController } from './controllers/product.controller';
+import { ProductsService } from './services/products.service';
+import { ProductsController } from './controllers/products.controller';
 import { ProductsRepository } from './repositories/products.repository';
-import { ProductFilterService } from './services/products-filters.service';
+import { ProductsFilterService } from './services/products-filters.service';
 import { AnyMarketModule } from '../../shared/anymarket';
 import { ProductSlugService } from './services/products-slugs.service';
 
 @Module({
   imports: [AnyMarketModule],
-  controllers: [ProductController],
-  providers: [ProductService, ProductsRepository, ProductFilterService, ProductSlugService],
-  exports: [ProductService],
+  controllers: [ProductsController],
+  providers: [ProductsService, ProductsRepository, ProductsFilterService, ProductSlugService],
+  exports: [ProductsService],
 })
 export class ProductsModule {} 

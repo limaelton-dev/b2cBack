@@ -1,17 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProductsRepository } from '../repositories/products.repository';
-import { ProductFiltersDto } from '../dto/product-filters.dto';
+import { ProductsFiltersDto } from '../dto/products-filters.dto';
 import { normalizePagination } from '../../../shared/anymarket/util/util';
-import { ProductFilterService, Product, ProductFilterInput } from './products-filters.service';
+import { ProductsFilterService, Product, ProductsFiltersInput } from './products-filters.service';
 import { ProductSlugService } from './products-slugs.service';
 
 
 
 @Injectable()
-export class ProductService {
+export class ProductsService {
   constructor(
     private readonly productsRepository: ProductsRepository,
-    private readonly productFilterService: ProductFilterService,
+    private readonly productsFilterService: ProductsFilterService,
     private readonly productsSlugService: ProductSlugService,
   ) {}
 
@@ -19,7 +19,7 @@ export class ProductService {
    * Busca produtos com filtro obrigatório isProductActive = true
    * Sempre aplica filtros via stream para garantir que apenas produtos ativos sejam retornados
    */
-  async findAll(filters: ProductFiltersDto) {
+  async findAll(filters: ProductsFiltersDto) {
     const { offset, limit } = normalizePagination({ 
       page: filters.page, 
       size: filters.size, 
@@ -28,16 +28,16 @@ export class ProductService {
     });
 
     // Sempre aplicar filtros para garantir isProductActive = true
-    const filterInput: ProductFilterInput = {
+    const filterInput: ProductsFiltersInput = {
       term: filters.term,
-      categoryIds: filters.categoryIds,
-      brandIds: filters.brandIds,
+      categories: filters.categories,
+      brands: filters.brands,
     };
 
     // Usar stream para processar todas as páginas e aplicar filtros
     const stream = this.productsRepository.findAllStream();
     
-    const filtredProducts = await this.productFilterService.takeSliceFromStream(
+    const filtredProducts = await this.productsFilterService.takeSliceFromStream(
       stream,
       filterInput,
       offset,

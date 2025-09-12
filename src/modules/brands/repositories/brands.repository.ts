@@ -2,10 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { AnyMarketApiProvider } from "src/shared/anymarket";
 
 @Injectable()
-export class BrandRepository {
-    private readonly baseUrl = process.env.ANYMARKET_BASE_URL?.replace(/\/$/, '') || 'https://api.anymarket.com.br';
-    private readonly apiPrefix = '/v2';
-
+export class BrandsRepository {
     constructor( private readonly anyMarketApi: AnyMarketApiProvider ) {}
 
     async findAll(): Promise<any> {

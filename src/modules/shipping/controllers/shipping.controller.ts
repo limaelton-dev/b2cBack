@@ -14,7 +14,7 @@ import { ShippingService } from '../services/shipping.service';
 import { ShippingRequestDto } from '../dtos/shipping-request.dto';
 import { ShippingCalculationResponseDto } from '../dtos/shipping-calculation-response.dto';
 import { TrackingInfoDto } from '../dtos/tracking-info.dto';
-import { ProductService } from '../../products/services/products.service';
+import { ProductsService } from '../../products/services/products.service';
 
 /**
  * Controller para gerenciamento de frete e rastreamento
@@ -25,7 +25,7 @@ export class ShippingController {
 
   constructor(
     private readonly shippingService: ShippingService,
-    private readonly productService: ProductService
+    private readonly productService: ProductsService
   ) {}
 
   /**

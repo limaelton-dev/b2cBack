@@ -1,7 +1,7 @@
 import { Transform, Type } from "class-transformer";
 import { IsArray, IsInt, IsOptional, IsString, Min } from "class-validator";
 
-export class ProductFiltersDto {
+export class ProductsFiltersDto {
     @IsOptional()
     @Type(() => Number)
     @IsInt()
@@ -38,7 +38,7 @@ export class ProductFiltersDto {
         if (Array.isArray(value)) return value;
         return String(value).split(',').map(id => id.trim()).filter(Boolean);
     })
-    categoryIds?: (string | number)[];
+    categories?: (string | number)[];
 
     @IsOptional()
     @IsArray()
@@ -47,5 +47,5 @@ export class ProductFiltersDto {
         if (Array.isArray(value)) return value;
         return String(value).split(',').map(id => id.trim()).filter(Boolean);
     })
-    brandIds?: (string | number)[];
+    brands?: (string | number)[];
 }

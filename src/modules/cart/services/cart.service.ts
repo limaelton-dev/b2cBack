@@ -3,7 +3,7 @@ import { Cart } from '../entities/cart.entity';
 import { CartItem } from '../entities/cart-item.entity';
 import { AddToCartDto } from '../dto/add-to-cart.dto';
 import { UpdateCartItemDto } from '../dto/update-cart-item.dto';
-import { ProductService } from '../../products/services/products.service';
+import { ProductsService } from '../../products/services/products.service';
 import { DiscountService } from '../../discount/services/discount.service';
 import { CartRepository } from '../repositories/cart.repository';
 import { CartItemRepository } from '../repositories/cart-item.repository';
@@ -20,7 +20,7 @@ export class CartService {
   constructor(
     private cartRepository: CartRepository,
     private cartItemRepository: CartItemRepository,
-    private productService: ProductService,
+    private productsService: ProductsService,
     private discountService: DiscountService,
     private shippingService: ShippingService,
     private configService: ConfigService,
@@ -119,7 +119,7 @@ export class CartService {
 
   async addToCart(profileId: number, addToCartDto: AddToCartDto): Promise<CartResponseDto> {
     const cart = await this.getCart(profileId);
-    const product = await this.productService.findOne(addToCartDto.productId);
+    const product = await this.productsService.findOne(addToCartDto.productId);
 
     if (!product) {
       throw new NotFoundException('Produto não encontrado');
@@ -355,7 +355,7 @@ export class CartService {
 
     // Obter os dados dos produtos no carrinho
     const productIds = cart.items.map(item => item.productId);
-    const products = await this.productService.findByIds(productIds);
+    const products = await this.productsService.findByIds(productIds);
 
     // Transformar itens do carrinho em itens para cálculo de frete
     const shippingItems: ShippingItemDto[] = [];
@@ -481,7 +481,7 @@ export class CartService {
 
     // Obter os dados dos produtos no carrinho
     const productIds = cart.items.map(item => item.productId);
-    const products = await this.productService.findByIds(productIds);
+    const products = await this.productsService.findByIds(productIds);
 
     // Transformar itens do carrinho em itens para cálculo de frete
     const shippingItems: ShippingItemDto[] = [];

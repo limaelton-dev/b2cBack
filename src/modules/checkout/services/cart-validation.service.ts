@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CartValidation, CartItem, CheckoutException } from '../interfaces/checkout.interface';
 import { CartService } from '../../cart/services/cart.service';
-import { ProductService } from '../../products/services/products.service';
+import { ProductsService } from '../../products/services/products.service';
 import { CartValidationResponseDto } from '../dto/cart-validation-response.dto';
 import { ShippingService } from '../../shipping/services/shipping.service';
 import { ShippingItemDto } from '../../shipping/dtos/shipping-item.dto';
@@ -13,7 +13,7 @@ export class CartValidationService {
 
   constructor(
     private readonly cartService: CartService,
-    private readonly productService: ProductService,
+    private readonly productService: ProductsService,
     private readonly shippingService: ShippingService,
     private readonly configService: ConfigService,
   ) {}

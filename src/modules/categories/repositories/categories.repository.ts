@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { AnyMarketApiProvider } from "../../../shared/anymarket";
 
 @Injectable()
-export class CategoryAnymarketRepository {
+export class CategoriesRepository {
   constructor(private readonly anyMarketApi: AnyMarketApiProvider) {}
 
   async findAll() {

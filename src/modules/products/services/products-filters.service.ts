@@ -36,10 +36,10 @@ export interface Product {
     // ...campos extras não impactam os filtros
 }
 
-export interface ProductFilterInput {
+export interface ProductsFiltersInput {
     term?: string;
-    categoryIds?: Array<string | number>;
-    brandIds?: Array<string | number>;
+    categories?: Array<string | number>;
+    brands?: Array<string | number>;
 }
 
 export interface PaginatedSlice<T> {
@@ -52,7 +52,7 @@ export interface PaginatedSlice<T> {
 }
 
 @Injectable()
-export class ProductFilterService {
+export class ProductsFilterService {
     /**
      * Calcula a página atual baseada no offset e limit (baseado em 1)
      */
@@ -86,14 +86,14 @@ export class ProductFilterService {
      * - categoryIds: compara com category.id
      * - brandIds: compara com brand.id
     */
-    buildPredicate(filters: ProductFilterInput): (p: Product) => boolean {
+    buildPredicate(filters: ProductsFiltersInput): (p: Product) => boolean {
         const term = this.normalizeText(filters.term);
         const hasTerm = term.length > 0;
 
-        const categorySet = new Set((filters.categoryIds ?? []).map(String));
+        const categorySet = new Set((filters.categories ?? []).map(String));
         const hasCategory = categorySet.size > 0;
 
-        const brandSet = new Set((filters.brandIds ?? []).map(String));
+        const brandSet = new Set((filters.brands ?? []).map(String));
         const hasBrand = brandSet.size > 0;
 
         return (p: Product) => {
@@ -141,7 +141,7 @@ export class ProductFilterService {
         };
     }
 
-    filterArray(products: Product[], filters: ProductFilterInput): Product[] {
+    filterArray(products: Product[], filters: ProductsFiltersInput): Product[] {
         const predicate = this.buildPredicate(filters);
         return products.filter(predicate);
     }
@@ -152,7 +152,7 @@ export class ProductFilterService {
     */
     async *filterStream(
         stream: AsyncIterable<Product>,
-        filters: ProductFilterInput,
+        filters: ProductsFiltersInput,
     ): AsyncIterableIterator<Product> {
         const predicate = this.buildPredicate(filters);
         for await (const item of stream) {
@@ -166,16 +166,15 @@ export class ProductFilterService {
      * do resultado FINAL (já filtrado).
      *
      * Isso resolve o problema clássico: AnyMarket só pagina por offset/limit,
-     * mas você precisa paginar o RESULTADO filtrado do seu servidor.
+     * Precisamos paginar o RESULTADO filtrado do servidor.
     */
     async takeSliceFromStream(
             stream: AsyncIterable<Product>,
-            filters: ProductFilterInput,
+            filters: ProductsFiltersInput,
             desiredOffset: number,
             desiredLimit: number,
             computeTotalMatched: boolean = false, // se true, varre tudo para retornar totalMatched
     ): Promise<PaginatedSlice<Product>> {
-        //entender como é processado o predicate...
         const predicate = this.buildPredicate(filters);
 
         const result: Product[] = [];

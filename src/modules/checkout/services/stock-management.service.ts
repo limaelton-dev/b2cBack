@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { ProductService } from '../../products/services/products.service';
+import { ProductsService } from '../../products/services/products.service';
 import { CartItem } from '../interfaces/checkout.interface';
 import { CheckoutException } from '../interfaces/checkout.interface';
 
 @Injectable()
 export class StockManagementService {
   constructor(
-    private readonly productService: ProductService,
+    private readonly productService: ProductsService,
   ) {}
 
   async updateStock(items: CartItem[]): Promise<void> {

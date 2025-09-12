@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { OrderRepository } from '../repositories/order.repository';
-import { ProductService } from '../../products/services/products.service';
+import { ProductsService } from '../../products/services/products.service';
 import { CreateOrderDto } from '../dto/create-order.dto';
 import { UpdateOrderDto } from '../dto/update-order.dto';
 import { Order } from '../entities/order.entity';
@@ -12,7 +12,7 @@ import { OrderStatus } from '../../../common/enums/order-status.enum';
 export class OrderService {
   constructor(
     private readonly orderRepository: OrderRepository,
-    private readonly productService: ProductService,
+    private readonly productService: ProductsService,
     private readonly profileService: ProfileService,
     private readonly discountService: DiscountService,
   ) {}

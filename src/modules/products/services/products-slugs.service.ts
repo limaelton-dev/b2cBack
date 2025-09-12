@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { generateUniqueProductSlug } from "src/common/helpers/product.util";
+import { generateUniqueProductSlug } from "src/common/helpers/products.util";
 
 export interface Product {
     title?: string;
