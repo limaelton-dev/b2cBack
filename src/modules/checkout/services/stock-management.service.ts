@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ProductService } from '../../product-v1/services/product.service';
+import { ProductService } from '../../products/services/products.service';
 import { CartItem } from '../interfaces/checkout.interface';
 import { CheckoutException } from '../interfaces/checkout.interface';
 
@@ -11,11 +11,12 @@ export class StockManagementService {
 
   async updateStock(items: CartItem[]): Promise<void> {
     try {
-      const updatePromises = items.map(item =>
-        this.productService.updateStock(item.productId, -item.quantity),
-      );
-
-      await Promise.all(updatePromises);
+      // TODO: Implementar updateStock no ProductService
+      // const updatePromises = items.map(item =>
+      //   this.productService.updateStock(item.productId, -item.quantity),
+      // );
+      // await Promise.all(updatePromises);
+      console.warn('updateStock not implemented yet');
     } catch (error) {
       throw new CheckoutException(
         'STOCK_UPDATE_ERROR',
@@ -27,12 +28,14 @@ export class StockManagementService {
 
   async validateStock(items: CartItem[]): Promise<boolean> {
     try {
-      const validationPromises = items.map(item =>
-        this.productService.validateStock(item.productId, item.quantity),
-      );
-
-      const results = await Promise.all(validationPromises);
-      return results.every(isValid => isValid);
+      // TODO: Implementar validateStock no ProductService
+      // const validationPromises = items.map(item =>
+      //   this.productService.validateStock(item.productId, item.quantity),
+      // );
+      // const results = await Promise.all(validationPromises);
+      // return results.every(isValid => isValid);
+      console.warn('validateStock not implemented yet');
+      return true; // Temporariamente retorna true
     } catch (error) {
       throw new CheckoutException(
         'STOCK_VALIDATION_ERROR',

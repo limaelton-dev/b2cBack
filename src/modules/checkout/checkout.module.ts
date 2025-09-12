@@ -5,7 +5,7 @@ import { CieloService } from './services/cielo.service';
 import { PaymentModule } from '../payment/payment.module';
 import { CartModule } from '../cart/cart.module';
 import { OrderModule } from '../order/order.module';
-import { ProductV1Module } from '../product-v1/product-v1.module';
+import { ProductsModule } from '../products/products.module';
 import { PaymentGatewayFactory } from './factories/payment-gateway.factory';
 import { PaymentGatewayStrategy } from './strategies/payment-gateway.strategy';
 import { CartValidationService } from './services/cart-validation.service';
@@ -24,7 +24,7 @@ import { ShippingModule } from '../shipping/shipping.module';
     PaymentModule,
     CartModule,
     OrderModule,
-    ProductV1Module,
+    ProductsModule,
     AppConfigModule,
     ProfileModule,
     ShippingModule,

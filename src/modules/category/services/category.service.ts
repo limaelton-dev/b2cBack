@@ -5,8 +5,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from '../entities/category.entity';
 import { Repository } from 'typeorm';
 import { Brand } from '../entities/brand.entity';
-import { ProductFilterDto } from 'src/modules/product-v1/dto/product-filter.dto';
-import { ProductService } from 'src/modules/product-v1/services/product.service';
+import { ProductFiltersDto } from 'src/modules/products/dto/product-filters.dto';
+import { ProductService } from 'src/modules/products/services/products.service';
 import { CategoryAnymarketRepository } from '../repositories/category-anymarket.repository';
 import { generateSlugFromPath } from '../../../common/helpers/category.util';
 
@@ -142,8 +142,8 @@ export class CategoryService {
     return await query.getMany();
   }
 
-  async filterProducts(filterDto: ProductFilterDto) {
-    return this.productService.findByFilters(filterDto);
+  async filterProducts(filterDto: ProductFiltersDto) {
+    return this.productService.findAll(filterDto);
   }
 
   async getCategoryMenu(): Promise<any[]> {

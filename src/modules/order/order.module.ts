@@ -6,14 +6,14 @@ import { OrderRepository } from './repositories/order.repository';
 import { OrderService } from './services/order.service';
 import { OrderController } from './controllers/order.controller';
 import { ProfileModule } from '../profile/profile.module';
-import { ProductV1Module } from '../product-v1/product-v1.module';
+import { ProductsModule } from '../products/products.module';
 import { DiscountModule } from '../discount/discount.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order, OrderItem]),
     ProfileModule,
-    ProductV1Module,
+    ProductsModule,
     DiscountModule,
   ],
   controllers: [OrderController],

@@ -97,11 +97,6 @@ export class ProductsRepository {
     return this.pager.fetchAllItems<any>(start, maxItems);
   }
 
-  async findPage2(offset: number, limit: number) {
-    const endpoint = `${this.default.endpoint}?offset=${offset}&limit=${limit}&active=true`;
-    return this.anyMarketApi.get<any>(endpoint);
-  }
-
   async findOne(id: number): Promise<any> {
     try {
       const endpoint = `${this.default.endpoint}/${id}`;

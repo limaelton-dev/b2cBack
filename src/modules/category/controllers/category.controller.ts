@@ -1,6 +1,6 @@
 import { Controller, Get, Query, Param, ValidationPipe, UsePipes } from '@nestjs/common';
 import { CategoryService } from '../services/category.service';
-import { ProductFilterDto } from 'src/modules/product-v1/dto/product-filter.dto';
+import { ProductFiltersDto } from 'src/modules/products/dto/product-filters.dto';
 
 @Controller('category')
 export class CategoryController {
@@ -35,7 +35,7 @@ export class CategoryController {
 
     // @Get('filter')
     // @UsePipes(new ValidationPipe({ transform: true }))
-    // async filterProducts(@Query() filterDto: ProductFilterDto) {
+    // async filterProducts(@Query() filterDto: ProductFiltersDto) {
     //   return this.categoryService.filterProducts(filterDto);
     // }
 
@@ -43,7 +43,7 @@ export class CategoryController {
     // @UsePipes(new ValidationPipe({ transform: true }))
     // async searchProducts(
     //   @Query('query') query: string,
-    //   @Query() filterDto: ProductFilterDto
+    //   @Query() filterDto: ProductFiltersDto
     // ) {
     //   if (query) {
     //     // Se a consulta pode ser uma marca, categoria ou nome de produto,
@@ -59,7 +59,7 @@ export class CategoryController {
     // @UsePipes(new ValidationPipe({ transform: true }))
     // async getProductsByCategory(
     //   @Param('slug') slug: string,
-    //   @Query() filterDto: ProductFilterDto
+    //   @Query() filterDto: ProductFiltersDto
     // ) {
     //   filterDto.categorySlug = slug;
     //   return this.categoryService.filterProducts(filterDto);
@@ -69,7 +69,7 @@ export class CategoryController {
     // @UsePipes(new ValidationPipe({ transform: true }))
     // async getProductsByBrand(
     //   @Param('slug') slug: string,
-    //   @Query() filterDto: ProductFilterDto
+    //   @Query() filterDto: ProductFiltersDto
     // ) {
     //   filterDto.brandSlug = slug;
     //   return this.categoryService.filterProducts(filterDto);
@@ -79,7 +79,7 @@ export class CategoryController {
     // @UsePipes(new ValidationPipe({ transform: true }))
     // async getProductsByCategoryName(
     //   @Param('name') name: string,
-    //   @Query() filterDto: ProductFilterDto
+    //   @Query() filterDto: ProductFiltersDto
     // ) {
     //   filterDto.categoryName = name;
     //   return this.categoryService.filterProducts(filterDto);
@@ -89,7 +89,7 @@ export class CategoryController {
     // @UsePipes(new ValidationPipe({ transform: true }))
     // async getProductsByBrandName(
     //   @Param('name') name: string,
-    //   @Query() filterDto: ProductFilterDto
+    //   @Query() filterDto: ProductFiltersDto
     // ) {
     //   filterDto.brandName = name;
     //   return this.categoryService.filterProducts(filterDto);

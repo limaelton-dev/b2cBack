@@ -3,7 +3,7 @@ import { Cart } from '../entities/cart.entity';
 import { CartItem } from '../entities/cart-item.entity';
 import { AddToCartDto } from '../dto/add-to-cart.dto';
 import { UpdateCartItemDto } from '../dto/update-cart-item.dto';
-import { ProductService } from '../../product-v1/services/product.service';
+import { ProductService } from '../../products/services/products.service';
 import { DiscountService } from '../../discount/services/discount.service';
 import { CartRepository } from '../repositories/cart.repository';
 import { CartItemRepository } from '../repositories/cart-item.repository';

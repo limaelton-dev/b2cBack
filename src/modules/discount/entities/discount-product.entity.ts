@@ -1,6 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Discount } from './discount.entity';
-import { Product } from '../../product-v1/entities/product.entity';
 
 @Entity('discount_product')
 export class DiscountProduct {
@@ -17,7 +16,4 @@ export class DiscountProduct {
   @JoinColumn({ name: 'discount_id' })
   discount: Discount;
 
-  @ManyToOne(() => Product, (product) => product.discountProduct)
-  @JoinColumn({ name: 'product_id' })
-  product: Product;
 } 

@@ -1,10 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProductsRepository } from '../repositories/products.repository';
-import { ListProductsByCategoryQueryDto } from '../dto/list-products-by-category.query.dto';
 import { ProductFiltersDto } from '../dto/product-filters.dto';
 import { normalizePagination } from '../../../shared/anymarket/util/util';
-import { ProductFilterService, Product, ProductFilterInput } from './product-filter.service';
-import { ProductSlugService } from './product-slug.service';
+import { ProductFilterService, Product, ProductFilterInput } from './products-filters.service';
+import { ProductSlugService } from './products-slugs.service';
 
 
 
@@ -55,23 +54,6 @@ export class ProductService {
   }
 
   /**
-   * Busca produtos por categoria (mantendo compatibilidade)
-   * Aplica filtro isProductActive = true automaticamente
-   */
-  async findByCategory(categoryId: string, filters: ListProductsByCategoryQueryDto) {
-    // Usar o sistema de filtros para garantir isProductActive = true
-    const productFilters: ProductFiltersDto = {
-      page: filters.page,
-      size: filters.size,
-      offset: filters.offset,
-      limit: filters.limit,
-      categoryIds: [categoryId], // Converter categoryId para array
-    };
-    
-    return this.findAll(productFilters);
-  }
-
-  /**
    * Busca um produto específico por ID
    */
   async findOne(id: number) {
@@ -90,17 +72,6 @@ export class ProductService {
       return [];
     }
     return this.productsRepository.findByIds(ids);
-  }
-
-  /**
-   * Busca por termo (compatibilidade - redireciona para findByFilters)
-   */
-  async search(term: string, paginationFilters?: Partial<ProductFiltersDto>) {
-    const filters: ProductFiltersDto = {
-      ...paginationFilters,
-      term,
-    };
-    return this.findAll(filters);
   }
 
   async findBySlug(slug: string) {

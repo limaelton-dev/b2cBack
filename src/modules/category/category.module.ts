@@ -6,14 +6,14 @@ import { Category } from './entities/category.entity';
 import { Brand } from './entities/brand.entity';
 import { CategoryRepository } from './repositories/category.repository';
 import { BrandRepository } from './repositories/brand.repository';
-import { ProductV1Module } from '../product-v1/product-v1.module';
+import { ProductsModule } from '../products/products.module';
 import { CategoryAnymarketRepository } from './repositories/category-anymarket.repository';
 import { AnyMarketModule } from '../../shared/anymarket';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Category, Brand]),
-    ProductV1Module,
+    ProductsModule,
     AnyMarketModule
   ],
   controllers: [CategoryController],
