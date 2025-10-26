@@ -6,8 +6,7 @@ import { AddressModule } from './modules/address/address.module';
 import { PhoneModule } from './modules/phone/phone.module';
 import { CardModule } from './modules/card/card.module';
 import { ProductsModule } from './modules/products/products.module';
-import { DiscountModule } from './modules/discount/discount.module';
-import { OrderModule } from './modules/order/order.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DatabaseModule } from './database/database.module';
@@ -29,8 +28,7 @@ import { BrandsModule } from './modules/brands/brands.module';
     PhoneModule,
     CardModule,
     ProductsModule,
-    DiscountModule,
-    OrderModule,
+    OrdersModule,
     PaymentModule,
     AuthModule,
     CheckoutModule,

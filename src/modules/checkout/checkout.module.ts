@@ -1,16 +1,12 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { CheckoutController } from './controllers/checkout.controller';
-import { CheckoutService } from './services/checkout.service';
+import { CheckoutsService } from './services/checkouts.service';
 import { CieloService } from './services/cielo.service';
 import { PaymentModule } from '../payment/payment.module';
-import { CartModule } from '../cart/cart.module';
-import { OrderModule } from '../order/order.module';
+import { CartModule } from '../carts/cart.module';
 import { ProductsModule } from '../products/products.module';
 import { PaymentGatewayFactory } from './factories/payment-gateway.factory';
 import { PaymentGatewayStrategy } from './strategies/payment-gateway.strategy';
-import { CartValidationService } from './services/cart-validation.service';
-import { OrderCreationService } from './services/order-creation.service';
-import { StockManagementService } from './services/stock-management.service';
 import { AppConfigModule } from '../../config/app.config.module';
 import { CieloGateway } from './payment-gateway/cielo/cielo.gateway';
 import { ProfileModule } from '../profile/profile.module';
@@ -23,7 +19,6 @@ import { ShippingModule } from '../shipping/shipping.module';
   imports: [
     PaymentModule,
     CartModule,
-    OrderModule,
     ProductsModule,
     AppConfigModule,
     ProfileModule,
@@ -33,7 +28,7 @@ import { ShippingModule } from '../shipping/shipping.module';
   providers: [
     {
       provide: 'CheckoutService',
-      useClass: CheckoutService
+      useClass: CheckoutsService
     },
     {
       provide: 'CieloService',
@@ -41,18 +36,15 @@ import { ShippingModule } from '../shipping/shipping.module';
     },
     PaymentGatewayFactory,
     PaymentGatewayStrategy,
-    CartValidationService,
-    OrderCreationService,
-    StockManagementService,
     CieloGateway,
     CieloConfigProvider,
-    CheckoutService,
+    CheckoutsService,
     CieloService
   ],
   exports: [
     'CheckoutService',
     'CieloService',
-    CheckoutService,
+    CheckoutsService,
     CieloService
   ],
 })

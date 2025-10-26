@@ -1,5 +1,4 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Order } from '../../order/entities/order.entity';
 import { PaymentMethod } from './payment-method.entity';
 
 @Entity('payment')
@@ -48,10 +47,6 @@ export class Payment {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
-
-  @ManyToOne(() => Order, (order) => order.payment)
-  @JoinColumn({ name: 'order_id' })
-  order: Order;
 
   @ManyToOne(() => PaymentMethod, (paymentMethod) => paymentMethod.payment)
   @JoinColumn({ name: 'payment_method_id' })

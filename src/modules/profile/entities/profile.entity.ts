@@ -4,7 +4,6 @@ import { ProfileType } from '../../../common/enums/profile-type.enum';
 import { Address } from '../../address/entities/address.entity';
 import { Phone } from '../../phone/entities/phone.entity';
 import { Card } from '../../card/entities/card.entity';
-import { Order } from '../../order/entities/order.entity';
 import { ProfilePf } from './profile-pf.entity';
 import { ProfilePj } from './profile-pj.entity';
 
@@ -42,8 +41,8 @@ export class Profile {
   @OneToMany(() => Card, (card) => card.profile)
   card: Card[];
 
-  @OneToMany(() => Order, (order) => order.profile)
-  order: Order[];
+  // @OneToMany(() => Order, (order) => order.profile)
+  // order: Order[];
 
   @OneToOne(() => ProfilePf, (profilePf) => profilePf.profile)
   profilePf: ProfilePf;

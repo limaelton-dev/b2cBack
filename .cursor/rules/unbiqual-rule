@@ -1,0 +1,226 @@
+Contexto: Catálogo de Produtos (Catalog)
+
+Propósito: descrever os equipamentos e acessórios disponíveis para venda.
+
+Entidades / Agregados
+
+Produto (Product) – representa um item comercial (ex.: “Mouse Gamer Logitech G203”).
+
+SKU / Variante (Sku) – unidade vendável específica (ex.: “G203 Branco – USB”).
+
+Categoria (Category) – agrupamento hierárquico (ex.: “Periféricos > Teclados Mecânicos”).
+
+Marca (Brand) – fabricante ou linha (ex.: “Logitech”, “Corsair”, “Redragon”).
+
+Value Objects (VOs)
+
+Especificações Técnicas (Specs) – atributos como conexão, sensibilidade, layout, tamanho, potência.
+
+Money (BRL) – valor em centavos, com amount e currency.
+
+Warranty – VO que expressa o tempo e tipo de garantia (ex.: 12 meses – fabricante).
+
+Dimensions / Weight – dimensões e peso do produto.
+
+Termos
+Termo	Descrição
+Periférico	Equipamento que conecta ao computador (mouse, teclado, fone, webcam).
+Hardware Interno	Peças de montagem (gabinete, fonte, HD, SSD, placa-mãe).
+Especificação	Atributo técnico padronizado (ex.: “Sensor Óptico”, “Layout ABNT2”).
+Conectividade	Tipo de interface de conexão (USB, Bluetooth, Wireless).
+Compatibilidade	Sistemas suportados (Windows, MacOS, Linux).
+Linha de Produto	Série ou categoria especial (ex.: “G Pro”, “Kumara”).
+Invariantes
+
+Cada SKU deve pertencer a um único Product.
+
+Um Product não pode ser “ativo” se todos os SKU estiverem “inativos”.
+
+Eventos
+
+ProductPublished, SkuCreated, SkuUpdated, ProductArchived.
+
+🔹 Contexto: Estoque e Logística (Inventory & Fulfillment)
+
+Propósito: controlar disponibilidade e movimentação dos produtos físicos.
+
+Entidades / Agregados
+
+StockItem – representa o estoque físico de um SKU em um centro de distribuição.
+
+Warehouse – local de armazenamento (ex.: “Centro SP”, “Filial Curitiba”).
+
+Shipment – expedição ou entrega física associada a um pedido.
+
+Value Objects
+
+Quantity (inteiro ≥ 0)
+
+Location (endereço resumido)
+
+TrackingCode
+
+Termos
+Termo	Descrição
+Disponível	Quantidade física menos as reservas.
+Reserva	Bloqueio temporário de unidades durante checkout.
+Baixa	Saída definitiva do estoque após faturamento.
+Centro de Distribuição (CD)	Local físico de armazenagem e envio.
+Remessa	Conjunto de pedidos enviados juntos.
+Eventos
+
+StockReserved, StockDeducted, ShipmentCreated, ShipmentDelivered.
+
+🔹 Contexto: Precificação e Promoções (Pricing & Promotions)
+
+Propósito: definir e calcular o preço de venda final.
+
+Entidades / Agregados
+
+PriceList – tabela base de preços.
+
+Promotion – regra condicional (“10% off em periféricos gamers”).
+
+Coupon – código promocional.
+
+Value Objects
+
+Money, Discount, Percentage, ValidityPeriod.
+
+Termos
+Termo	Descrição
+Preço Base	Valor original do SKU.
+Preço Promocional	Valor com desconto aplicado.
+Desconto Progressivo	Varia conforme quantidade (“3 ou mais, 15% off”).
+Cupom Promocional	Código alfanumérico que aplica desconto.
+🔹 Contexto: Carrinho e Pedido (Sales / Checkout)
+
+Propósito: controlar a jornada de compra e conversão em pedido.
+
+Entidades / Agregados
+
+Cart – sessão de compra ativa.
+
+Order – pedido confirmado.
+
+OrderItem – SKU, quantidade, valor, descontos e impostos.
+
+Value Objects
+
+Money, ShippingOption, PaymentOption, Address, Email.
+
+Estados do Pedido
+
+PLACED → PAID → PACKED → SHIPPED → DELIVERED.
+
+Termos
+Termo	Descrição
+Carrinho Ativo	Itens ainda não confirmados.
+Checkout	Processo de confirmação (frete, pagamento, dados).
+Pedido	Confirmação oficial do checkout.
+Frete Expresso / Econômico	Tipos de serviço de entrega.
+Resumo Financeiro	Subtotal + frete + desconto + total.
+🔹 Contexto: Pagamentos (Payments)
+
+Propósito: processar, capturar e conciliar pagamentos.
+
+Entidades / Agregados
+
+Payment – tentativa de pagamento vinculada a um pedido.
+
+Transaction – registro de autorização, captura ou estorno.
+
+Value Objects
+
+PaymentMethod, Installments, GatewayResponse.
+
+Termos
+Termo	Descrição
+Autorização	Validação inicial pelo gateway.
+Captura	Confirmação da cobrança.
+Estorno	Devolução do valor.
+Chargeback	Disputa iniciada pelo cliente.
+🔹 Contexto: Clientes (Customer)
+
+Propósito: representar o comprador, seus contatos e histórico.
+
+Entidades / Agregados
+
+Customer – perfil de compra (PF ou PJ).
+
+AddressBook – lista de endereços.
+
+Value Objects
+
+CPF/CNPJ, Email, Phone, Address.
+
+Termos
+Termo	Descrição
+Cliente Final	Pessoa física.
+Empresa Compradora	Pessoa jurídica (B2B).
+Perfil Gamer / Corporativo	Segmento de cliente.
+Histórico de Compras	Pedidos anteriores.
+🔹 Contexto: Pós-venda e Garantia (After-Sales & Warranty)
+
+Propósito: gerenciar devoluções, trocas e assistência técnica.
+
+Entidades / Agregados
+
+ReturnRequest (RMA) – solicitação de devolução ou troca.
+
+WarrantyClaim – acionar garantia com fabricante.
+
+Value Objects
+
+ReturnReason, Money (RefundValue), WarrantyPeriod.
+
+Termos
+Termo	Descrição
+RMA	Número de autorização de devolução.
+Garantia Fabricante	Cobertura oficial da marca.
+Devolução Comercial	Troca por arrependimento ou erro de envio.
+Estorno	Devolução financeira.
+🔹 Contexto: Conteúdo e Catálogo Técnico (Content / SEO)
+
+Propósito: otimizar descrições e facilitar busca e conversão.
+
+Entidades
+
+TechSpecSheet – ficha técnica (PDF, HTML).
+
+MediaAsset – imagens do produto, renders, vídeos.
+
+Termos
+Termo	Descrição
+Ficha Técnica	Documento com detalhes do produto.
+Imagem Principal / Secundária	Fotos para PDP.
+PDP (Product Detail Page)	Página de detalhes.
+PLP (Product List Page)	Listagem de produtos.
+🔹 Contexto: Integrações (Integration)
+
+Propósito: sincronizar dados com marketplaces e sistemas legados (como AnyMarket).
+
+Entidades
+
+ChannelListing – produto publicado no canal externo.
+
+SyncJob – execução de sincronização (preço, estoque, pedido).
+
+Termos
+Termo	Descrição
+Marketplace	Canal de venda externo (Mercado Livre, Amazon, Shopee).
+ERP / Sistema Legado	Backend financeiro/fiscal.
+Atualização de Estoque	Sync de quantidades com marketplaces.
+Importação de Pedido	Pedido originado em canal externo.
+🧭 Eventos de Domínio Principais (resumo global)
+Evento	Contexto	Descrição
+ProductPublished	Catalog	Produto ativado no canal.
+StockReserved	Inventory	Quantidade bloqueada em pedido.
+OrderPlaced	Sales	Pedido criado.
+PaymentAuthorized	Payments	Gateway autorizou pagamento.
+PaymentCaptured	Payments	Cobrança confirmada.
+InvoiceIssued	Billing	Nota fiscal emitida.
+ShipmentShipped	Fulfillment	Pedido despachado.
+ShipmentDelivered	Fulfillment	Entregue ao cliente.
+ReturnRequested	After-Sales	Cliente iniciou devolução.
+RefundIssued	Payments	Valor devolvido.
