@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from '../../user/repositories/user.repository';
 import { SignInDto } from '../dto/sign.in.dto';
@@ -44,18 +44,14 @@ export class AuthService {
       throw new UnauthorizedException('Credenciais inválidas');
     }
     
-    // Buscar perfis do usuário
     const profiles = await this.profileService.findAllByUserId(user.id);
     
-    // Verificar se o usuário tem pelo menos um perfil
     if (!profiles || profiles.length === 0) {
       throw new UnauthorizedException('Usuário sem perfil associado');
     }
     
-    // Usar o primeiro perfil encontrado como padrão
     const defaultProfile = profiles[0];
     
-    // Incluir o profileId no payload do token
     const payload = { 
       email: user.email, 
       sub: user.id, 
@@ -63,7 +59,6 @@ export class AuthService {
       profileType: defaultProfile.profileType
     };
     
-    // Para perfil PF, buscar detalhes específicos
     let userProfile = {};
     
     if (defaultProfile.profileType === ProfileType.PF) {
@@ -109,7 +104,6 @@ export class AuthService {
   }
 
   async signUp(createUserDto: CreateUserDto | CreateUserWithProfileDto) {
-    // Validação adicional para garantir que os campos firstName e lastName estejam presentes quando o perfil for PF
     if ('profileType' in createUserDto && createUserDto.profileType === ProfileType.PF) {
       const profileData = createUserDto.profile as CreateProfilePfDto;
       
@@ -120,10 +114,8 @@ export class AuthService {
     
     const user = await this.userService.create(createUserDto);
     
-    // Buscar perfis do usuário recém-criado
     const profiles = await this.profileService.findAllByUserId(user.id);
     
-    // Se não houver perfil, retorna apenas o token com userId
     if (!profiles || profiles.length === 0) {
       const payload = { email: user.email, sub: user.id };
       
@@ -133,10 +125,8 @@ export class AuthService {
       };
     }
     
-    // Usar o primeiro perfil encontrado como padrão
     const defaultProfile = profiles[0];
     
-    // Incluir o profileId no payload do token
     const payload = { 
       email: user.email, 
       sub: user.id, 
@@ -144,7 +134,6 @@ export class AuthService {
       profileType: defaultProfile.profileType
     };
     
-    // Para perfil PF, buscar detalhes específicos
     let userProfile = {};
     
     if (defaultProfile.profileType === ProfileType.PF) {

@@ -2,10 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProductsRepository } from '../repositories/products.repository';
 import { ProductsFiltersDto } from '../dto/products-filters.dto';
 import { normalizePagination } from '../../../shared/anymarket/util/util';
-import { ProductsFilterService, Product, ProductsFiltersInput } from './products-filters.service';
+import { ProductsFilterService, ProductsFiltersInput } from './products-filters.service';
 import { ProductSlugService } from './products-slugs.service';
-
-
 
 @Injectable()
 export class ProductsService {
@@ -27,14 +25,12 @@ export class ProductsService {
       rawLimit: filters.limit,
     });
 
-    // Sempre aplicar filtros para garantir isProductActive = true
     const filterInput: ProductsFiltersInput = {
       term: filters.term,
       categories: filters.categories,
       brands: filters.brands,
     };
 
-    // Usar stream para processar todas as páginas e aplicar filtros
     const stream = this.productsRepository.findAllStream();
     
     const filtredProducts = await this.productsFilterService.takeSliceFromStream(
@@ -64,9 +60,19 @@ export class ProductsService {
     return product;
   }
 
-  /**
-   * Busca produtos por múltiplos IDs
-   */
+  async findBySkuId(id: number, skuId: number) {
+    const product = await this.findOne(id);
+
+    const sku = product.skus.find(sku => sku.id === skuId);
+    if (!sku) {
+      throw new NotFoundException(`Produto com ID ${id} e SKU ${skuId} não encontrado`);
+    }
+
+    product.skus = [sku];
+
+    return product;
+  }
+
   async findByIds(ids: number[]) {
     if (!ids || ids.length === 0) {
       return [];

@@ -15,18 +15,34 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  async findAll(@Query() filters: ProductsFiltersDto) {
+  async findAll(
+    @Query() 
+    filters: ProductsFiltersDto
+  ) {
     return this.productsService.findAll(filters);
   }
+  //adicionar validação se o produto ESTÁ EM ESTOQUE
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
+  async findOne(
+    @Param('id', ParseIntPipe) 
+    id: number) {
     return this.productsService.findOne(id);
   }
+  
+  @Get(':id/sku/:skuId')
+  async findBySku(
+    @Param('id', ParseIntPipe) 
+    id: number, 
+    @Param('skuId', ParseIntPipe) 
+    skuId: number
+  ) {
+    return this.productsService.findBySkuId(id, skuId);
+  }
 
-  @Post('by-ids')
-  async findByIds(@Body('ids') ids: number[]) {
-    return this.productsService.findByIds(ids);
+  @Get('by-ids')
+  async findByIds(@Query('ids') ids: string) {
+    return this.productsService.findByIds(ids.split(',').map(Number));
   }
 
   @Get('slug/:slug')

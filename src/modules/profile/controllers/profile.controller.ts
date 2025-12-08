@@ -1,16 +1,15 @@
 import {
-  Controller,
-  Post,
   Body,
-  Param,
-  Get,
-  Put,
+  Controller,
   Delete,
-  UseGuards,
-  Request,
+  ForbiddenException,
+  Get,
   HttpCode,
   HttpStatus,
-  ForbiddenException,
+  Param,
+  Post,
+  Put,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -22,6 +21,7 @@ import { UpdateProfilePfDto } from '../dto/update-profile-pf.dto';
 import { UpdateProfilePjDto } from '../dto/update-profile-pj.dto';
 import { UserProfileDetailsDto } from 'src/modules/user/dto/user-profile-details.dto';
 import { UserProfileDto } from 'src/modules/user/dto/user-profile.dto';
+import { GetUser } from 'src/modules/auth/decorators/get-user.decorator';
 
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -38,9 +38,12 @@ export class ProfileController {
     disableErrorMessages: false,
     transformOptions: { enableImplicitConversion: true }
   }))
-  async createProfilePf(@Request() req, @Body() createProfilePfDto: CreateProfilePfDto) {
+  async createProfilePf(
+    @GetUser('userId') userId: number,
+    @Body() createProfilePfDto: CreateProfilePfDto,
+  ) {
     try {
-      return this.profileService.createProfilePf(req.user.userId, createProfilePfDto);
+      return this.profileService.createProfilePf(userId, createProfilePfDto);
     } catch (error) {
       if (error.status) {
         throw error;
@@ -53,9 +56,12 @@ export class ProfileController {
   @Post('pj')
   @HttpCode(HttpStatus.CREATED)
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  async createProfilePj(@Request() req, @Body() createProfilePjDto: CreateProfilePjDto) {
+  async createProfilePj(
+    @GetUser('userId') userId: number,
+    @Body() createProfilePjDto: CreateProfilePjDto,
+  ) {
     try {
-      return this.profileService.createProfilePj(req.user.userId, createProfilePjDto);
+      return this.profileService.createProfilePj(userId, createProfilePjDto);
     } catch (error) {
       if (error.status) {
         throw error;
@@ -66,22 +72,25 @@ export class ProfileController {
   }
 
   @Get()
-  async findUserWithProfile(@Request() req): Promise<UserProfileDto> {
-    const userId = req.user.userId;
+  async findUserWithProfile(@GetUser('userId') userId: number): Promise<UserProfileDto> {
     return this.profileService.findUserWithProfile(userId);
   }
 
   @Get('details')
-  async findUserWithProfileDetails(@Request() req): Promise<UserProfileDetailsDto> {
-    const userId = req.user.userId;
+  async findUserWithProfileDetails(
+    @GetUser('userId') userId: number,
+  ): Promise<UserProfileDetailsDto> {
     return this.profileService.findUserProfileDetails(userId);
   }
 
   @Get(':id')
-  async findOne(@Request() req, @Param('id') id: number) {
+  async findOne(
+    @GetUser('userId') userId: number,
+    @Param('id') id: number,
+  ) {
     const profile = await this.profileService.findOne(id);
     
-    if (profile.userId !== req.user.userId) {
+    if (profile.userId !== userId) {
       throw new ForbiddenException('Você não tem permissão para acessar este perfil');
     }
     
@@ -89,10 +98,13 @@ export class ProfileController {
   }
 
   @Get(':id/pf')
-  async findProfilePf(@Request() req, @Param('id') id: number) {
+  async findProfilePf(
+    @GetUser('userId') userId: number,
+    @Param('id') id: number,
+  ) {
     const profile = await this.profileService.findOne(id);
     
-    if (profile.userId !== req.user.userId) {
+    if (profile.userId !== userId) {
       throw new ForbiddenException('Você não tem permissão para acessar este perfil');
     }
     
@@ -100,10 +112,13 @@ export class ProfileController {
   }
 
   @Get(':id/pj')
-  async findProfilePj(@Request() req, @Param('id') id: number) {
+  async findProfilePj(
+    @GetUser('userId') userId: number,
+    @Param('id') id: number,
+  ) {
     const profile = await this.profileService.findOne(id);
     
-    if (profile.userId !== req.user.userId) {
+    if (profile.userId !== userId) {
       throw new ForbiddenException('Você não tem permissão para acessar este perfil');
     }
     
@@ -113,14 +128,14 @@ export class ProfileController {
   @Put(':id/pf')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async updateProfilePf(
-    @Request() req,
+    @GetUser('userId') userId: number,
     @Param('id') id: number,
     @Body() updateProfilePfDto: UpdateProfilePfDto,
   ) {
     try {
       const profile = await this.profileService.findOne(id);
       
-      if (profile.userId !== req.user.userId) {
+      if (profile.userId !== userId) {
         throw new ForbiddenException('Você não tem permissão para atualizar este perfil');
       }
             
@@ -137,14 +152,14 @@ export class ProfileController {
   @Put(':id/pj')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async updateProfilePj(
-    @Request() req,
+    @GetUser('userId') userId: number,
     @Param('id') id: number,
     @Body() updateProfilePjDto: UpdateProfilePjDto,
   ) {
     try {
       const profile = await this.profileService.findOne(id);
       
-      if (profile.userId !== req.user.userId) {
+      if (profile.userId !== userId) {
         throw new ForbiddenException('Você não tem permissão para atualizar este perfil');
       }
       
@@ -160,10 +175,13 @@ export class ProfileController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Request() req, @Param('id') id: number) {
+  async remove(
+    @GetUser('userId') userId: number,
+    @Param('id') id: number,
+  ) {
     const profile = await this.profileService.findOne(id);
     
-    if (profile.userId !== req.user.userId) {
+    if (profile.userId !== userId) {
       throw new ForbiddenException('Você não tem permissão para remover este perfil');
     }
     

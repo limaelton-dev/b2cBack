@@ -1,0 +1,183 @@
+### ===========================================
+### MÓDULO DE CARRINHO (CARTS)
+### ===========================================
+### Base URL: http://localhost:3000/api/cart
+### Requer autenticação JWT em todas as rotas
+### ===========================================
+
+### Variáveis de ambiente
+@baseUrl = http://localhost:3000/api
+@cartUrl = {{baseUrl}}/cart
+@contentType = application/json
+
+### ===========================================
+### AUTENTICAÇÃO - Execute primeiro para obter o token
+### ===========================================
+
+# @name login
+POST {{baseUrl}}/auth/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "pessoafisica@exemplo.com",
+  "password": "senha123"
+}
+
+### Token salvo automaticamente da resposta do login
+@token = {{login.response.body.access_token}}
+
+### ===========================================
+### BUSCAR CARRINHO
+### ===========================================
+
+### Buscar carrinho do usuário autenticado (pelo profileId)
+GET {{cartUrl}}
+Authorization: Bearer {{token}}
+
+### ===========================================
+### CRIAR/ATUALIZAR CARRINHO (UPSERT)
+### ===========================================
+
+### Criar ou atualizar carrinho com múltiplos itens
+POST {{cartUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "items": [
+    {
+      "productId": 1,
+      "skuId": 101,
+      "quantity": 2
+    },
+    {
+      "productId": 2,
+      "skuId": 102,
+      "quantity": 1
+    }
+  ]
+}
+
+### Criar carrinho com um único item
+POST {{cartUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "items": [
+    {
+      "productId": 1,
+      "skuId": 101,
+      "quantity": 1
+    }
+  ]
+}
+
+### ===========================================
+### GERENCIAR ITENS DO CARRINHO
+### ===========================================
+
+### Adicionar item ao carrinho
+POST {{cartUrl}}/items
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "productId": 1,
+  "skuId": 103,
+  "quantity": 2
+}
+
+### Adicionar outro item ao carrinho
+POST {{cartUrl}}/items
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "productId": 4,
+  "skuId": 104,
+  "quantity": 3
+}
+
+### Atualizar quantidade de um item (itemId = 1)
+PATCH {{cartUrl}}/items/3
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "quantity": 12
+}
+
+### Atualizar quantidade para mínimo permitido
+PATCH {{cartUrl}}/items/3
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "quantity": 1
+}
+
+### ===========================================
+### REMOVER ITENS DO CARRINHO
+### ===========================================
+
+### Remover um item específico do carrinho (itemId = 1)
+DELETE {{cartUrl}}/items/3
+Authorization: Bearer {{token}}
+
+### Limpar todos os itens do carrinho
+DELETE {{cartUrl}}/items
+Authorization: Bearer {{token}}
+
+### ===========================================
+### EXEMPLOS DE ERROS
+### ===========================================
+
+### Erro: Requisição sem token de autenticação
+GET {{cartUrl}}
+
+### Erro: Criar carrinho sem itens
+POST {{cartUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "items": []
+}
+
+### Erro: Adicionar item sem campos obrigatórios (faltando skuId e quantity)
+POST {{cartUrl}}/items
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "productId": 1
+}
+
+### Erro: Adicionar item sem productId
+POST {{cartUrl}}/items
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "skuId": 101,
+  "quantity": 1
+}
+
+### Erro: Quantidade inválida (menor que 1)
+PATCH {{cartUrl}}/items/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "quantity": 0
+}
+
+### Erro: Quantidade inválida (não é número inteiro)
+PATCH {{cartUrl}}/items/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "quantity": 2.5
+}

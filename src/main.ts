@@ -1,11 +1,14 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe, BadRequestException } from '@nestjs/common';
+import { ValidationPipe, BadRequestException, ClassSerializerInterceptor } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationError } from 'class-validator';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Configura interceptor global para serialização (class-transformer)
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   
   // Configura pipes de validação globais
   app.useGlobalPipes(new ValidationPipe({

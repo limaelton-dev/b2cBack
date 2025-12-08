@@ -36,7 +36,7 @@ export class ProfileRepository {
 
   async findAll(): Promise<Profile[]> {
     return this.profileRepository.find({
-      relations: ['user', 'address', 'phone', 'card', 'order', 'profilePf', 'profilePj'],
+      relations: ['user', 'address', 'phone', 'card', 'profilePf', 'profilePj'],
     });
   }
 
@@ -44,7 +44,7 @@ export class ProfileRepository {
     console.log('ProfileRepository.findOne:', { id });
     const profile = await this.profileRepository.findOne({
       where: { id },
-      relations: ['user', 'address', 'phone', 'card', 'order', 'profilePf', 'profilePj'],
+      relations: ['user', 'address', 'phone', 'card', 'profilePf', 'profilePj'],
     });
     console.log('ProfileRepository.findOne result:', { 
       found: !!profile, 
@@ -57,7 +57,7 @@ export class ProfileRepository {
   async findByUserId(userId: number): Promise<Profile[]> {
     return this.profileRepository.find({
       where: { userId },
-      relations: ['user', 'address', 'phone', 'card', 'order', 'profilePf', 'profilePj'],
+      relations: ['user', 'address', 'phone', 'card', 'profilePf', 'profilePj'],
     });
   }
 

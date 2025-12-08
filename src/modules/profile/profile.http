@@ -1,0 +1,255 @@
+### ===========================================
+### MÓDULO DE PERFIL (PROFILE)
+### ===========================================
+### Base URL: http://localhost:3000/api/user/profile
+### Requer autenticação JWT em todas as rotas
+### ===========================================
+
+### Variáveis de ambiente
+@baseUrl = http://localhost:3000/api
+@profileUrl = {{baseUrl}}/user/profile
+@contentType = application/json
+
+### ===========================================
+### AUTENTICAÇÃO - Execute primeiro para obter o token
+### ===========================================
+
+# @name login
+POST {{baseUrl}}/auth/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "eltonpf22133a@teste.com",
+  "password": "123456"
+}
+
+### Token salvo automaticamente da resposta do login
+@token = {{login.response.body.access_token}}
+
+### ===========================================
+### CRIAR PERFIL
+### ===========================================
+
+### Criar perfil Pessoa Física (PF)
+POST {{profileUrl}}/pf
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "firstName": "Maria",
+  "lastName": "Santos",
+  "cpf": "987.654.321-00",
+  "birthDate": "1985-10-20",
+  "gender": "F"
+}
+
+### Criar perfil PF sem gênero (campo opcional)
+POST {{profileUrl}}/pf
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "firstName": "Carlos",
+  "lastName": "Oliveira",
+  "cpf": "111.222.333-44",
+  "birthDate": "1992-03-08"
+}
+
+### Criar perfil Pessoa Jurídica (PJ)
+POST {{profileUrl}}/pj
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "companyName": "Tech Solutions LTDA",
+  "cnpj": "98.765.432/0001-10",
+  "tradingName": "TechSol",
+  "stateRegistration": "SP123456789",
+  "municipalRegistration": "MUN987654"
+}
+
+### Criar perfil PJ apenas com campos obrigatórios
+POST {{profileUrl}}/pj
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "companyName": "Startup Inovadora SA",
+  "cnpj": "11.222.333/0001-44"
+}
+
+### ===========================================
+### BUSCAR PERFIL
+### ===========================================
+
+### Buscar perfil do usuário autenticado
+GET {{profileUrl}}
+Authorization: Bearer {{token}}
+
+### Buscar detalhes completos do perfil
+GET {{profileUrl}}/details
+Authorization: Bearer {{token}}
+
+### Buscar perfil por ID específico (ID = 1)
+GET {{profileUrl}}/1
+Authorization: Bearer {{token}}
+
+### Buscar dados PF de um perfil (ID = 1)
+GET {{profileUrl}}/4/pf
+Authorization: Bearer {{token}}
+
+### Buscar dados PJ de um perfil (ID = 2)
+GET {{profileUrl}}/2/pj
+Authorization: Bearer {{token}}
+
+### ===========================================
+### ATUALIZAR PERFIL PESSOA FÍSICA (PF)
+### ===========================================
+
+### Atualizar todos os campos do perfil PF (ID = 1)
+PUT {{profileUrl}}/1/pf
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "firstName": "Maria Editada",
+  "lastName": "Santos Silva",
+  "cpf": "987.654.321-00",
+  "birthDate": "1985-10-21",
+  "gender": "F"
+}
+
+### Atualizar apenas o nome do perfil PF
+PUT {{profileUrl}}/1/pf
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "firstName": "Maria Atualizada"
+}
+
+### Atualizar nome e sobrenome do perfil PF
+PUT {{profileUrl}}/1/pf
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "firstName": "Ana",
+  "lastName": "Pereira"
+}
+
+### Atualizar data de nascimento do perfil PF
+PUT {{profileUrl}}/1/pf
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "birthDate": "1990-01-15"
+}
+
+### ===========================================
+### ATUALIZAR PERFIL PESSOA JURÍDICA (PJ)
+### ===========================================
+
+### Atualizar todos os campos do perfil PJ (ID = 2)
+PUT {{profileUrl}}/2/pj
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "companyName": "Tech Solutions Atualizada LTDA",
+  "cnpj": "98.765.432/0001-10",
+  "tradingName": "TechSol New",
+  "stateRegistration": "SP999999999",
+  "municipalRegistration": "MUN111111"
+}
+
+### Atualizar apenas razão social do perfil PJ
+PUT {{profileUrl}}/2/pj
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "companyName": "Nova Razão Social LTDA"
+}
+
+### Atualizar nome fantasia do perfil PJ
+PUT {{profileUrl}}/2/pj
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "tradingName": "Novo Nome Fantasia"
+}
+
+### Atualizar inscrições estadual e municipal
+PUT {{profileUrl}}/2/pj
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "stateRegistration": "ISENTO",
+  "municipalRegistration": "ISENTO"
+}
+
+### ===========================================
+### REMOVER PERFIL
+### ===========================================
+
+### Remover perfil por ID (ID = 1)
+DELETE {{profileUrl}}/1
+Authorization: Bearer {{token}}
+
+### ===========================================
+### EXEMPLOS DE ERROS
+### ===========================================
+
+### Erro: Requisição sem token de autenticação
+GET {{profileUrl}}
+
+### Erro: Criar perfil PF sem campos obrigatórios
+POST {{profileUrl}}/pf
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "firstName": "Apenas Nome"
+}
+
+### Erro: Criar perfil PJ sem CNPJ
+POST {{profileUrl}}/pj
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "companyName": "Empresa Sem CNPJ"
+}
+
+### Erro: Data de nascimento inválida
+POST {{profileUrl}}/pf
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "firstName": "João",
+  "lastName": "Silva",
+  "cpf": "123.456.789-00",
+  "birthDate": "data-invalida"
+}
+
+### Erro: Acessar perfil de outro usuário (retorna 403 Forbidden)
+GET {{profileUrl}}/999
+Authorization: Bearer {{token}}
+
+### Erro: Atualizar perfil de outro usuário (retorna 403 Forbidden)
+PUT {{profileUrl}}/999/pf
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "firstName": "Tentativa"
+}
+
+### Erro: Remover perfil de outro usuário (retorna 403 Forbidden)
+DELETE {{profileUrl}}/999
+Authorization: Bearer {{token}}

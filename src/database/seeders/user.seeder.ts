@@ -95,7 +95,8 @@ export class UserSeeder {
       // 1.3 Criar dados de perfil PF
       await profilePfRepository.save({
         profileId: profilePF.id,
-        fullName: 'Usuário Pessoa Física',
+        firstName: 'Usuário',
+        lastName: 'Pessoa Física',
         cpf: '123.456.789-00',
         birthDate: new Date('1990-01-01'),
         gender: 'Masculino',
@@ -110,8 +111,8 @@ export class UserSeeder {
         neighborhood: 'Centro',
         city: 'São Paulo',
         state: 'SP',
-        zip_code: '01001-000',
-        is_default: true,
+        zipCode: '01001-000',
+        isDefault: true,
       });
 
       // 1.5 Criar telefone associado ao perfil
@@ -119,18 +120,19 @@ export class UserSeeder {
         profileId: profilePF.id,
         ddd: '11',
         number: '99999-9999',
-        is_default: true,
+        isDefault: true,
         verified: true,
       });
 
       // 1.6 Criar cartão associado ao perfil
       await cardRepository.save({
         profileId: profilePF.id,
-        card_number: '**** **** **** 1234',
-        holder_name: 'USUARIO P FISICA',
-        expiration_date: '12/2030',
+        cardNumber: '**** **** **** 1234',
+        holderName: 'USUARIO P FISICA',
+        expirationDate: '12/2030',
         brand: 'Visa',
-        is_default: true,
+        isDefault: true,
+        cvv: 123,
       });
 
       console.log('Usuário PF criado com ID:', userPF.id);
@@ -170,8 +172,8 @@ export class UserSeeder {
         neighborhood: 'Distrito Comercial',
         city: 'São Paulo',
         state: 'SP',
-        zip_code: '04002-000',
-        is_default: true,
+        zipCode: '04002-000',
+        isDefault: true,
       });
 
       // 2.5 Criar telefone associado ao perfil
@@ -179,18 +181,19 @@ export class UserSeeder {
         profileId: profilePJ.id,
         ddd: '11',
         number: '3333-3333',
-        is_default: true,
+        isDefault: true,
         verified: true,
       });
 
       // 2.6 Criar cartão associado ao perfil
       await cardRepository.save({
         profileId: profilePJ.id,
-        card_number: '**** **** **** 5678',
-        holder_name: 'EMPRESA EXEMPLO',
-        expiration_date: '12/2030',
+        cardNumber: '**** **** **** 5678',
+        holderName: 'EMPRESA EXEMPLO',
+        expirationDate: '12/2030',
         brand: 'Mastercard',
-        is_default: true,
+        isDefault: true,
+        cvv: 456,
       });
 
       console.log('Usuário PJ criado com ID:', userPJ.id);

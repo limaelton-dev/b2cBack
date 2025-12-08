@@ -23,9 +23,13 @@
     "migration:generate": "npm run typeorm -- migration:generate src/database/migrations/$npm_config_name",
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert",
-    "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
-    "seed:force": "ts-node -r tsconfig-paths/register src/database/seed.ts --force",
-    "db:reset": "ts-node -r tsconfig-paths/register src/database/script/reset-database.ts"
+    "db:seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
+    "db:seed:force": "ts-node -r tsconfig-paths/register src/database/seed.ts --force",
+    "seed": "npm run db:seed",
+    "seed:force": "npm run db:seed:force",
+    "db:reset": "ts-node -r tsconfig-paths/register src/database/scripts/reset-database.ts",
+    "db:drop": "ts-node -r tsconfig-paths/register src/database/scripts/drop-database.ts",
+    "db:rebuild": "ts-node -r tsconfig-paths/register src/database/scripts/rebuild-database.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",

@@ -2,54 +2,100 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cart } from '../entities/cart.entity';
+import { CartItem } from '../entities/cart-item.entity';
+import { CartItemDto } from '../dto/cart-item.dto';
 
 @Injectable()
 export class CartRepository {
   constructor(
     @InjectRepository(Cart)
     private readonly repository: Repository<Cart>,
+    @InjectRepository(CartItem)
+    private readonly cartItemsRepository: Repository<CartItem>,
   ) {}
 
-  async findOne(id: number): Promise<Cart | null> {
-    console.log('CartRepository.findOne:', { id });
+  async findWithItems(id: number): Promise<Cart | null> {
     return this.repository.findOne({
       where: { id },
-      relations: ['items', 'items.product'],
+      relations: ['items'],
     });
   }
 
-  async findOneByProfileId(profileId: number): Promise<Cart | null> {
+  async findByProfileId(profileId: number): Promise<Cart | null> {
     return this.repository.findOne({
       where: { profileId },
-      relations: ['items', 'items.product'],
+      relations: ['items'],
     });
   }
 
-  async save(cart: Cart): Promise<Cart> {
-    console.log('CartRepository.save:', { cartId: cart.id, profileId: cart.profileId });
+  async upsertWithItems(
+    profileId: number,
+    items: CartItemDto[],
+  ): Promise<Cart> {
+    return this.repository.manager.transaction(async manager => {
+      const cartsRepository = manager.getRepository(Cart);
+      const cartItemsRepository = manager.getRepository(CartItem);
+
+      let cart = await cartsRepository.findOne({
+        where: { profileId },
+      });
+
+      const itemEntities = items.map(item => cartItemsRepository.create(item));
+
+      if (!cart) {
+        cart = cartsRepository.create({
+          profileId,
+          items: itemEntities,
+        });
+
+        return cartsRepository.save(cart);
+      }
+
+      await manager
+        .createQueryBuilder()
+        .delete()
+        .from(CartItem)
+        .where('cart_id = :cartId', { cartId: cart.id })
+        .execute();
+
+      cart.items = itemEntities;
+
+      return cartsRepository.save(cart);
+    });
+  }
+
+  async create(profileId: number): Promise<Cart> {
+    const cart = this.repository.create({
+      profileId,
+      items: [],
+    });
+
     return this.repository.save(cart);
   }
 
-  async update(id: number, data: Partial<Cart>): Promise<void> {
-    console.log('CartRepository.update:', { id, data });
-    await this.repository.update(id, data);
+  async save(cart: Cart): Promise<Cart> {
+    return this.repository.save(cart);
   }
 
-  async create(data: Partial<Cart>): Promise<Cart> {
-    console.log('CartRepository.create:', data);
-    const cart = this.repository.create(data);
-    try {
-      const savedCart = await this.repository.save(cart);
-      console.log('CartRepository.create - success:', { cartId: savedCart.id, profileId: savedCart.profileId });
-      return savedCart;
-    } catch (error) {
-      console.error('CartRepository.create - error:', { 
-        error: error.message,
-        code: error.code,
-        detail: error.detail,
-        data 
-      });
-      throw error;
-    }
+  async createItem(input: CartItemDto): Promise<CartItem> {
+    return this.cartItemsRepository.create(input);
   }
-} 
+
+  async removeItem(cartId: number, itemId: number): Promise<void> {
+    await this.repository.manager
+      .createQueryBuilder()
+      .delete()
+      .from(CartItem)
+      .where('id = :itemId AND cart_id = :cartId', { itemId, cartId })
+      .execute();
+  }
+
+  async clearItems(cartId: number): Promise<void> {
+    await this.repository.manager
+      .createQueryBuilder()
+      .delete()
+      .from(CartItem)
+      .where('cart_id = :cartId', { cartId })
+      .execute();
+  }
+}

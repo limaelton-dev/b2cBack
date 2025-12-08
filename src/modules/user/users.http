@@ -1,0 +1,92 @@
+### ===========================================
+### MÓDULO DE USUÁRIO (USER)
+### ===========================================
+### Base URL: http://localhost:3000/api/user
+### Requer autenticação JWT em todas as rotas
+### ===========================================
+
+### Variáveis de ambiente
+@baseUrl = http://localhost:3000/api
+@userUrl = {{baseUrl}}/user
+@contentType = application/json
+
+### ===========================================
+### AUTENTICAÇÃO - Execute primeiro para obter o token
+### ===========================================
+
+# @name login
+POST {{baseUrl}}/auth/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "eltonpf22133a@teste.com",
+  "password": "123456"
+}
+
+### Token salvo automaticamente da resposta do login
+@token = {{login.response.body.access_token}}
+
+### ===========================================
+### BUSCAR USUÁRIO
+### ===========================================
+
+### Buscar dados do usuário autenticado
+GET {{userUrl}}
+Authorization: Bearer {{token}}
+
+### ===========================================
+### ATUALIZAR USUÁRIO
+### ===========================================
+
+### Atualizar email do usuário (ID = 1)
+PATCH {{userUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "email": "novo.email@email.com"
+}
+
+### Atualizar senha do usuário (ID = 1)
+PATCH {{userUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "password": "novaSenha123456"
+}
+
+### Atualizar email e senha do usuário (ID = 1)
+PATCH {{userUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "email": "outro.email@email.com",
+  "password": "outraSenha123456"
+}
+
+### ===========================================
+### EXEMPLOS DE ERROS
+### ===========================================
+
+### Erro: Requisição sem token de autenticação
+GET {{userUrl}}
+
+### Erro: Email inválido
+PATCH {{userUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "email": "email-invalido"
+}
+
+### Erro: Senha muito curta (menos de 6 caracteres)
+PATCH {{userUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "password": "123"
+}

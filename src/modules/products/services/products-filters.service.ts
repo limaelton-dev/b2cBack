@@ -1,12 +1,12 @@
 import { Injectable } from "@nestjs/common";
 
 export interface ProductBrand {
-    id?: string | number;
+    id?: number;
     name?: string;
 }
 
 export interface ProductCategory {
-    id?: string | number;
+    id?: number;
     name?: string;
     path?: string;
 }
@@ -17,14 +17,14 @@ export interface ProductCharacteristic {
 }
 
 export interface ProductSku {
-    id?: string | number;
+    id?: number;
     title?: string;
     partnerId?: string | number; //"sku"
     ean?: string;
   }
   
 export interface Product {
-    id?: string | number;
+    id?: number;
     title?: string;
     description?: string;
     model?: string;

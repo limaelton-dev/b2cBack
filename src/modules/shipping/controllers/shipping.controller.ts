@@ -159,7 +159,7 @@ export class ShippingController {
 
       // Buscar os produtos no banco de dados
       const productIds = products.map(p => p.productId);
-      const productEntities = await this.productService.findByIds(productIds);
+      const productEntities = []; // await this.productService.findByIds(productIds);
 
       if (productEntities.length === 0) {
         throw new BadRequestException('Nenhum produto válido encontrado');

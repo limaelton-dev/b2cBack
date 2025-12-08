@@ -1,0 +1,129 @@
+### ===========================================
+### MÓDULO DE AUTENTICAÇÃO (AUTH)
+### ===========================================
+### Base URL: http://localhost:3000/api/auth
+### ===========================================
+
+### Variáveis de ambiente
+@baseUrl = http://localhost:3000/api
+@authUrl = {{baseUrl}}/auth
+@contentType = application/json
+
+### ===========================================
+### AUTENTICAÇÃO - Execute primeiro para obter o token
+### ===========================================
+
+# @name login
+POST {{authUrl}}/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "eltonpf22133a@teste.com",
+  "password": "123456"
+}
+
+### Token salvo automaticamente da resposta do login
+@token = {{login.response.body.access_token}}
+
+### ===========================================
+### LOGIN (SIGN IN)
+### ===========================================
+
+### Login com email e senha
+POST {{authUrl}}/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "pessoafisica@exemplo.com",
+  "password": "senha123"
+}
+
+### ===========================================
+### CADASTRO (SIGN UP)
+### ===========================================
+
+### Cadastro simples - Apenas usuário (sem perfil)
+POST {{authUrl}}/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "novo.usuario@email.com",
+  "password": "senha123456"
+}
+
+### Cadastro com Perfil Pessoa Física (PF)
+POST {{authUrl}}/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "pessoa.fisica@email.com",
+  "password": "senha123456",
+  "profileType": "PF",
+  "profile": {
+    "firstName": "João",
+    "lastName": "Silva",
+    "cpf": "123.456.789-00",
+    "birthDate": "1990-05-15",
+    "gender": "M"
+  }
+}
+
+### Cadastro com Perfil Pessoa Jurídica (PJ)
+POST {{authUrl}}/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "empresa@email.com",
+  "password": "senha123456",
+  "profileType": "PJ",
+  "profile": {
+    "companyName": "Empresa Exemplo LTDA",
+    "cnpj": "12.345.678/0001-90",
+    "tradingName": "Empresa Exemplo",
+    "stateRegistration": "123456789",
+    "municipalRegistration": "987654321"
+  }
+}
+
+### ===========================================
+### EXEMPLOS DE ERROS
+### ===========================================
+
+### Login com email inválido
+POST {{authUrl}}/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "email-invalido",
+  "password": "senha123"
+}
+
+### Login sem senha
+POST {{authUrl}}/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "usuario@email.com"
+}
+
+### Cadastro com senha curta (menos de 6 caracteres)
+POST {{authUrl}}/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "teste@email.com",
+  "password": "123"
+}
+
+### Cadastro PF sem campos obrigatórios
+POST {{authUrl}}/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "teste@email.com",
+  "password": "senha123456",
+  "profileType": "PF",
+  "profile": {
+    "firstName": "João"
+  }
+}
