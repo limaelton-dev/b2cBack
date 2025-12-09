@@ -1,110 +1,115 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CartRepository } from '../repositories/carts.repository';
 import { UpsertCartDto } from '../dto/upsert-cart.dto';
 import { Cart } from '../entities/cart.entity';
 import { CartItemDto } from '../dto/cart-item.dto';
+import { CartWithDetailsDto, CartItemWithDetailsDto } from '../dto/cart-with-details.dto';
+import { ProductsService } from 'src/modules/products/services/products.service';
+import { roundPrice } from 'src/common/helpers/products.util';
+import { UpdateCartItemDto } from '../dto/update-cart-item.dto';
 
 @Injectable()
 export class CartsService {
-  private readonly logger = new Logger(CartsService.name);
-
   constructor(
     private readonly cartsRepository: CartRepository,
-    // FUTURO: injetar um ProductCatalogService / AnyMarketService aqui
-    // para validar produto, sku e estoque.
+    private readonly productsService: ProductsService,
   ) {}
+
+  private async validateOrThrow(items: Array<{ skuId: number; quantity: number }>) {
+    const result = await this.productsService.validateSkuAvailability(items);
+    if (!result.isValid) {
+      throw new BadRequestException(result.invalid.map(i => i.message).join('; '));
+    }
+    return result;
+  }
+
+  private async syncAvailability(cart: Cart): Promise<Cart> {
+    if (!cart?.items?.length) return cart;
+
+    const items = cart.items.map(i => ({ skuId: i.skuId, quantity: i.quantity }));
+    const result = await this.productsService.validateSkuAvailability(items);
+
+    const unavailableSkuIds = new Set(result.invalid.map(i => i.skuId));
+    let hasChanges = false;
+
+    for (const item of cart.items) {
+      const shouldBeAvailable = !unavailableSkuIds.has(item.skuId);
+      if (item.available !== shouldBeAvailable) {
+        await this.cartsRepository.updateItem(item.id, { available: shouldBeAvailable });
+        item.available = shouldBeAvailable;
+        hasChanges = true;
+      }
+    }
+
+    return hasChanges ? (await this.cartsRepository.findWithItems(cart.id)) ?? cart : cart;
+  }
 
   async findWithItems(profileId: number): Promise<Cart> {
     const cart = await this.cartsRepository.findByProfileId(profileId);
     if (!cart) {
       throw new NotFoundException('Carrinho não encontrado');
     }
-    return cart;
+    return this.syncAvailability(cart);
   }
 
-  async upsertCart(
-    profileId: number,
-    upsertCartDto: UpsertCartDto,
-  ): Promise<Cart> {
+  async upsertCart(profileId: number, upsertCartDto: UpsertCartDto): Promise<Cart> {
     const items: CartItemDto[] = upsertCartDto.items ?? [];
 
     if (!items.length) {
       return this.cartsRepository.upsertWithItems(profileId, []);
     }
 
-    // TODO: validar todos os itens
-    // contra o catálogo (AnyMarket):
-    // - verificar se productId/skuId existem
-    // - verificar se o sku está ativo
-    // - verificar se há estoque suficiente
-    // Exemplo :
-    // await this.productsService.ensureItemsAreAvailable(items);
-
+    await this.validateOrThrow(items);
     return this.cartsRepository.upsertWithItems(profileId, items);
   }
 
   async addItem(profileId: number, cartItemDto: CartItemDto): Promise<Cart> {
-    // TODO: validação de produto (AnyMarket) antes de mexer no carrinho:
-    // - garantir que productId/skuId existem e pertencem ao mesmo produto
-    // - verificar estoque mínimo para a quantity pedida
-    // Exemplo:
-    // await this.productsService.ensureItemIsAvailable(cartItemDto);
-
     const existingCart =
       (await this.cartsRepository.findByProfileId(profileId)) ??
       (await this.cartsRepository.create(profileId));
 
-
     const existingItem = existingCart.items?.find(
-      item =>
-        item.productId === cartItemDto.productId &&
-        item.skuId === cartItemDto.skuId,
+      item => item.skuId === cartItemDto.skuId,
     );
+    const totalQuantity = (existingItem?.quantity ?? 0) + cartItemDto.quantity;
+
+    await this.validateOrThrow([{ skuId: cartItemDto.skuId, quantity: totalQuantity }]);
 
     if (!existingItem) {
       const cartItem = await this.cartsRepository.createItem(cartItemDto);
       cartItem.cart = existingCart;
       existingCart.items = [...(existingCart.items ?? []), cartItem];
     } else {
-      existingItem.quantity += cartItemDto.quantity;
+      existingItem.quantity = totalQuantity;
     }
 
     return this.cartsRepository.save(existingCart);
   }
 
-  async updateItemQuantity(
+  async updateItem(
     profileId: number,
     itemId: number,
-    quantity: number,
+    dto: UpdateCartItemDto,
   ): Promise<Cart> {
-    if (!Number.isInteger(quantity) || quantity <= 0) {
-      throw new BadRequestException('Quantidade deve ser um inteiro positivo.');
+    const item = await this.cartsRepository.findItemById(itemId);
+
+    if (!item) {
+      throw new NotFoundException('Item não encontrado');
     }
 
-    const cart = await this.cartsRepository.findByProfileId(profileId);
-
-    if (!cart) {
-      throw new NotFoundException('Carrinho não encontrado');
+    if (item.cart.profileId !== profileId) {
+      throw new BadRequestException('Item não pertence ao seu carrinho');
     }
 
-    const cartItem = cart.items?.find(item => item.id === itemId);
-
-    if (!cartItem) {
-      throw new NotFoundException('Item não encontrado no carrinho.');
+    if (dto.quantity !== undefined) {
+      if (!Number.isInteger(dto.quantity) || dto.quantity <= 0) {
+        throw new BadRequestException('Quantidade deve ser um inteiro positivo');
+      }
+      await this.validateOrThrow([{ skuId: item.skuId, quantity: dto.quantity }]);
     }
 
-    // TODO: se você quiser, aqui também pode validar estoque
-    // com base no novo quantity antes de aplicar a alteração.
-
-    cartItem.quantity = quantity;
-    const updatedCart = await this.cartsRepository.save(cart);
-
-    return updatedCart;
+    await this.cartsRepository.updateItem(itemId, dto);
+    return this.cartsRepository.findWithItems(item.cart.id);
   }
 
   async removeItem(profileId: number, itemId: number): Promise<Cart> {
@@ -139,4 +144,46 @@ export class CartsService {
 
     return updatedCart;
   }
+  
+  async findWithDetails(profileId: number): Promise<CartWithDetailsDto> {
+    let cart = await this.cartsRepository.findByProfileId(profileId);
+
+    if (!cart?.items?.length) {
+      return { items: [], subtotal: 0 };
+    }
+
+    cart = await this.syncAvailability(cart);
+
+    const skuIds = cart.items.map(item => item.skuId);
+    const skuDetailsMap = await this.productsService.findSkusForCart(skuIds);
+
+    const subtotal = roundPrice(
+      cart.items.reduce((sum, item) => {
+        if (!item.available) return sum;
+        const sku = skuDetailsMap.get(item.skuId);
+        if (!sku) return sum;
+        const price = sku._rawPrice ?? 0;
+        return sum + (price * item.quantity);
+      }, 0)
+    );
+
+    const items: CartItemWithDetailsDto[] = cart.items
+      .map(item => {
+        const sku = skuDetailsMap.get(item.skuId);
+        if (!sku) return null;
+
+        const { _rawPrice, ...skuClean } = sku;
+
+        return {
+          skuId: item.skuId,
+          quantity: item.quantity,
+          available: item.available,
+          sku: skuClean,
+        };
+      })
+      .filter((item): item is CartItemWithDetailsDto => item !== null);
+
+    return { items, subtotal };
+  }
+
 }

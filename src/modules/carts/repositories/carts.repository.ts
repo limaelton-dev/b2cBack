@@ -98,4 +98,16 @@ export class CartRepository {
       .where('cart_id = :cartId', { cartId })
       .execute();
   }
+
+  async findItemById(itemId: number): Promise<CartItem | null> {
+    return this.cartItemsRepository.findOne({
+      where: { id: itemId },
+      relations: ['cart'],
+    });
+  }
+
+  async updateItem(itemId: number, data: Partial<CartItem>): Promise<CartItem | null> {
+    await this.cartItemsRepository.update(itemId, data);
+    return this.findItemById(itemId);
+  }
 }

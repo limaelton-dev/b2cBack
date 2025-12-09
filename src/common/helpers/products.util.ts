@@ -1,3 +1,11 @@
+/**
+ * Arredonda valor monetário para 2 casas decimais.
+ */
+export function roundPrice(value: number | undefined | null): number {
+    if (value == null || isNaN(value)) return 0;
+    return Math.round(value * 100) / 100;
+}
+
 export function normalizeToSlug(text: string): string {
     return text
       .normalize("NFD")                  // remove acentos
@@ -19,4 +27,17 @@ export function generateUniqueProductSlug(baseText: string, existingSlugs: Set<s
         newSlug = `${normalizeToSlug(baseSlug)}-${counter++}`;
     }
     return newSlug;
+}
+
+/**
+ * Adiciona slugs únicos a uma lista de produtos.
+ */
+export function addSlugsToProducts<T extends { title?: string }>(products: T[]): (T & { slug: string })[] {
+    const existingSlugs = new Set<string>();
+
+    return products.map((product) => {
+        const uniqueSlug = generateUniqueProductSlug(product.title ?? '', existingSlugs);
+        existingSlugs.add(uniqueSlug);
+        return { ...product, slug: uniqueSlug };
+    });
 } 

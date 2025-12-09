@@ -1,0 +1,124 @@
+### ===========================================
+### MÓDULO DE PRODUTOS (PRODUCTS)
+### ===========================================
+### Base URL: http://localhost:3000/api/products
+### Endpoints públicos (sem autenticação)
+### ===========================================
+
+### Variáveis de ambiente
+@baseUrl = http://localhost:3000/api
+@productsUrl = {{baseUrl}}/products
+
+### ===========================================
+### LISTAR PRODUTOS
+### ===========================================
+
+### Listar todos os produtos (padrão: página 0, 50 itens)
+GET {{productsUrl}}
+
+### ===========================================
+### PAGINAÇÃO
+### ===========================================
+
+### Paginação por page/size (recomendado)
+GET {{productsUrl}}?page=0&size=3
+
+### Segunda página
+GET {{productsUrl}}?page=1&size=3
+
+### Terceira página com 20 itens
+GET {{productsUrl}}?page=2&size=3
+
+### Paginação por offset/limit (alternativo)
+GET {{productsUrl}}?offset=0&limit=10
+
+### Offset 20, limit 10
+GET {{productsUrl}}?offset=20&limit=10
+
+### ===========================================
+### FILTROS
+### ===========================================
+
+### Busca por termo (título, descrição, SKU, EAN, características)
+GET {{productsUrl}}?term=mouse
+
+### Busca por termo com paginação
+GET {{productsUrl}}?term=azul&page=0&size=10
+
+### Filtrar por categoria (ID)
+GET {{productsUrl}}?categories=123
+
+### Filtrar por múltiplas categorias
+GET {{productsUrl}}?categories=123,456,789
+
+### Filtrar por marca (ID)
+GET {{productsUrl}}?brands=10
+
+### Filtrar por múltiplas marcas
+GET {{productsUrl}}?brands=10,20,30
+
+### Combinação de filtros
+GET {{productsUrl}}?term=camisa&categories=123&brands=10&page=0&size=20
+
+### ===========================================
+### BUSCAR PRODUTO POR ID
+### ===========================================
+
+### Buscar produto por ID
+GET {{productsUrl}}/73414029
+
+### Buscar produto por ID (outro exemplo)
+GET {{productsUrl}}/12345
+
+### ===========================================
+### BUSCAR PRODUTO POR SLUG
+### ===========================================
+
+### Buscar produto por slug
+GET {{productsUrl}}/slug/camiseta-azul-manga-longa-1
+
+### Buscar produto por slug (outro exemplo)
+GET {{productsUrl}}/slug/mouse-gamer-usb-c3tech-mg-800bk-osprey-ate-12000-dpi-rgb-1
+
+### ===========================================
+### EXEMPLOS DE RESPOSTA
+### ===========================================
+
+### Resposta da listagem (GET /products):
+# {
+#   "items": [
+#     {
+#       "id": 123,
+#       "title": "Camiseta Azul",
+#       "slug": "camiseta-azul-1",
+#       "description": "...",
+#       "brand": { "id": 10, "name": "Marca X" },
+#       "category": { "id": 456, "name": "Camisetas" },
+#       "skus": [
+#         {
+#           "id": 789,
+#           "title": "Camiseta Azul - P",
+#           "price": 99.90,
+#           "amount": 15
+#         }
+#       ],
+#       "images": [...]
+#     }
+#   ],
+#   "offset": 0,
+#   "limit": 10,
+#   "total": 150,
+#   "page": 1,
+#   "lastPage": 15
+# }
+
+### ===========================================
+### OBSERVAÇÕES
+### ===========================================
+
+### • Apenas produtos ATIVOS são retornados
+### • Apenas SKUs com ESTOQUE > 0 são incluídos
+### • Produtos sem SKUs disponíveis são excluídos
+### • Slugs são gerados automaticamente a partir do título
+### • Filtro "term" busca em: título, descrição, modelo, SKUs, características
+

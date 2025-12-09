@@ -30,8 +30,13 @@ Content-Type: {{contentType}}
 ### BUSCAR CARRINHO
 ### ===========================================
 
-### Buscar carrinho do usuário autenticado (pelo profileId)
+### Buscar carrinho básico (apenas IDs e quantidades)
 GET {{cartUrl}}
+Authorization: Bearer {{token}}
+
+### Buscar carrinho com detalhes dos produtos (para exibição no frontend)
+### Retorna: items com dados do SKU/produto + subtotal calculado
+GET {{cartUrl}}/details
 Authorization: Bearer {{token}}
 
 ### ===========================================
@@ -46,13 +51,13 @@ Content-Type: {{contentType}}
 {
   "items": [
     {
-      "productId": 1,
-      "skuId": 101,
+      "productId": 73414029,
+      "skuId": 30494035,
       "quantity": 2
     },
     {
-      "productId": 2,
-      "skuId": 102,
+      "productId": 73414031,
+      "skuId": 30494036,
       "quantity": 1
     }
   ]
@@ -109,7 +114,7 @@ Content-Type: {{contentType}}
 }
 
 ### Atualizar quantidade para mínimo permitido
-PATCH {{cartUrl}}/items/3
+PATCH {{cartUrl}}/items/9
 Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
 

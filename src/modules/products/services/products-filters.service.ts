@@ -1,207 +1,97 @@
 import { Injectable } from "@nestjs/common";
 
-export interface ProductBrand {
-    id?: number;
-    name?: string;
-}
-
-export interface ProductCategory {
-    id?: number;
-    name?: string;
-    path?: string;
-}
-
-export interface ProductCharacteristic {
-    name?: string;
-    value?: string | number | boolean;
-}
-
-export interface ProductSku {
-    id?: number;
-    title?: string;
-    partnerId?: string | number; //"sku"
-    ean?: string;
-  }
-  
-export interface Product {
-    id?: number;
-    title?: string;
-    description?: string;
-    model?: string;
-    brand?: ProductBrand;
-    category?: ProductCategory;
-    characteristics?: ProductCharacteristic[];
-    skus?: ProductSku[];
-    isProductActive?: boolean;
-    // ...campos extras não impactam os filtros
-}
-
-export interface ProductsFiltersInput {
+export interface ProductFilters {
     term?: string;
     categories?: Array<string | number>;
     brands?: Array<string | number>;
 }
 
-export interface PaginatedSlice<T> {
+export interface PaginatedResult<T> {
     items: T[];
     offset: number;
     limit: number;
-    totalMatched?: number;
-    currentPage?: number;
-    lastPage?: number;
+    total: number;
+    page: number;
+    lastPage: number;
 }
 
 @Injectable()
 export class ProductsFilterService {
+    
     /**
-     * Calcula a página atual baseada no offset e limit (baseado em 1)
+     * Normaliza texto para busca (lowercase + sem acentos).
      */
-    private calculateCurrentPage(offset: number, limit: number): number {
-        if (limit <= 0) return 1;
-        return Math.floor(offset / limit) + 1;
-    }
-
-    /**
-     * Calcula o total de páginas baseado no total de itens e limit
-     */
-    private calculateTotalPages(totalItems: number, limit: number): number {
-        if (limit <= 0 || totalItems <= 0) return 0;
-        return Math.ceil(totalItems / limit);
-    }
-
-    /**
-     * Normaliza texto para busca "humana": minúsculo + sem acentos.
-    */
-    private normalizeText(input?: unknown): string {
-        if(input === undefined || input === null) return '';
+    private normalize(input?: unknown): string {
+        if (input == null) return '';
         return String(input)
-            .trim().toLowerCase()
+            .trim()
+            .toLowerCase()
             .normalize('NFD')
             .replace(/\p{Diacritic}/gu, '');
     }
 
     /**
-     * Retorna uma função que testa se o produto atende aos filtros.
-     * - term: busca em title, description, model, skus.partnerId/title, characteristics.value
-     * - categoryIds: compara com category.id
-     * - brandIds: compara com brand.id
-    */
-    buildPredicate(filters: ProductsFiltersInput): (p: Product) => boolean {
-        const term = this.normalizeText(filters.term);
-        const hasTerm = term.length > 0;
+     * Verifica se produto atende aos filtros.
+     */
+    private matches(product: any, filters: ProductFilters): boolean {
+        // Filtro por termo (busca em múltiplos campos)
+        if (filters.term) {
+            const term = this.normalize(filters.term);
+            const searchFields = [
+                product.title,
+                product.description,
+                product.model,
+                ...(product.skus?.flatMap((s: any) => [s.title, s.partnerId, s.ean]) ?? []),
+                ...(product.characteristics?.flatMap((c: any) => [c.name, c.value]) ?? []),
+            ];
+            
+            const found = searchFields.some(field => 
+                this.normalize(field).includes(term)
+            );
+            if (!found) return false;
+        }
 
-        const categorySet = new Set((filters.categories ?? []).map(String));
-        const hasCategory = categorySet.size > 0;
+        // Filtro por categoria
+        if (filters.categories?.length) {
+            const categorySet = new Set(filters.categories.map(String));
+            if (!categorySet.has(String(product.category?.id))) return false;
+        }
 
-        const brandSet = new Set((filters.brands ?? []).map(String));
-        const hasBrand = brandSet.size > 0;
+        // Filtro por marca
+        if (filters.brands?.length) {
+            const brandSet = new Set(filters.brands.map(String));
+            if (!brandSet.has(String(product.brand?.id))) return false;
+        }
 
-        return (p: Product) => {
-            // FILTRO OBRIGATÓRIO: isProductActive deve ser true
-            const isActiveProduct = p.isProductActive === true;
-            if (!isActiveProduct) {
-                return false;
-            }
-
-            const okTerm = !hasTerm
-                ? true
-                : (() => {
-                    const haystack: string[] = [];
-                    haystack.push(this.normalizeText(p.title));
-                    haystack.push(this.normalizeText(p.description));
-                    haystack.push(this.normalizeText(p.model));
-
-                    if (Array.isArray(p.skus)) {
-                        for (const s of p.skus) {
-                            haystack.push(this.normalizeText(s.title));
-                            haystack.push(this.normalizeText(s.partnerId));
-                            haystack.push(this.normalizeText(s.ean));
-                        }
-                    }
-
-                    if (Array.isArray(p.characteristics)) {
-                        for (const c of p.characteristics) {
-                          haystack.push(this.normalizeText(c.name));
-                          haystack.push(this.normalizeText(c.value));
-                        }
-                    }
-
-                    return haystack.some((word) => word.includes(term));
-                })();
-
-            const okCategory = !hasCategory
-                ? true
-                : categorySet.has(String(p.category?.id));
-
-            const okBrand = !hasBrand
-                ? true
-                : brandSet.has(String(p.brand?.id));
-
-            return okTerm && okCategory && okBrand;
-        };
-    }
-
-    filterArray(products: Product[], filters: ProductsFiltersInput): Product[] {
-        const predicate = this.buildPredicate(filters);
-        return products.filter(predicate);
+        return true;
     }
 
     /**
-     * Aplica os filtros em um stream (AsyncIterable), útil quando você
-     * irá percorrer várias páginas da AnyMarket e quer "repor" até preencher a página após filtrar.
-    */
-    async *filterStream(
-        stream: AsyncIterable<Product>,
-        filters: ProductsFiltersInput,
-    ): AsyncIterableIterator<Product> {
-        const predicate = this.buildPredicate(filters);
-        for await (const item of stream) {
-            if (predicate(item)) yield item;
-        }
-    }
+     * Filtra e pagina produtos de um stream.
+     * O stream já deve conter apenas produtos disponíveis.
+     */
+    async paginate<T>(
+        stream: AsyncIterable<T>,
+        filters: ProductFilters,
+        offset: number,
+        limit: number,
+    ): Promise<PaginatedResult<T>> {
+        const items: T[] = [];
+        let total = 0;
 
-    /**
-     * Dado um stream de produtos (por ex., vindo do seu PaginationHelper que segue links.next),
-     * aplica os filtros e devolve APENAS o "slice" filtrado correspondente a offset/limit
-     * do resultado FINAL (já filtrado).
-     *
-     * Isso resolve o problema clássico: AnyMarket só pagina por offset/limit,
-     * Precisamos paginar o RESULTADO filtrado do servidor.
-    */
-    async takeSliceFromStream(
-            stream: AsyncIterable<Product>,
-            filters: ProductsFiltersInput,
-            desiredOffset: number,
-            desiredLimit: number,
-            computeTotalMatched: boolean = false, // se true, varre tudo para retornar totalMatched
-    ): Promise<PaginatedSlice<Product>> {
-        const predicate = this.buildPredicate(filters);
-
-        const result: Product[] = [];
-        let matchedCount = 0;
-
-        for await (const item of stream) {
-            if (!predicate(item)) continue;
-            if (matchedCount >= desiredOffset && result.length < desiredLimit) {
-                result.push(item);
+        for await (const product of stream) {
+            if (!this.matches(product, filters)) continue;
+            
+            // Coleta item se estiver dentro da "janela" de paginação
+            if (total >= offset && items.length < limit) {
+                items.push(product);
             }
-            matchedCount++;
-
-            if(!computeTotalMatched && result.length >= desiredLimit) break;
+            total++;
         }
 
-        const currentPage = this.calculateCurrentPage(desiredOffset, desiredLimit);
-        const lastPage = computeTotalMatched && matchedCount > 0 
-            ? this.calculateTotalPages(matchedCount, desiredLimit)
-            : undefined;
+        const page = limit > 0 ? Math.floor(offset / limit) + 1 : 1;
+        const lastPage = total > 0 && limit > 0 ? Math.ceil(total / limit) : 0;
 
-        return {
-            items: result,
-            offset: desiredOffset,
-            limit: desiredLimit,
-            totalMatched: computeTotalMatched ? matchedCount : undefined,
-            currentPage,
-            lastPage,
-        };
+        return { items, offset, limit, total, page, lastPage };
     }
 }
