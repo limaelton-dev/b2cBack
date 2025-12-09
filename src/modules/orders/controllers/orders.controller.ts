@@ -1,62 +1,75 @@
-import { Controller, Post, Body, Param, Get, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
+
 import { OrdersService } from '../services/orders.service';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { AnyMarketOrderFilter } from '../dto/anymarket-order.dto';
+import { OrdersSyncService } from '../services/orders-sync.service';
 
-@Controller('order')
-// @UseGuards(JwtAuthGuard)
+import { CheckoutDto } from '../dto/checkout.dto';
+import { OrderSummaryDto } from '../dto/order-summary.dto';
+import { OrderDetailDto } from '../dto/order-detail.dto';
+import { OrdersFilters } from '../interfaces/orders-filters.interface';
+
+// TODO: integrar com seu sistema de autenticação.
+// Exemplo:
+// import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+// import { GetUser } from '../../auth/decorators/get-user.decorator';
+// import { UseGuards } from '@nestjs/common';
+
+@Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly ordersSyncService: OrdersSyncService,
+  ) {}
 
-  @Get('anymarket/orders')
-  async getOrdersFromAnyMarket(
-    @Query('offset') offset?: string,
-    @Query('limit') limit?: string,
-    @Query('marketplaceId') marketplaceId?: string,
-    @Query('accountName') accountName?: string,
-    @Query('orderId') orderId?: string,
-    @Query('orderNumber') orderNumber?: string,
+  @Post('checkout')
+  // @UseGuards(JwtAuthGuard)
+  async checkout(
+    @Body() checkoutDto: CheckoutDto,
+    // @GetUser('profileId') profileId: number,
+  ): Promise<OrderDetailDto> {
+    // TODO: usar profileId real da autenticação
+    const profileId = 0;
+    return this.ordersService.checkout(profileId, checkoutDto);
+  }
+
+  @Get()
+  // @UseGuards(JwtAuthGuard)
+  async findOrdersForProfile(
+    // @GetUser('profileId') profileId: number,
     @Query('status') status?: string,
-    @Query('paymentStatus') paymentStatus?: string,
-    @Query('trackingNumber') trackingNumber?: string,
-    @Query('createdAfter') createdAfter?: string,
-    @Query('createdBefore') createdBefore?: string,
-    @Query('updatedAfter') updatedAfter?: string,
-    @Query('updatedBefore') updatedBefore?: string,
-  ) {
-    const filters: AnyMarketOrderFilter = {};
+    @Query('marketplace') marketplace?: string,
+  ): Promise<OrderSummaryDto[]> {
+    const profileId = 0;
 
-    if (offset !== undefined && offset !== null && offset !== '' && offset !== 'null') {
-      const offsetNum = parseInt(offset, 10);
-      if (!isNaN(offsetNum)) {
-        filters.offset = offsetNum;
-      }
-    }
-    
-    if (limit !== undefined && limit !== null && limit !== '' && limit !== 'null') {
-      const limitNum = parseInt(limit, 10);
-      if (!isNaN(limitNum)) {
-        filters.limit = limitNum;
-      }
-    }
+    const filters: OrdersFilters = {
+      status: status as any,
+      marketplace: marketplace,
+    };
 
-    if (marketplaceId && marketplaceId !== 'null') filters.marketplaceId = marketplaceId;
-    if (accountName && accountName !== 'null') filters.accountName = accountName;
-    if (orderId && orderId !== 'null') filters.orderId = orderId;
-    if (orderNumber && orderNumber !== 'null') filters.orderNumber = orderNumber;
-    if (status && status !== 'null') filters.status = status;
-    if (paymentStatus && paymentStatus !== 'null') filters.paymentStatus = paymentStatus;
-    if (trackingNumber && trackingNumber !== 'null') filters.trackingNumber = trackingNumber;
-    if (createdAfter && createdAfter !== 'null') filters.createdAfter = createdAfter;
-    if (createdBefore && createdBefore !== 'null') filters.createdBefore = createdBefore;
-    if (updatedAfter && updatedAfter !== 'null') filters.updatedAfter = updatedAfter;
-    if (updatedBefore && updatedBefore !== 'null') filters.updatedBefore = updatedBefore;
-
-    return this.ordersService.getOrdersFromAnyMarket(filters);
+    return this.ordersService.findOrdersForProfile(profileId, filters);
   }
 
-  @Get('anymarket/orders/:orderId')
-  async getOrderByIdFromAnyMarket(@Param('orderId') orderId: string) {
-    return this.ordersService.getOrderByIdFromAnyMarket(orderId);
+  @Get(':id')
+  // @UseGuards(JwtAuthGuard)
+  async findOrderDetailForProfile(
+    @Param('id', ParseIntPipe) orderId: number,
+    // @GetUser('profileId') profileId: number,
+  ): Promise<OrderDetailDto> {
+    const profileId = 0;
+    return this.ordersService.findOrderDetailForProfile(profileId, orderId);
   }
-} 
+
+  @Post('sync')
+  async synchronizeOrdersFromAnymarketFeeds(): Promise<void> {
+    // Endpoint administrativo para disparar a sincronização manualmente.
+    await this.ordersSyncService.synchronizeOrdersFromAnymarketFeeds();
+  }
+}

@@ -85,8 +85,13 @@ Content-Type: {{contentType}}
 {
   "items": [
     {
-      "productId": 1,
-      "skuId": 101,
+      "productId": 73414029,
+      "skuId": 30494035,
+      "quantity": 1
+    },
+    {
+      "productId": 73414031,
+      "skuId": 30494036,
       "quantity": 1
     }
   ]
