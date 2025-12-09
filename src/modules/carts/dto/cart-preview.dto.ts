@@ -1,4 +1,3 @@
 import { CartItemsPayloadDto } from './cart-items-payload.dto';
 
-export class UpsertCartDto extends CartItemsPayloadDto {}
-
+export class CartPreviewDto extends CartItemsPayloadDto {}

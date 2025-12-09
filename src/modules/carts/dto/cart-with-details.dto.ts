@@ -1,4 +1,3 @@
-// Marca/Brand
 export class BrandDto {
   name: string;
 }
@@ -41,4 +40,3 @@ export class CartWithDetailsDto {
   items: CartItemWithDetailsDto[];
   subtotal: number;
 }
-

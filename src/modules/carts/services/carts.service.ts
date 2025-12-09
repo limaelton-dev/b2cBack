@@ -7,6 +7,7 @@ import { CartWithDetailsDto, CartItemWithDetailsDto } from '../dto/cart-with-det
 import { ProductsService } from 'src/modules/products/services/products.service';
 import { roundPrice } from 'src/common/helpers/products.util';
 import { UpdateCartItemDto } from '../dto/update-cart-item.dto';
+import { CartPreviewDto } from '../dto/cart-preview.dto';
 
 @Injectable()
 export class CartsService {
@@ -14,6 +15,45 @@ export class CartsService {
     private readonly cartsRepository: CartRepository,
     private readonly productsService: ProductsService,
   ) {}
+
+  private async buildDetailsFromItems(
+    items: Array<{ skuId: number; quantity: number; available: boolean }>,
+  ): Promise<CartWithDetailsDto> {
+    if (!items.length) {
+      return { items: [], subtotal: 0 };
+    }
+
+    const skuIds = items.map(item => item.skuId);
+    const skuDetailsMap = await this.productsService.findSkusForCart(skuIds);
+
+    const subtotal = roundPrice(
+      items.reduce((sum, item) => {
+        if (!item.available) return sum;
+        const sku = skuDetailsMap.get(item.skuId);
+        if (!sku) return sum;
+        const price = sku._rawPrice ?? 0;
+        return sum + price * item.quantity;
+      }, 0),
+    );
+
+    const detailedItems: CartItemWithDetailsDto[] = items
+      .map(item => {
+        const sku = skuDetailsMap.get(item.skuId);
+        if (!sku) return null;
+
+        const { _rawPrice, ...skuClean } = sku;
+
+        return {
+          skuId: item.skuId,
+          quantity: item.quantity,
+          available: item.available,
+          sku: skuClean,
+        };
+      })
+      .filter((item): item is CartItemWithDetailsDto => item !== null);
+
+    return { items: detailedItems, subtotal };
+  }
 
   private async validateOrThrow(items: Array<{ skuId: number; quantity: number }>) {
     const result = await this.productsService.validateSkuAvailability(items);
@@ -152,38 +192,38 @@ export class CartsService {
       return { items: [], subtotal: 0 };
     }
 
+    // Mantém a lógica de sincronizar disponibilidade, pois aqui faz sentido
     cart = await this.syncAvailability(cart);
 
-    const skuIds = cart.items.map(item => item.skuId);
-    const skuDetailsMap = await this.productsService.findSkusForCart(skuIds);
+    const items = cart.items.map(item => ({
+      skuId: item.skuId,
+      quantity: item.quantity,
+      available: item.available,
+    }));
 
-    const subtotal = roundPrice(
-      cart.items.reduce((sum, item) => {
-        if (!item.available) return sum;
-        const sku = skuDetailsMap.get(item.skuId);
-        if (!sku) return sum;
-        const price = sku._rawPrice ?? 0;
-        return sum + (price * item.quantity);
-      }, 0)
+    return this.buildDetailsFromItems(items);
+  }
+
+  async previewDetailsFromPayload(dto: CartPreviewDto): Promise<CartWithDetailsDto> {
+    const baseItems = dto.items ?? [];
+  
+    if (!baseItems.length) {
+      return { items: [], subtotal: 0 };
+    }
+  
+    const validationResult = await this.productsService.validateSkuAvailability(
+      baseItems.map(i => ({ skuId: i.skuId, quantity: i.quantity })),
     );
-
-    const items: CartItemWithDetailsDto[] = cart.items
-      .map(item => {
-        const sku = skuDetailsMap.get(item.skuId);
-        if (!sku) return null;
-
-        const { _rawPrice, ...skuClean } = sku;
-
-        return {
-          skuId: item.skuId,
-          quantity: item.quantity,
-          available: item.available,
-          sku: skuClean,
-        };
-      })
-      .filter((item): item is CartItemWithDetailsDto => item !== null);
-
-    return { items, subtotal };
+  
+    const unavailableSkuIds = new Set(validationResult.invalid.map(i => i.skuId));
+  
+    const itemsWithAvailability = baseItems.map(item => ({
+      skuId: item.skuId,
+      quantity: item.quantity,
+      available: !unavailableSkuIds.has(item.skuId),
+    }));
+  
+    return this.buildDetailsFromItems(itemsWithAvailability);
   }
 
 }

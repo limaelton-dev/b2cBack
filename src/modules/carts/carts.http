@@ -78,6 +78,20 @@ Content-Type: {{contentType}}
   ]
 }
 
+### Preview detalhes do carrinho
+POST {{cartUrl}}/details/preview
+Content-Type: {{contentType}}
+
+{
+  "items": [
+    {
+      "productId": 1,
+      "skuId": 101,
+      "quantity": 1
+    }
+  ]
+}
+
 ### ===========================================
 ### GERENCIAR ITENS DO CARRINHO
 ### ===========================================

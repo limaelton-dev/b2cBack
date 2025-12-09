@@ -18,25 +18,30 @@ import { CartItemDto } from '../dto/cart-item.dto';
 import { UpdateCartItemDto } from '../dto/update-cart-item.dto';
 import { GetUser } from 'src/modules/auth/decorators/get-user.decorator';
 import { CartWithDetailsDto } from '../dto/cart-with-details.dto';
+import { CartPreviewDto } from '../dto/cart-preview.dto';
 
 @Controller('cart')
-@UseGuards(JwtAuthGuard)
 export class CartsController {
   private readonly logger = new Logger(CartsController.name);
 
-  constructor(private readonly cartsService: CartsService) { }
+  constructor(private readonly cartsService: CartsService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   async findWithItems(@GetUser('profileId') profileId: number): Promise<Cart> {
     return this.cartsService.findWithItems(profileId);
   }
 
   @Get('details')
-  async findWithDetails(@GetUser('profileId') profileId: number): Promise<CartWithDetailsDto> {
+  @UseGuards(JwtAuthGuard)
+  async findWithDetails(
+    @GetUser('profileId') profileId: number,
+  ): Promise<CartWithDetailsDto> {
     return this.cartsService.findWithDetails(profileId);
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   async upsert(
     @GetUser('profileId') profileId: number,
     @Body() upsertCartDto: UpsertCartDto,
@@ -45,6 +50,7 @@ export class CartsController {
   }
 
   @Post('items')
+  @UseGuards(JwtAuthGuard)
   async addItem(
     @GetUser('profileId') profileId: number,
     @Body() cartItemDto: CartItemDto,
@@ -53,6 +59,7 @@ export class CartsController {
   }
 
   @Patch('items/:itemId')
+  @UseGuards(JwtAuthGuard)
   async updateItem(
     @GetUser('profileId') profileId: number,
     @Param('itemId', ParseIntPipe) itemId: number,
@@ -62,6 +69,7 @@ export class CartsController {
   }
 
   @Delete('items/:itemId')
+  @UseGuards(JwtAuthGuard)
   async removeItem(
     @GetUser('profileId') profileId: number,
     @Param('itemId', ParseIntPipe) itemId: number,
@@ -70,9 +78,17 @@ export class CartsController {
   }
 
   @Delete('items')
+  @UseGuards(JwtAuthGuard)
   async clearCart(
     @GetUser('profileId') profileId: number,
   ): Promise<Cart> {
     return this.cartsService.clearCart(profileId);
+  }
+
+  @Post('details/preview')
+  async previewDetails(
+    @Body() dto: CartPreviewDto,
+  ): Promise<CartWithDetailsDto> {
+    return this.cartsService.previewDetailsFromPayload(dto);
   }
 }
