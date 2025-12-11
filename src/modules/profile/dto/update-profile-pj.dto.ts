@@ -1,4 +1,5 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, ValidateIf } from 'class-validator';
+import { IsCnpj } from 'src/common/validators/document.validator';
 
 export class UpdateProfilePjDto {
   @IsOptional()
@@ -7,6 +8,8 @@ export class UpdateProfilePjDto {
 
   @IsOptional()
   @IsString({ message: 'CNPJ deve ser uma string' })
+  @ValidateIf((o) => o.cnpj !== undefined)
+  @IsCnpj({ message: 'CNPJ inválido' })
   cnpj?: string;
 
   @IsOptional()

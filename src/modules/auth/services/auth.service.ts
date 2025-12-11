@@ -1,14 +1,12 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from '../../user/repositories/user.repository';
 import { SignInDto } from '../dto/sign.in.dto';
 import * as bcrypt from 'bcrypt';
 import { UserService } from 'src/modules/user/services/user.service';
-import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { CreateUserWithProfileDto } from 'src/modules/user/dto/create-user-with-profile.dto';
 import { ProfileService } from 'src/modules/profile/services/profile.service';
 import { ProfileType } from 'src/common/enums';
-import { CreateProfilePfDto } from 'src/modules/profile/dto/create-profile-pf.dto';
 
 @Injectable()
 export class AuthService {
@@ -103,28 +101,10 @@ export class AuthService {
     };
   }
 
-  async signUp(createUserDto: CreateUserDto | CreateUserWithProfileDto) {
-    if ('profileType' in createUserDto && createUserDto.profileType === ProfileType.PF) {
-      const profileData = createUserDto.profile as CreateProfilePfDto;
-      
-      if (!profileData.firstName || !profileData.lastName) {
-        throw new BadRequestException('Os campos firstName e lastName são obrigatórios para perfil PF');
-      }
-    }
-    
+  async signUp(createUserDto: CreateUserWithProfileDto) {
     const user = await this.userService.create(createUserDto);
     
     const profiles = await this.profileService.findAllByUserId(user.id);
-    
-    if (!profiles || profiles.length === 0) {
-      const payload = { email: user.email, sub: user.id };
-      
-      return {
-        access_token: this.jwtService.sign(payload),
-        user,
-      };
-    }
-    
     const defaultProfile = profiles[0];
     
     const payload = { 

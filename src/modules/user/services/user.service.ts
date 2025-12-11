@@ -1,6 +1,7 @@
 import { Injectable, ConflictException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { UserRepository } from '../repositories/user.repository';
-import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
 import { UserDetailsDto } from '../dto/user-details.dto';
@@ -12,44 +13,91 @@ import { CreateProfilePfDto } from 'src/modules/profile/dto/create-profile-pf.dt
 import { CreateProfilePjDto } from 'src/modules/profile/dto/create-profile-pj.dto';
 import { ProfileService } from 'src/modules/profile/services/profile.service';
 import { CreateUserWithProfileDto } from 'src/modules/user/dto/create-user-with-profile.dto';
+import { Profile } from 'src/modules/profile/entities/profile.entity';
+import { ProfilePf } from 'src/modules/profile/entities/profile-pf.entity';
+import { ProfilePj } from 'src/modules/profile/entities/profile-pj.entity';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     @Inject(forwardRef(() => ProfileService))
-    private readonly profileService: ProfileService
+    private readonly profileService: ProfileService,
+    private readonly dataSource: DataSource,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<UserProfileDto> {
-    const { email } = createUserDto;
+  async create(createUserDto: CreateUserWithProfileDto): Promise<UserProfileDto> {
+    const { email, password, profileType, profile } = createUserDto;
+    
     const existingUser = await this.userRepository.findByEmail(email);
-
     if (existingUser) {
       throw new ConflictException('Email já está em uso');
     }
 
-    const user = await this.userRepository.create(createUserDto);
-    
-    if (!('profileType' in createUserDto)) {
-      return plainToClass(UserProfileDto, user);
+    if (profileType === ProfileType.PF) {
+      const profilePfDto = profile as CreateProfilePfDto;
+      const existingCpf = await this.dataSource.getRepository(ProfilePf).findOne({
+        where: { cpf: profilePfDto.cpf }
+      });
+      if (existingCpf) {
+        throw new ConflictException('CPF já cadastrado');
+      }
+    } else {
+      const profilePjDto = profile as CreateProfilePjDto;
+      const existingCnpj = await this.dataSource.getRepository(ProfilePj).findOne({
+        where: { cnpj: profilePjDto.cnpj }
+      });
+      if (existingCnpj) {
+        throw new ConflictException('CNPJ já cadastrado');
+      }
     }
-    
-    const withProfileDto = createUserDto as CreateUserWithProfileDto;
-    
-    if (withProfileDto.profileType === ProfileType.PF) {
-      await this.profileService.createProfilePf(
-        user.id, 
-        withProfileDto.profile as CreateProfilePfDto
-      );
-    } else if (withProfileDto.profileType === ProfileType.PJ) {
-      await this.profileService.createProfilePj(
-        user.id, 
-        withProfileDto.profile as CreateProfilePjDto
-      );
-    }
-    
-    return this.findWithProfile(user.id);
+
+    const userId = await this.dataSource.transaction(async (manager) => {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      const userRepo = manager.getRepository(User);
+      const profileRepo = manager.getRepository(Profile);
+      const profilePfRepo = manager.getRepository(ProfilePf);
+      const profilePjRepo = manager.getRepository(ProfilePj);
+
+      const user = userRepo.create({ email, password: hashedPassword });
+      const savedUser = await userRepo.save(user);
+
+      const profileEntity = profileRepo.create({
+        userId: savedUser.id,
+        profileType,
+      });
+      const savedProfile = await profileRepo.save(profileEntity);
+
+      if (profileType === ProfileType.PF) {
+        const profilePfDto = profile as CreateProfilePfDto;
+        const profilePf = profilePfRepo.create({
+          profileId: savedProfile.id,
+          firstName: profilePfDto.firstName,
+          lastName: profilePfDto.lastName,
+          cpf: profilePfDto.cpf,
+          birthDate: profilePfDto.birthDate,
+          gender: profilePfDto.gender,
+        });
+        await profilePfRepo.save(profilePf);
+      } else {
+        const profilePjDto = profile as CreateProfilePjDto;
+        const profilePj = profilePjRepo.create({
+          profileId: savedProfile.id,
+          companyName: profilePjDto.companyName,
+          cnpj: profilePjDto.cnpj,
+          tradingName: profilePjDto.tradingName,
+          stateRegistration: profilePjDto.stateRegistration,
+          municipalRegistration: profilePjDto.municipalRegistration,
+        });
+        await profilePjRepo.save(profilePj);
+      }
+
+      return savedUser.id;
+    });
+
+    return this.findWithProfile(userId);
   }
 
   async findOne(id: number): Promise<UserDto> {

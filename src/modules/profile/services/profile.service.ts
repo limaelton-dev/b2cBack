@@ -10,10 +10,9 @@ import { CreateProfilePjDto } from '../dto/create-profile-pj.dto';
 import { UpdateProfilePfDto } from '../dto/update-profile-pf.dto';
 import { UpdateProfilePjDto } from '../dto/update-profile-pj.dto';
 import { UserService } from 'src/modules/user/services/user.service';
-import { User } from 'src/modules/user/entities/user.entity';
 import { UserProfileDto } from 'src/modules/user/dto/user-profile.dto';
 import { UserProfileDetailsDto } from 'src/modules/user/dto/user-profile-details.dto';
-import { In } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class ProfileService {
@@ -21,71 +20,76 @@ export class ProfileService {
     private readonly profileRepository: ProfileRepository,
     private readonly userRepository: UserRepository,
     @Inject(forwardRef(() => UserService))
-    private readonly userService: UserService
+    private readonly userService: UserService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createProfilePf(userId: number, createProfilePfDto: CreateProfilePfDto): Promise<ProfilePf> {
-    // Verificar se o usuário existe
     const user = await this.userRepository.findOne(userId);
     if (!user) {
       throw new NotFoundException('Usuário não encontrado');
     }
 
-    // Verificar se CPF já existe
     const existingProfilePf = await this.profileRepository.findByCpf(createProfilePfDto.cpf);
     if (existingProfilePf) {
       throw new ConflictException('CPF já cadastrado');
     }
 
-    // Criar perfil
-    const profile = await this.profileRepository.create({
-      userId,
-      profileType: ProfileType.PF,
-    });
+    return this.dataSource.transaction(async (manager) => {
+      const profileRepo = manager.getRepository(Profile);
+      const profilePfRepo = manager.getRepository(ProfilePf);
 
-    // Criar perfil PF
-    const profilePf = await this.profileRepository.createProfilePf({
-      profileId: profile.id,
-      firstName: createProfilePfDto.firstName,
-      lastName: createProfilePfDto.lastName,
-      cpf: createProfilePfDto.cpf,
-      birthDate: createProfilePfDto.birthDate,
-      gender: createProfilePfDto.gender,
-    });
+      const profile = profileRepo.create({
+        userId,
+        profileType: ProfileType.PF,
+      });
+      const savedProfile = await profileRepo.save(profile);
 
-    return profilePf;
+      const profilePf = profilePfRepo.create({
+        profileId: savedProfile.id,
+        firstName: createProfilePfDto.firstName,
+        lastName: createProfilePfDto.lastName,
+        cpf: createProfilePfDto.cpf,
+        birthDate: createProfilePfDto.birthDate,
+        gender: createProfilePfDto.gender,
+      });
+
+      return profilePfRepo.save(profilePf);
+    });
   }
 
   async createProfilePj(userId: number, createProfilePjDto: CreateProfilePjDto): Promise<ProfilePj> {
-    // Verificar se o usuário existe
     const user = await this.userRepository.findOne(userId);
     if (!user) {
       throw new NotFoundException('Usuário não encontrado');
     }
 
-    // Verificar se CNPJ já existe
     const existingProfilePj = await this.profileRepository.findByCnpj(createProfilePjDto.cnpj);
     if (existingProfilePj) {
       throw new ConflictException('CNPJ já cadastrado');
     }
 
-    // Criar perfil
-    const profile = await this.profileRepository.create({
-      userId,
-      profileType: ProfileType.PJ,
-    });
+    return this.dataSource.transaction(async (manager) => {
+      const profileRepo = manager.getRepository(Profile);
+      const profilePjRepo = manager.getRepository(ProfilePj);
 
-    // Criar perfil PJ
-    const profilePj = await this.profileRepository.createProfilePj({
-      profileId: profile.id,
-      companyName: createProfilePjDto.companyName,
-      cnpj: createProfilePjDto.cnpj,
-      tradingName: createProfilePjDto.tradingName,
-      stateRegistration: createProfilePjDto.stateRegistration,
-      municipalRegistration: createProfilePjDto.municipalRegistration,
-    });
+      const profile = profileRepo.create({
+        userId,
+        profileType: ProfileType.PJ,
+      });
+      const savedProfile = await profileRepo.save(profile);
 
-    return profilePj;
+      const profilePj = profilePjRepo.create({
+        profileId: savedProfile.id,
+        companyName: createProfilePjDto.companyName,
+        cnpj: createProfilePjDto.cnpj,
+        tradingName: createProfilePjDto.tradingName,
+        stateRegistration: createProfilePjDto.stateRegistration,
+        municipalRegistration: createProfilePjDto.municipalRegistration,
+      });
+
+      return profilePjRepo.save(profilePj);
+    });
   }
 
   async findUserWithProfile(userId: number): Promise<UserProfileDto> {

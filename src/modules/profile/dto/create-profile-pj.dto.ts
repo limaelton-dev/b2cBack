@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsCnpj } from 'src/common/validators/document.validator';
 
 export class CreateProfilePjDto {
   @IsNotEmpty({ message: 'Razão social é obrigatória' })
@@ -7,6 +8,7 @@ export class CreateProfilePjDto {
 
   @IsNotEmpty({ message: 'CNPJ é obrigatório' })
   @IsString({ message: 'CNPJ deve ser uma string' })
+  @IsCnpj({ message: 'CNPJ inválido' })
   cnpj: string;
 
   @IsOptional()

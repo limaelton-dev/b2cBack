@@ -1,5 +1,6 @@
-import { IsString, IsOptional, IsDate } from 'class-validator';
+import { IsString, IsOptional, IsDate, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsCpf } from 'src/common/validators/document.validator';
 
 export class UpdateProfilePfDto {
   @IsOptional()
@@ -12,6 +13,8 @@ export class UpdateProfilePfDto {
 
   @IsOptional()
   @IsString({ message: 'CPF deve ser uma string' })
+  @ValidateIf((o) => o.cpf !== undefined)
+  @IsCpf({ message: 'CPF inválido' })
   cpf?: string;
 
   @IsOptional()

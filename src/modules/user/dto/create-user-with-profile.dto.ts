@@ -12,15 +12,9 @@ export class CreateUserWithProfileDto extends CreateUserDto {
 
   @IsNotEmpty({ message: 'Dados do perfil são obrigatórios' })
   @ValidateNested({ message: 'Dados do perfil são inválidos' })
-  @Type(() => Object, {
-    discriminator: {
-      property: 'profileType',
-      subTypes: [
-        { value: CreateProfilePfDto, name: ProfileType.PF },
-        { value: CreateProfilePjDto, name: ProfileType.PJ }
-      ]
-    },
-    keepDiscriminatorProperty: false
+  @Type((opts) => {
+    const profileType = opts?.object?.profileType;
+    return profileType === ProfileType.PJ ? CreateProfilePjDto : CreateProfilePfDto;
   })
   profile: CreateProfilePfDto | CreateProfilePjDto;
 } 

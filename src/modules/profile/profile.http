@@ -38,7 +38,7 @@ Content-Type: {{contentType}}
 {
   "firstName": "Maria",
   "lastName": "Santos",
-  "cpf": "987.654.321-00",
+  "cpf": "111.444.777-35",
   "birthDate": "1985-10-20",
   "gender": "F"
 }
@@ -51,7 +51,7 @@ Content-Type: {{contentType}}
 {
   "firstName": "Carlos",
   "lastName": "Oliveira",
-  "cpf": "111.222.333-44",
+  "cpf": "529.982.247-25",
   "birthDate": "1992-03-08"
 }
 
@@ -62,7 +62,7 @@ Content-Type: {{contentType}}
 
 {
   "companyName": "Tech Solutions LTDA",
-  "cnpj": "98.765.432/0001-10",
+  "cnpj": "11.222.333/0001-81",
   "tradingName": "TechSol",
   "stateRegistration": "SP123456789",
   "municipalRegistration": "MUN987654"
@@ -75,7 +75,7 @@ Content-Type: {{contentType}}
 
 {
   "companyName": "Startup Inovadora SA",
-  "cnpj": "11.222.333/0001-44"
+  "cnpj": "11.444.777/0001-61"
 }
 
 ### ===========================================
@@ -114,7 +114,7 @@ Content-Type: {{contentType}}
 {
   "firstName": "Maria Editada",
   "lastName": "Santos Silva",
-  "cpf": "987.654.321-00",
+  "cpf": "111.444.777-35",
   "birthDate": "1985-10-21",
   "gender": "F"
 }
@@ -158,7 +158,7 @@ Content-Type: {{contentType}}
 
 {
   "companyName": "Tech Solutions Atualizada LTDA",
-  "cnpj": "98.765.432/0001-10",
+  "cnpj": "11.222.333/0001-81",
   "tradingName": "TechSol New",
   "stateRegistration": "SP999999999",
   "municipalRegistration": "MUN111111"
@@ -233,8 +233,32 @@ Content-Type: {{contentType}}
 {
   "firstName": "João",
   "lastName": "Silva",
-  "cpf": "123.456.789-00",
+  "cpf": "529.982.247-25",
   "birthDate": "data-invalida"
+}
+
+### Erro: CPF inválido
+### Erro esperado: "CPF inválido"
+POST {{profileUrl}}/pf
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "firstName": "João",
+  "lastName": "Silva",
+  "cpf": "111.111.111-11",
+  "birthDate": "1990-05-15"
+}
+
+### Erro: CNPJ inválido
+### Erro esperado: "CNPJ inválido"
+POST {{profileUrl}}/pj
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "companyName": "Empresa Teste",
+  "cnpj": "11.111.111/1111-11"
 }
 
 ### Erro: Acessar perfil de outro usuário (retorna 403 Forbidden)

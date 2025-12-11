@@ -89,10 +89,10 @@ Content-Type: {{contentType}}
 GET {{usersUrl}}/availability/email?value=email@teste.com
 
 ### Verificar disponibilidade de CPF
-### GET /api/users/availability/cpf?value=12345678901
+### GET /api/users/availability/cpf?value=52998224725
 ### Retorna: { available: boolean }
-### Validação: deve ter exatamente 11 dígitos numéricos
-GET {{usersUrl}}/availability/cpf?value=12345678901
+### Validação: deve ter exatamente 11 dígitos numéricos e ser um CPF válido
+GET {{usersUrl}}/availability/cpf?value=52998224725
 
 ### ===========================================
 ### EXEMPLOS DE ERROS
@@ -124,6 +124,9 @@ GET {{usersUrl}}/availability/cpf?value=123.456.789-01
 
 ### Erro 400: CPF com quantidade incorreta de dígitos
 GET {{usersUrl}}/availability/cpf?value=123456
+
+### Erro 400: CPF inválido (dígitos verificadores incorretos)
+GET {{usersUrl}}/availability/cpf?value=11111111111
 
 ### Erro 400: Email inválido na verificação de disponibilidade
 GET {{usersUrl}}/availability/email?value=email-invalido

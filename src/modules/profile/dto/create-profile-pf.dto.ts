@@ -1,5 +1,6 @@
 import { Validate, IsNotEmpty, IsString, IsOptional, IsDate, ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsCpf } from 'src/common/validators/document.validator';
 
 @ValidatorConstraint({ name: 'isValidBirthDate', async: false })
 export class IsValidBirthDate implements ValidatorConstraintInterface {
@@ -18,6 +19,7 @@ export class IsValidBirthDate implements ValidatorConstraintInterface {
     return 'Data de nascimento inválida. Deve ser uma data passada e a idade máxima é 120 anos';
   }
 }
+
 export class CreateProfilePfDto {
   @IsNotEmpty({ message: 'Nome é obrigatório' })
   @IsString({ message: 'Nome deve ser uma string' })
@@ -29,6 +31,7 @@ export class CreateProfilePfDto {
 
   @IsNotEmpty({ message: 'CPF é obrigatório' })
   @IsString({ message: 'CPF deve ser uma string' })
+  @IsCpf({ message: 'CPF inválido' })
   cpf: string;
 
   @IsNotEmpty({ message: 'Data de nascimento é obrigatória' })

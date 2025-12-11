@@ -26,7 +26,7 @@ POST {{authUrl}}/signin
 Content-Type: {{contentType}}
 
 {
-  "email": "pessoafisica@exemplo.com",
+  "email": "pessoa.fisica2@email.com",
   "password": "Senha123"
 }
 
@@ -49,30 +49,22 @@ Content-Type: {{contentType}}
 ### ===========================================
 ### CADASTRO (SIGN UP)
 ### ===========================================
-
-### Cadastro simples - Apenas usuário (sem perfil)
-POST {{authUrl}}/signup
-Content-Type: {{contentType}}
-
-{
-  "email": "novo.usuario@email.com",
-  "password": "Senha123"
-}
+### Obs: Todo cadastro deve incluir profileType (PF ou PJ) e dados do perfil
+### ===========================================
 
 ### Cadastro com Perfil Pessoa Física (PF)
 POST {{authUrl}}/signup
 Content-Type: {{contentType}}
 
 {
-  "email": "pessoa.fisica@email.com",
+  "email": "joao.silva@email.com",
   "password": "Senha123",
   "profileType": "PF",
   "profile": {
     "firstName": "João",
     "lastName": "Silva",
-    "cpf": "123.456.789-00",
-    "birthDate": "1990-05-15",
-    "gender": "M"
+    "cpf": "529.982.247-25",
+    "birthDate": "1990-05-15"
   }
 }
 
@@ -86,7 +78,7 @@ Content-Type: {{contentType}}
   "profileType": "PJ",
   "profile": {
     "companyName": "Empresa Exemplo LTDA",
-    "cnpj": "12.345.678/0001-90",
+    "cnpj": "11.222.333/0001-81",
     "tradingName": "Empresa Exemplo",
     "stateRegistration": "123456789",
     "municipalRegistration": "987654321"
@@ -144,7 +136,29 @@ Content-Type: {{contentType}}
   "password": "SenhaSemNumero"
 }
 
-### Cadastro PF sem campos obrigatórios
+### Cadastro sem profileType (obrigatório)
+### Erro esperado: "Tipo de perfil é obrigatório"
+POST {{authUrl}}/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "teste@email.com",
+  "password": "Senha123"
+}
+
+### Cadastro sem dados do perfil (obrigatório)
+### Erro esperado: "Dados do perfil são obrigatórios"
+POST {{authUrl}}/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "teste@email.com",
+  "password": "Senha123",
+  "profileType": "PF"
+}
+
+### Cadastro PF sem campos obrigatórios do perfil
+### Erro esperado: validação dos campos lastName, cpf, birthDate
 POST {{authUrl}}/signup
 Content-Type: {{contentType}}
 
@@ -154,5 +168,37 @@ Content-Type: {{contentType}}
   "profileType": "PF",
   "profile": {
     "firstName": "João"
+  }
+}
+
+### Cadastro PF com CPF inválido
+### Erro esperado: "CPF inválido"
+POST {{authUrl}}/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "teste@email.com",
+  "password": "Senha123",
+  "profileType": "PF",
+  "profile": {
+    "firstName": "João",
+    "lastName": "Silva",
+    "cpf": "111.111.111-11",
+    "birthDate": "1990-05-15"
+  }
+}
+
+### Cadastro PJ com CNPJ inválido
+### Erro esperado: "CNPJ inválido"
+POST {{authUrl}}/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "empresa@email.com",
+  "password": "Senha123",
+  "profileType": "PJ",
+  "profile": {
+    "companyName": "Empresa Teste",
+    "cnpj": "11.111.111/1111-11"
   }
 }

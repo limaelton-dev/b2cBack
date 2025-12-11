@@ -10,6 +10,22 @@ async function bootstrap() {
   // Configura interceptor global para serialização (class-transformer)
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   
+  // Função recursiva para extrair erros de validação (incluindo aninhados)
+  const extractValidationErrors = (errors: ValidationError[]): string[] => {
+    const messages: string[] = [];
+    
+    for (const error of errors) {
+      if (error.constraints) {
+        messages.push(...Object.values(error.constraints));
+      }
+      if (error.children && error.children.length > 0) {
+        messages.push(...extractValidationErrors(error.children));
+      }
+    }
+    
+    return messages;
+  };
+
   // Configura pipes de validação globais
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
@@ -20,11 +36,7 @@ async function bootstrap() {
       exposeDefaultValues: true,
     },
     exceptionFactory: (validationErrors: ValidationError[] = []) => {
-      // Extrai mensagens de erro de forma mais amigável
-      const errors = validationErrors.map(error => {
-        return Object.values(error.constraints || {});
-      }).flat();
-
+      const errors = extractValidationErrors(validationErrors);
       return new BadRequestException(errors);
     },
   }));
