@@ -130,7 +130,7 @@ export class UserService {
         id: profile.id,
         firstName: profile.profilePf.firstName,
         lastName: profile.profilePf.lastName,
-        cpf: this.maskCpf(profile.profilePf.cpf),
+        cpf: profile.profilePf.cpf,
         birthDate: profile.profilePf.birthDate,
         gender: profile.profilePf.gender,
       };
@@ -140,7 +140,7 @@ export class UserService {
       userProfile.profile = {
         id: profile.id,
         companyName: profile.profilePj.companyName,
-        cnpj: this.maskCnpj(profile.profilePj.cnpj),
+        cnpj: profile.profilePj.cnpj,
         tradingName: profile.profilePj.tradingName,
         stateRegistration: profile.profilePj.stateRegistration,
         municipalRegistration: profile.profilePj.municipalRegistration,
@@ -182,7 +182,7 @@ export class UserService {
         id: profile.id,
         firstName: profile.profilePf.firstName,
         lastName: profile.profilePf.lastName,
-        cpf: this.maskCpf(profile.profilePf.cpf),
+        cpf: profile.profilePf.cpf,
         birthDate: profile.profilePf.birthDate,
         gender: profile.profilePf.gender,
       };
@@ -192,7 +192,7 @@ export class UserService {
       userDetails.profile = {
         id: profile.id,
         companyName: profile.profilePj.companyName,
-        cnpj: this.maskCnpj(profile.profilePj.cnpj),
+        cnpj: profile.profilePj.cnpj,
         tradingName: profile.profilePj.tradingName,
         stateRegistration: profile.profilePj.stateRegistration,
         municipalRegistration: profile.profilePj.municipalRegistration,
@@ -238,21 +238,5 @@ export class UserService {
     return plainToClass(UserDetailsDto, userDetails, { 
       excludeExtraneousValues: false 
     });
-  }
-
-  private maskCpf(cpf: string): string {
-    if (!cpf || cpf.length < 11) {
-      return cpf;
-    }
-    const cleaned = cpf.replace(/\D/g, '');
-    return `***.${cleaned.substring(3, 6)}.${cleaned.substring(6, 9)}-**`;
-  }
-
-  private maskCnpj(cnpj: string): string {
-    if (!cnpj || cnpj.length < 14) {
-      return cnpj;
-    }
-    const cleaned = cnpj.replace(/\D/g, '');
-    return `**.${cleaned.substring(2, 5)}.${cleaned.substring(5, 8)}/****-**`;
   }
 }
