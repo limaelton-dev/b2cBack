@@ -21,7 +21,7 @@ Content-Type: {{contentType}}
 
 {
   "email": "pessoafisica@exemplo.com",
-  "password": "senha123"
+  "password": "Senha123"
 }
 
 ### Token salvo automaticamente da resposta do login
@@ -63,7 +63,7 @@ Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
 
 {
-  "password": "novaSenha123456"
+  "password": "NovaSenha123"
 }
 
 ### Atualizar email e senha do usuário
@@ -73,7 +73,7 @@ Content-Type: {{contentType}}
 
 {
   "email": "outro.email@email.com",
-  "password": "outraSenha123456"
+  "password": "OutraSenha123"
 }
 
 ### ===========================================

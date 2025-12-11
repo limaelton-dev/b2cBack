@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { RouterModule } from '@nestjs/core';
 import { UserModule } from './modules/user/user.module';
+import { UsersAvailabilityModule } from './modules/user/users-availability.module';
 import { AddressModule } from './modules/address/address.module';
 import { PhoneModule } from './modules/phone/phone.module';
 import { CardModule } from './modules/card/card.module';
@@ -24,6 +25,7 @@ import { BrandsModule } from './modules/brands/brands.module';
     }),
     DatabaseModule,
     UserModule,
+    UsersAvailabilityModule,
     AddressModule,
     PhoneModule,
     CardModule,
