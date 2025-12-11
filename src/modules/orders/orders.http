@@ -1,0 +1,468 @@
+### ===========================================
+### MÓDULO DE PEDIDOS (ORDERS)
+### ===========================================
+### Base URL: http://localhost:3000/api/orders
+### Nota: Autenticação JWT ainda não implementada
+### ===========================================
+
+### Variáveis de ambiente
+@baseUrl = http://localhost:3000/api
+@ordersUrl = {{baseUrl}}/orders
+@contentType = application/json
+
+### ===========================================
+### AUTENTICAÇÃO - Execute primeiro para obter o token
+### ===========================================
+
+# @name login
+POST {{baseUrl}}/auth/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "pessoafisica@exemplo.com",
+  "password": "senha123"
+}
+
+### Token salvo automaticamente da resposta do login
+@token = {{login.response.body.access_token}}
+
+### ===========================================
+### CHECKOUT - Criar novo pedido
+### ===========================================
+
+### Checkout completo com cartão de crédito (parcelado)
+POST {{ordersUrl}}/checkout
+Content-Type: {{contentType}}
+
+{
+  "items": [
+    {
+      "productId": 73414029,
+      "skuId": 30494035,
+      "quantity": 2
+    },
+    {
+      "productId": 73414031,
+      "skuId": 30494036,
+      "quantity": 1
+    }
+  ],
+  "customer": {
+    "name": "João da Silva",
+    "email": "joao.silva@exemplo.com",
+    "phone": "1133334444",
+    "cellPhone": "11999998888",
+    "document": {
+      "documentType": "CPF",
+      "documentNumber": "12345678900"
+    },
+    "shippingAddress": {
+      "state": "SP",
+      "city": "São Paulo",
+      "zipCode": "01310100",
+      "neighborhood": "Bela Vista",
+      "address": "Av. Paulista",
+      "number": "1000",
+      "complement": "Apto 123",
+      "reference": "Próximo ao metrô"
+    },
+    "billingAddress": {
+      "state": "SP",
+      "city": "São Paulo",
+      "zipCode": "01310100",
+      "neighborhood": "Bela Vista",
+      "address": "Av. Paulista",
+      "number": "1000",
+      "complement": "Apto 123",
+      "reference": ""
+    }
+  },
+  "payment": {
+    "paymentMethod": "CREDIT_CARD",
+    "installments": 3
+  },
+  "marketplace": "ECOMMERCE"
+}
+
+### Checkout com PIX (sem parcelamento)
+POST {{ordersUrl}}/checkout
+Content-Type: {{contentType}}
+
+{
+  "items": [
+    {
+      "productId": 73414029,
+      "skuId": 30494035,
+      "quantity": 1
+    }
+  ],
+  "customer": {
+    "name": "Maria Oliveira",
+    "email": "maria.oliveira@exemplo.com",
+    "cellPhone": "11988887777",
+    "document": {
+      "documentType": "CPF",
+      "documentNumber": "98765432100"
+    },
+    "shippingAddress": {
+      "state": "RJ",
+      "city": "Rio de Janeiro",
+      "zipCode": "20040020",
+      "neighborhood": "Centro",
+      "address": "Av. Rio Branco",
+      "number": "500"
+    }
+  },
+  "payment": {
+    "paymentMethod": "PIX"
+  }
+}
+
+### Checkout com Boleto
+POST {{ordersUrl}}/checkout
+Content-Type: {{contentType}}
+
+{
+  "items": [
+    {
+      "productId": 73414031,
+      "skuId": 30494036,
+      "quantity": 3
+    }
+  ],
+  "customer": {
+    "name": "Carlos Souza",
+    "email": "carlos.souza@exemplo.com",
+    "phone": "2133332222",
+    "document": {
+      "documentType": "CNPJ",
+      "documentNumber": "12345678000190"
+    },
+    "shippingAddress": {
+      "state": "MG",
+      "city": "Belo Horizonte",
+      "zipCode": "30130000",
+      "neighborhood": "Savassi",
+      "address": "Rua da Bahia",
+      "number": "200",
+      "complement": "Sala 101"
+    }
+  },
+  "payment": {
+    "paymentMethod": "BOLETO"
+  }
+}
+
+### Checkout mínimo (apenas campos obrigatórios)
+POST {{ordersUrl}}/checkout
+Content-Type: {{contentType}}
+
+{
+  "items": [
+    {
+      "productId": 1,
+      "skuId": 101,
+      "quantity": 1
+    }
+  ],
+  "customer": {
+    "name": "Cliente Teste",
+    "email": "teste@exemplo.com",
+    "shippingAddress": {
+      "state": "SP",
+      "city": "São Paulo",
+      "zipCode": "01001000",
+      "neighborhood": "Sé",
+      "address": "Praça da Sé"
+    }
+  },
+  "payment": {
+    "paymentMethod": "PIX"
+  }
+}
+
+### ===========================================
+### LISTAR PEDIDOS
+### ===========================================
+
+### Listar todos os pedidos do perfil
+GET {{ordersUrl}}
+
+### Listar pedidos com filtro por status - PENDENTE
+GET {{ordersUrl}}?status=PENDING
+
+### Listar pedidos com filtro por status - AGUARDANDO PAGAMENTO
+GET {{ordersUrl}}?status=WAITING_PAYMENT
+
+### Listar pedidos com filtro por status - PAGO AGUARDANDO ENVIO
+GET {{ordersUrl}}?status=PAID_WAITING_SHIP
+
+### Listar pedidos com filtro por status - EM TRÂNSITO
+GET {{ordersUrl}}?status=IN_TRANSIT
+
+### Listar pedidos com filtro por status - CONCLUÍDO
+GET {{ordersUrl}}?status=CONCLUDED
+
+### Listar pedidos com filtro por status - CANCELADO
+GET {{ordersUrl}}?status=CANCELED
+
+### Listar pedidos com filtro por marketplace
+GET {{ordersUrl}}?marketplace=ECOMMERCE
+
+### Listar pedidos com múltiplos filtros
+GET {{ordersUrl}}?status=CONCLUDED&marketplace=ECOMMERCE
+
+### ===========================================
+### BUSCAR DETALHES DO PEDIDO
+### ===========================================
+
+### Buscar detalhes do pedido por ID (substitua 1 pelo ID real)
+GET {{ordersUrl}}/1
+
+### Buscar detalhes do pedido 2
+GET {{ordersUrl}}/2
+
+### Buscar detalhes do pedido 10
+GET {{ordersUrl}}/10
+
+### ===========================================
+### SINCRONIZAÇÃO COM ANYMARKET (ADMIN)
+### ===========================================
+
+### Sincronizar pedidos do AnyMarket (feeds)
+### Nota: Este endpoint deve ser protegido para administradores
+POST {{ordersUrl}}/sync
+
+### ===========================================
+### EXEMPLOS DE RESPOSTAS ESPERADAS
+### ===========================================
+
+### Resposta esperada para GET /orders (lista):
+# [
+#   {
+#     "id": 1,
+#     "status": "PAID_WAITING_SHIP",
+#     "marketplace": "ECOMMERCE",
+#     "grandTotal": "299.70",
+#     "itemsTotal": "279.70",
+#     "shippingTotal": "20.00",
+#     "discountTotal": "0.00",
+#     "createdAt": "2025-12-09T10:00:00.000Z",
+#     "updatedAt": "2025-12-09T10:30:00.000Z",
+#     "items": [
+#       {
+#         "id": 1,
+#         "productId": 73414029,
+#         "skuId": 30494035,
+#         "title": "Camiseta Exemplo - P Vermelho",
+#         "quantity": 2,
+#         "unitPrice": "99.90",
+#         "total": "199.80"
+#       },
+#       {
+#         "id": 2,
+#         "productId": 73414031,
+#         "skuId": 30494036,
+#         "title": "Calça Jeans - M Azul",
+#         "quantity": 1,
+#         "unitPrice": "79.90",
+#         "total": "79.90"
+#       }
+#     ]
+#   }
+# ]
+
+### Resposta esperada para GET /orders/:id (detalhes):
+# {
+#   "id": 1,
+#   "profileId": 42,
+#   "anymarketOrderId": 123456,
+#   "partnerOrderId": "ECOM-42-1702123456789",
+#   "marketplace": "ECOMMERCE",
+#   "marketplaceOrderId": null,
+#   "status": "PAID_WAITING_SHIP",
+#   "itemsTotal": "279.70",
+#   "shippingTotal": "20.00",
+#   "discountTotal": "0.00",
+#   "grandTotal": "299.70",
+#   "shipping": {
+#     "shippingCarrier": "Correios",
+#     "shippingService": "SEDEX",
+#     "shippingEstimatedDeliveryDate": "2025-12-15T00:00:00.000Z",
+#     "shippingTrackingCode": null
+#   },
+#   "payment": {
+#     "paymentMethod": "CREDIT_CARD",
+#     "installments": 3
+#   },
+#   "items": [
+#     {
+#       "id": 1,
+#       "productId": 73414029,
+#       "skuId": 30494035,
+#       "title": "Camiseta Exemplo - P Vermelho",
+#       "quantity": 2,
+#       "unitPrice": "99.90",
+#       "total": "199.80"
+#     }
+#   ],
+#   "createdAt": "2025-12-09T10:00:00.000Z",
+#   "updatedAt": "2025-12-09T10:30:00.000Z"
+# }
+
+### ===========================================
+### EXEMPLOS DE ERROS
+### ===========================================
+
+### Erro: Checkout sem itens
+POST {{ordersUrl}}/checkout
+Content-Type: {{contentType}}
+
+{
+  "items": [],
+  "customer": {
+    "name": "Teste",
+    "email": "teste@exemplo.com",
+    "shippingAddress": {
+      "state": "SP",
+      "city": "São Paulo",
+      "zipCode": "01001000",
+      "neighborhood": "Centro",
+      "address": "Rua Teste"
+    }
+  },
+  "payment": {
+    "paymentMethod": "PIX"
+  }
+}
+
+### Erro: Checkout sem dados do cliente
+POST {{ordersUrl}}/checkout
+Content-Type: {{contentType}}
+
+{
+  "items": [
+    {
+      "productId": 1,
+      "skuId": 101,
+      "quantity": 1
+    }
+  ],
+  "payment": {
+    "paymentMethod": "PIX"
+  }
+}
+
+### Erro: Checkout com método de pagamento inválido
+POST {{ordersUrl}}/checkout
+Content-Type: {{contentType}}
+
+{
+  "items": [
+    {
+      "productId": 1,
+      "skuId": 101,
+      "quantity": 1
+    }
+  ],
+  "customer": {
+    "name": "Teste",
+    "email": "teste@exemplo.com",
+    "shippingAddress": {
+      "state": "SP",
+      "city": "São Paulo",
+      "zipCode": "01001000",
+      "neighborhood": "Centro",
+      "address": "Rua Teste"
+    }
+  },
+  "payment": {
+    "paymentMethod": "DINHEIRO"
+  }
+}
+
+### Erro: Checkout com quantidade inválida (zero)
+POST {{ordersUrl}}/checkout
+Content-Type: {{contentType}}
+
+{
+  "items": [
+    {
+      "productId": 1,
+      "skuId": 101,
+      "quantity": 0
+    }
+  ],
+  "customer": {
+    "name": "Teste",
+    "email": "teste@exemplo.com",
+    "shippingAddress": {
+      "state": "SP",
+      "city": "São Paulo",
+      "zipCode": "01001000",
+      "neighborhood": "Centro",
+      "address": "Rua Teste"
+    }
+  },
+  "payment": {
+    "paymentMethod": "PIX"
+  }
+}
+
+### Erro: Checkout com email inválido
+POST {{ordersUrl}}/checkout
+Content-Type: {{contentType}}
+
+{
+  "items": [
+    {
+      "productId": 1,
+      "skuId": 101,
+      "quantity": 1
+    }
+  ],
+  "customer": {
+    "name": "Teste",
+    "email": "email-invalido",
+    "shippingAddress": {
+      "state": "SP",
+      "city": "São Paulo",
+      "zipCode": "01001000",
+      "neighborhood": "Centro",
+      "address": "Rua Teste"
+    }
+  },
+  "payment": {
+    "paymentMethod": "PIX"
+  }
+}
+
+### Erro: Buscar pedido inexistente
+GET {{ordersUrl}}/999999
+
+### Erro: ID de pedido inválido (não numérico)
+GET {{ordersUrl}}/abc
+
+### ===========================================
+### STATUS DO PEDIDO - REFERÊNCIA
+### ===========================================
+### INCOMPLETE       - Pedido incompleto
+### PENDING          - Pendente
+### DELIVERY_ISSUE   - Problema na entrega
+### WAITING_PAYMENT  - Aguardando pagamento
+### PAID_WAITING_SHIP - Pago, aguardando envio
+### INVOICED         - Faturado
+### PAID_WAITING_DELIVERY - Pago, aguardando entrega
+### IN_TRANSIT       - Em trânsito
+### CONCLUDED        - Concluído
+### CANCELED         - Cancelado
+### ===========================================
+
+### ===========================================
+### MÉTODOS DE PAGAMENTO SUPORTADOS
+### ===========================================
+### CREDIT_CARD - Cartão de crédito (suporta parcelamento)
+### PIX         - PIX (pagamento instantâneo)
+### BOLETO      - Boleto bancário
+### ===========================================
+

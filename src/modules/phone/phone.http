@@ -1,0 +1,166 @@
+### ===========================================
+### MÓDULO DE TELEFONE (PHONE)
+### ===========================================
+### Base URL: http://localhost:3000/api/user/profile/phone
+### Todas as rotas requerem autenticação JWT
+### ===========================================
+
+### Variáveis de ambiente
+@baseUrl = http://localhost:3000/api
+@phoneUrl = {{baseUrl}}/user/profile/phone
+@contentType = application/json
+
+### ===========================================
+### AUTENTICAÇÃO - Execute primeiro para obter o token
+### ===========================================
+
+# @name login
+POST {{baseUrl}}/auth/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "pessoafisica@exemplo.com",
+  "password": "senha123"
+}
+
+### Token salvo automaticamente da resposta do login
+@token = {{login.response.body.access_token}}
+
+### ===========================================
+### CRIAR TELEFONE
+### ===========================================
+
+### Criar novo telefone
+### POST /api/user/profile/phone
+### Body: { ddd: string, number: string, isDefault?: boolean, verified?: boolean }
+### Requer: Token JWT
+POST {{phoneUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "ddd": "11",
+  "number": "999887766",
+  "isDefault": true
+}
+
+### Criar telefone secundário
+POST {{phoneUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "ddd": "21",
+  "number": "988776655",
+  "isDefault": false
+}
+
+### ===========================================
+### LISTAR TELEFONES
+### ===========================================
+
+### Listar todos os telefones do usuário
+### GET /api/user/profile/phone
+### Retorna: Phone[]
+### Requer: Token JWT
+GET {{phoneUrl}}
+Authorization: Bearer {{token}}
+
+### ===========================================
+### BUSCAR TELEFONE PADRÃO
+### ===========================================
+
+### Buscar telefone padrão do usuário
+### GET /api/user/profile/phone/default
+### Retorna: Phone
+### Requer: Token JWT
+GET {{phoneUrl}}/default
+Authorization: Bearer {{token}}
+
+### ===========================================
+### BUSCAR TELEFONE POR ID
+### ===========================================
+
+### Buscar telefone específico
+### GET /api/user/profile/phone/:id
+### Retorna: Phone
+### Requer: Token JWT
+GET {{phoneUrl}}/1
+Authorization: Bearer {{token}}
+
+### ===========================================
+### ATUALIZAR TELEFONE
+### ===========================================
+
+### Atualizar telefone existente
+### PATCH /api/user/profile/phone/:id
+### Body: { ddd?: string, number?: string, isDefault?: boolean, verified?: boolean }
+### Requer: Token JWT
+PATCH {{phoneUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "ddd": "31",
+  "number": "977665544"
+}
+
+### Definir telefone como padrão
+PATCH {{phoneUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "isDefault": true
+}
+
+### ===========================================
+### VERIFICAR TELEFONE
+### ===========================================
+
+### Marcar telefone como verificado
+### PATCH /api/user/profile/phone/:id/verify
+### Requer: Token JWT
+PATCH {{phoneUrl}}/1/verify
+Authorization: Bearer {{token}}
+
+### ===========================================
+### DELETAR TELEFONE
+### ===========================================
+
+### Remover telefone
+### DELETE /api/user/profile/phone/:id
+### Retorna: 204 No Content
+### Requer: Token JWT
+DELETE {{phoneUrl}}/1
+Authorization: Bearer {{token}}
+
+### ===========================================
+### EXEMPLOS DE ERROS
+### ===========================================
+
+### Erro 401: Requisição sem token
+GET {{phoneUrl}}
+
+### Erro 400: DDD não informado
+POST {{phoneUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "number": "999887766"
+}
+
+### Erro 400: Número não informado
+POST {{phoneUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "ddd": "11"
+}
+
+### Erro 403: Telefone não pertence ao perfil do usuário
+GET {{phoneUrl}}/9999
+Authorization: Bearer {{token}}
+

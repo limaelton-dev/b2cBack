@@ -6,6 +6,7 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 
 import { OrdersService } from '../services/orders.service';
@@ -18,7 +19,8 @@ import { OrdersFilters } from '../interfaces/orders-filters.interface';
 
 // TODO: integrar com seu sistema de autenticação.
 // Exemplo:
-// import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
 // import { GetUser } from '../../auth/decorators/get-user.decorator';
 // import { UseGuards } from '@nestjs/common';
 
@@ -30,25 +32,21 @@ export class OrdersController {
   ) {}
 
   @Post('checkout')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async checkout(
     @Body() checkoutDto: CheckoutDto,
-    // @GetUser('profileId') profileId: number,
+    @GetUser('profileId') profileId: number,
   ): Promise<OrderDetailDto> {
-    // TODO: usar profileId real da autenticação
-    const profileId = 0;
     return this.ordersService.checkout(profileId, checkoutDto);
   }
 
   @Get()
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async findOrdersForProfile(
-    // @GetUser('profileId') profileId: number,
+    @GetUser('profileId') profileId: number,
     @Query('status') status?: string,
     @Query('marketplace') marketplace?: string,
   ): Promise<OrderSummaryDto[]> {
-    const profileId = 0;
-
     const filters: OrdersFilters = {
       status: status as any,
       marketplace: marketplace,
@@ -58,15 +56,15 @@ export class OrdersController {
   }
 
   @Get(':id')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async findOrderDetailForProfile(
     @Param('id', ParseIntPipe) orderId: number,
-    // @GetUser('profileId') profileId: number,
+    @GetUser('profileId') profileId: number,
   ): Promise<OrderDetailDto> {
-    const profileId = 0;
     return this.ordersService.findOrderDetailForProfile(profileId, orderId);
   }
 
+  
   @Post('sync')
   async synchronizeOrdersFromAnymarketFeeds(): Promise<void> {
     // Endpoint administrativo para disparar a sincronização manualmente.

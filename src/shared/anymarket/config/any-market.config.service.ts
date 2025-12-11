@@ -21,7 +21,8 @@ export class AnyMarketConfigService {
 
   getConfig(): AnyMarketConfig {
     return {
-      baseUrl: this.configService.get<string>('ANYMARKET_BASE_URL')?.replace(/\/$/, '') || 'https://api.anymarket.com.br',
+      // baseUrl: this.configService.get<string>('ANYMARKET_BASE_URL')?.replace(/\/$/, '') || 'https://api.anymarket.com.br',
+      baseUrl: this.configService.get<string>('ANYMARKET_BASE_URL')?.replace(/\/$/, '') || 'https://sandbox-api.anymarket.com.br',
       apiPrefix: '/v2',
       gumgaToken: this.configService.get<string>('ANYMARKET_GUMGA_TOKEN')!,
       platform: this.configService.get<string>('ANYMARKET_PLATFORM')!,

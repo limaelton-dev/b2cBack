@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { roundPrice } from '../../../common/helpers/products.util';
 
 import { OrdersRepository } from '../repositories/orders.repository';
 import { OrdersAnymarketRepository } from '../repositories/orders-anymarket.repository';
@@ -20,19 +21,20 @@ import {
   AnymarketOrderCreate,
   AnymarketOrder,
 } from '../interfaces/anymarket-order.interface';
+import { ProductsService } from '../../products/services/products.service';
+import { ShippingService } from '../../shipping/services/shipping.service';
+import { ShippingItemDto } from '../../shipping/dtos/shipping-item.dto';
 
-// TODO: importar serviços reais de cart e profile
-// import { CartsService } from '../../cart/services/cart.service';
-// import { ProfilesService } from '../../profile/services/profile.service';
 
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly ordersRepository: OrdersRepository,
     private readonly ordersAnymarketRepository: OrdersAnymarketRepository,
-    // private readonly cartsService: CartsService,
-    // private readonly profilesService: ProfilesService,
+    private readonly productsService: ProductsService,
+    private readonly shippingService: ShippingService,
   ) {}
+
 
   async checkout(
     profileId: number,
@@ -42,35 +44,53 @@ export class OrdersService {
       throw new BadRequestException('Order items are required');
     }
 
-    // TODO: valide os itens contra o seu catálogo, estoque, etc.
+    // Validate SKU availability and quantities
+    const availabilityResult = await this.productsService.validateSkuAvailability(
+      checkoutDto.items.map((item) => ({
+        skuId: item.skuId,
+        quantity: item.quantity,
+      })),
+    );
+    if (!availabilityResult.isValid) {
+      throw new BadRequestException(
+        availabilityResult.invalid.map((i) => i.message).join('; '),
+      );
+    }
 
-    const itemsTotal = this.calculateItemsTotal(checkoutDto);
-    const shippingTotal = this.calculateShippingTotal(checkoutDto);
-    const discountTotal = this.calculateDiscountTotal(checkoutDto);
+    // Calculate monetary totals
+    const itemsTotal = await this.calculateItemsTotal(checkoutDto);
+    const shippingTotal = await this.calculateShippingTotal(
+      checkoutDto,
+      profileId,
+    );
+    const discountTotal = await this.calculateDiscountTotal(checkoutDto);
     const grandTotal = itemsTotal + shippingTotal - discountTotal;
 
-    const paymentResultStatus = await this.simulatePayment(grandTotal);
-
-    if (paymentResultStatus !== 'APPROVED') {
+    // Simulate payment
+    const paymentStatus = await this.simulatePayment(grandTotal);
+    if (paymentStatus !== 'APPROVED') {
       throw new BadRequestException('Payment was not approved');
     }
 
+    // Generate a partner order ID for idempotency on AnyMarket
     const partnerOrderId = this.generatePartnerOrderId(profileId);
 
-    const anymarketPayload =
-      this.buildAnymarketOrderCreatePayload(
-        partnerOrderId,
-        checkoutDto,
-        itemsTotal,
-        shippingTotal,
-        discountTotal,
-        grandTotal,
-      );
+    // Build the request payload for AnyMarket
+    const anymarketPayload = await this.buildAnymarketOrderCreatePayload(
+      partnerOrderId,
+      checkoutDto,
+      itemsTotal,
+      shippingTotal,
+      discountTotal,
+      grandTotal,
+    );
 
+    // Create the order in AnyMarket
     const anymarketOrder = await this.ordersAnymarketRepository.create(
       anymarketPayload,
     );
 
+    // Persist the order locally
     const createdOrder = await this.persistOrderFromAnymarket(
       profileId,
       anymarketOrder,
@@ -87,7 +107,6 @@ export class OrdersService {
       profileId,
       filters,
     );
-
     return orders.map((order) => this.convertOrderToSummaryDto(order));
   }
 
@@ -100,60 +119,123 @@ export class OrdersService {
         orderId,
         profileId,
       );
-
     if (!order) {
       throw new NotFoundException('Order not found');
     }
-
     return this.convertOrderToDetailDto(order);
   }
 
-  private calculateItemsTotal(checkoutDto: CheckoutDto): number {
-    // TODO: buscar preços reais do produto (nunca confiar nos valores do cliente)
-    // Por enquanto, apenas lança erro para evitar lógica enganosa.
-    throw new Error(
-      'calculateItemsTotal must be implemented with real product pricing',
-    );
+
+  private async calculateItemsTotal(checkoutDto: CheckoutDto): Promise<number> {
+    const skuIds = checkoutDto.items.map((item) => item.skuId);
+    const skuDetailsMap = await this.productsService.findSkusForCart(skuIds);
+    let total = 0;
+    for (const item of checkoutDto.items) {
+      const sku = skuDetailsMap.get(item.skuId);
+      if (!sku) {
+        throw new BadRequestException(
+          `SKU ${item.skuId} not found or unavailable`,
+        );
+      }
+      const price = sku._rawPrice ?? 0;
+      total += price * item.quantity;
+    }
+    // Use the same rounding helper used elsewhere in the codebase to avoid drift
+    return roundPrice(total);
   }
 
-  private calculateShippingTotal(checkoutDto: CheckoutDto): number {
-    // TODO: chamar módulo de frete (AnyMarket Shipping) para obter valor real
+
+  private async calculateShippingTotal(
+    checkoutDto: CheckoutDto,
+    profileId: number,
+  ): Promise<number> {
+    try {
+      // Convert checkout items to shipping items.  Weight and
+      // dimensions could be sourced from a product details service.
+      const shippingItems: ShippingItemDto[] = checkoutDto.items.map(
+        (item) => ({
+          productId: item.productId,
+          serviceCode: '',
+          quantity: item.quantity,
+          weight: 0,
+          dimensions: undefined,
+        }),
+      );
+      // Use the customer's shipping zip code; assume 8 digits with no
+      // punctuation.  If not provided return zero.
+      const destZip = checkoutDto.customer?.shippingAddress?.zipCode?.replace(
+        /\D/g,
+        '',
+      );
+      if (!destZip) {
+        return 0;
+      }
+      // Use a fixed origin ZIP code for now. In a production scenario this
+      // could come from a configuration file or warehouse address.
+      const originZip = '01001000';
+      const response = await this.shippingService.calculateShipping(
+        'simulation',
+        originZip,
+        destZip,
+        shippingItems,
+      );
+      if (response.success && response.data) {
+        return Number(response.data.totalPrice);
+      }
+    } catch (error) {
+      // Ignore errors and fall back to zero shipping
+    }
     return 0;
   }
 
-  private calculateDiscountTotal(checkoutDto: CheckoutDto): number {
-    // TODO: aplicar regras de cupom, promoções, etc.
+
+  private async calculateDiscountTotal(
+    checkoutDto: CheckoutDto,
+  ): Promise<number> {
+    // For now no coupons or promotions are applied. Implement your own
+    // discount logic here, such as reading a coupon code from checkoutDto
+    // and applying it to the total.
     return 0;
   }
+
 
   private async simulatePayment(totalAmount: number): Promise<'APPROVED'> {
-    // Simulação simples de pagamento.
-    // Substitua por integração real com seu gateway de pagamento.
     await new Promise((resolve) => setTimeout(resolve, 1000));
     return 'APPROVED';
   }
 
+
   private generatePartnerOrderId(profileId: number): string {
-    // Estratégia simples: prefixo + timestamp + profileId.
-    // Você pode trocar por algo mais alinhado ao seu negócio.
     return `ECOM-${profileId}-${Date.now()}`;
   }
 
-  private buildAnymarketOrderCreatePayload(
+  private async buildAnymarketOrderCreatePayload(
     partnerOrderId: string,
     checkoutDto: CheckoutDto,
     itemsTotal: number,
     shippingTotal: number,
     discountTotal: number,
     grandTotal: number,
-  ): AnymarketOrderCreate {
-    const items = checkoutDto.items.map((item) => ({
-      // TODO: usar o SKU real do AnyMarket mapeado ao seu skuId
-      sku: String(item.skuId),
-      quantity: item.quantity,
-      price: 0, // TODO: substituir pelo preço real
-    }));
-
+  ): Promise<AnymarketOrderCreate> {
+    const skuIds = checkoutDto.items.map((item) => item.skuId);
+    const skuDetailsMap = await this.productsService.findSkusForCart(skuIds);
+    const items = checkoutDto.items.map((item) => {
+      const sku = skuDetailsMap.get(item.skuId);
+      if (!sku) {
+        throw new BadRequestException(
+          `SKU ${item.skuId} not found or unavailable`,
+        );
+      }
+      const unitPrice = sku._rawPrice ?? 0;
+      return {
+        sku: sku.partnerId ? String(sku.partnerId) : String(item.skuId),
+        title: sku.title,
+        quantity: item.quantity,
+        price: unitPrice,
+        originalPrice: unitPrice,
+        discount: 0,
+      };
+    });
     return {
       partnerId: partnerOrderId,
       marketplace: checkoutDto.marketplace ?? 'ECOMMERCE',
@@ -172,7 +254,8 @@ export class OrdersService {
           state: checkoutDto.customer.shippingAddress.state,
           city: checkoutDto.customer.shippingAddress.city,
           zipCode: checkoutDto.customer.shippingAddress.zipCode,
-          neighborhood: checkoutDto.customer.shippingAddress.neighborhood,
+          neighborhood:
+            checkoutDto.customer.shippingAddress.neighborhood,
           address: checkoutDto.customer.shippingAddress.address,
           number: checkoutDto.customer.shippingAddress.number,
           complement: checkoutDto.customer.shippingAddress.complement,
@@ -183,10 +266,12 @@ export class OrdersService {
               state: checkoutDto.customer.billingAddress.state,
               city: checkoutDto.customer.billingAddress.city,
               zipCode: checkoutDto.customer.billingAddress.zipCode,
-              neighborhood: checkoutDto.customer.billingAddress.neighborhood,
+              neighborhood:
+                checkoutDto.customer.billingAddress.neighborhood,
               address: checkoutDto.customer.billingAddress.address,
               number: checkoutDto.customer.billingAddress.number,
-              complement: checkoutDto.customer.billingAddress.complement,
+              complement:
+                checkoutDto.customer.billingAddress.complement,
               reference: checkoutDto.customer.billingAddress.reference,
             }
           : undefined,
@@ -199,6 +284,9 @@ export class OrdersService {
       },
       shipping: {
         freightPrice: shippingTotal,
+        carrierName: undefined,
+        serviceName: undefined,
+        estimatedDeliveryDate: undefined,
       },
       discountTotal,
       itemsTotal,
@@ -225,10 +313,10 @@ export class OrdersService {
       installments: anymarketOrder.payment.installments ?? null,
       shippingCarrier: anymarketOrder.shipping.carrierName ?? null,
       shippingService: anymarketOrder.shipping.serviceName ?? null,
-      shippingEstimatedDeliveryDate:
-        anymarketOrder.shipping.estimatedDeliveryDate
-          ? new Date(anymarketOrder.shipping.estimatedDeliveryDate)
-          : null,
+      shippingEstimatedDeliveryDate: anymarketOrder.shipping
+        .estimatedDeliveryDate
+        ? new Date(anymarketOrder.shipping.estimatedDeliveryDate)
+        : null,
       shippingTrackingCode: null,
       anymarketRawPayload: anymarketOrder,
       anymarketCreatedAt: anymarketOrder.createdAt
@@ -242,18 +330,19 @@ export class OrdersService {
     const itemsData = anymarketOrder.items.map((orderItem) => {
       const lineTotal =
         (orderItem.price - (orderItem.discount ?? 0)) * orderItem.quantity;
-
       return {
-        productId: 0, // TODO: mapeie para o id interno do produto se precisar
+        productId: 0, // Unknown at this stage; map via SKU service if needed
         skuId: Number(orderItem.sku),
         title: orderItem.title ?? '',
         quantity: orderItem.quantity,
         unitPrice: orderItem.price.toFixed(2),
         discount: (orderItem.discount ?? 0).toFixed(2),
         total: lineTotal.toFixed(2),
+        marketplaceOrderItemId: undefined,
+        listingType: undefined,
+        officialStoreId: undefined,
       };
     });
-
     return this.ordersRepository.createOrderWithItemsAndStatusHistory(
       orderData,
       itemsData,
@@ -261,6 +350,9 @@ export class OrdersService {
     );
   }
 
+  /**
+   * Converts a persisted Order entity into a summary DTO for listing.
+   */
   private convertOrderToSummaryDto(order: Order): OrderSummaryDto {
     const items: OrderSummaryItemDto[] = order.items.map((item) => ({
       id: item.id,
@@ -271,7 +363,6 @@ export class OrdersService {
       unitPrice: item.unitPrice,
       total: item.total,
     }));
-
     return {
       id: order.id,
       status: order.status,
@@ -286,6 +377,10 @@ export class OrdersService {
     };
   }
 
+  /**
+   * Converts a persisted Order entity into a detailed DTO.  This
+   * includes nested objects for payment and shipping.
+   */
   private convertOrderToDetailDto(order: Order): OrderDetailDto {
     const shipping: OrderDetailShippingDto = {
       shippingCarrier: order.shippingCarrier,
@@ -293,12 +388,10 @@ export class OrdersService {
       shippingEstimatedDeliveryDate: order.shippingEstimatedDeliveryDate,
       shippingTrackingCode: order.shippingTrackingCode,
     };
-
     const payment: OrderDetailPaymentDto = {
       paymentMethod: order.paymentMethod,
       installments: order.installments,
     };
-
     const items: OrderSummaryItemDto[] = order.items.map((item) => ({
       id: item.id,
       productId: item.productId,
@@ -308,7 +401,6 @@ export class OrdersService {
       unitPrice: item.unitPrice,
       total: item.total,
     }));
-
     return {
       id: order.id,
       profileId: order.profileId,

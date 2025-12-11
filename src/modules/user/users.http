@@ -2,12 +2,13 @@
 ### MÓDULO DE USUÁRIO (USER)
 ### ===========================================
 ### Base URL: http://localhost:3000/api/user
-### Requer autenticação JWT em todas as rotas
+### Rotas autenticadas requerem JWT
 ### ===========================================
 
 ### Variáveis de ambiente
 @baseUrl = http://localhost:3000/api
 @userUrl = {{baseUrl}}/user
+@usersUrl = {{baseUrl}}/users
 @contentType = application/json
 
 ### ===========================================
@@ -19,8 +20,8 @@ POST {{baseUrl}}/auth/signin
 Content-Type: {{contentType}}
 
 {
-  "email": "eltonpf22133a@teste.com",
-  "password": "123456"
+  "email": "pessoafisica@exemplo.com",
+  "password": "senha123"
 }
 
 ### Token salvo automaticamente da resposta do login
@@ -31,6 +32,9 @@ Content-Type: {{contentType}}
 ### ===========================================
 
 ### Buscar dados do usuário autenticado
+### GET /api/user
+### Retorna: { id: number, email: string }
+### Requer: Token JWT
 GET {{userUrl}}
 Authorization: Bearer {{token}}
 
@@ -38,7 +42,13 @@ Authorization: Bearer {{token}}
 ### ATUALIZAR USUÁRIO
 ### ===========================================
 
-### Atualizar email do usuário (ID = 1)
+### Atualizar email do usuário
+### PATCH /api/user/:id
+### Body: { email?: string, password?: string }
+### Requer: Token JWT
+### Validações:
+###   - email: formato válido de email
+###   - password: mínimo 6 caracteres
 PATCH {{userUrl}}/1
 Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
@@ -47,7 +57,7 @@ Content-Type: {{contentType}}
   "email": "novo.email@email.com"
 }
 
-### Atualizar senha do usuário (ID = 1)
+### Atualizar senha do usuário
 PATCH {{userUrl}}/1
 Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
@@ -56,7 +66,7 @@ Content-Type: {{contentType}}
   "password": "novaSenha123456"
 }
 
-### Atualizar email e senha do usuário (ID = 1)
+### Atualizar email e senha do usuário
 PATCH {{userUrl}}/1
 Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
@@ -67,13 +77,31 @@ Content-Type: {{contentType}}
 }
 
 ### ===========================================
+### VERIFICAÇÃO DE DISPONIBILIDADE (PÚBLICO)
+### ===========================================
+### Base: /api/users/availability
+### Não requer autenticação
+
+### Verificar disponibilidade de email
+### GET /api/users/availability/email?value=email@teste.com
+### Retorna: { available: boolean }
+### Validação: deve ser um email válido
+GET {{usersUrl}}/availability/email?value=email@teste.com
+
+### Verificar disponibilidade de CPF
+### GET /api/users/availability/cpf?value=12345678901
+### Retorna: { available: boolean }
+### Validação: deve ter exatamente 11 dígitos numéricos
+GET {{usersUrl}}/availability/cpf?value=12345678901
+
+### ===========================================
 ### EXEMPLOS DE ERROS
 ### ===========================================
 
-### Erro: Requisição sem token de autenticação
+### Erro 401: Requisição sem token de autenticação
 GET {{userUrl}}
 
-### Erro: Email inválido
+### Erro 400: Email inválido (formato incorreto)
 PATCH {{userUrl}}/1
 Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
@@ -82,7 +110,7 @@ Content-Type: {{contentType}}
   "email": "email-invalido"
 }
 
-### Erro: Senha muito curta (menos de 6 caracteres)
+### Erro 400: Senha muito curta (menos de 6 caracteres)
 PATCH {{userUrl}}/1
 Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
@@ -90,3 +118,12 @@ Content-Type: {{contentType}}
 {
   "password": "123"
 }
+
+### Erro 400: CPF com formato inválido (não numérico)
+GET {{usersUrl}}/availability/cpf?value=123.456.789-01
+
+### Erro 400: CPF com quantidade incorreta de dígitos
+GET {{usersUrl}}/availability/cpf?value=123456
+
+### Erro 400: Email inválido na verificação de disponibilidade
+GET {{usersUrl}}/availability/email?value=email-invalido

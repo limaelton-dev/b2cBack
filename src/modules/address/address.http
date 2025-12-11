@@ -1,0 +1,183 @@
+### ===========================================
+### MÓDULO DE ENDEREÇO (ADDRESS)
+### ===========================================
+### Base URL: http://localhost:3000/api/user/profile/address
+### Todas as rotas requerem autenticação JWT
+### ===========================================
+
+### Variáveis de ambiente
+@baseUrl = http://localhost:3000/api
+@addressUrl = {{baseUrl}}/user/profile/address
+@contentType = application/json
+
+### ===========================================
+### AUTENTICAÇÃO - Execute primeiro para obter o token
+### ===========================================
+
+# @name login
+POST {{baseUrl}}/auth/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "pessoafisica@exemplo.com",
+  "password": "senha123"
+}
+
+### Token salvo automaticamente da resposta do login
+@token = {{login.response.body.access_token}}
+
+### ===========================================
+### CRIAR ENDEREÇO
+### ===========================================
+
+### Criar novo endereço
+### POST /api/user/profile/address
+### Body: { street, number, complement?, neighborhood, city, state, zipCode, isDefault? }
+### Requer: Token JWT
+POST {{addressUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "street": "Rua das Flores",
+  "number": "123",
+  "complement": "Apto 45",
+  "neighborhood": "Centro",
+  "city": "São Paulo",
+  "state": "SP",
+  "zipCode": "01310100",
+  "isDefault": true
+}
+
+### Criar endereço secundário (sem complemento)
+POST {{addressUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "street": "Av. Paulista",
+  "number": "1000",
+  "neighborhood": "Bela Vista",
+  "city": "São Paulo",
+  "state": "SP",
+  "zipCode": "01310000",
+  "isDefault": false
+}
+
+### ===========================================
+### LISTAR ENDEREÇOS
+### ===========================================
+
+### Listar todos os endereços do usuário
+### GET /api/user/profile/address
+### Retorna: Address[]
+### Requer: Token JWT
+GET {{addressUrl}}
+Authorization: Bearer {{token}}
+
+### ===========================================
+### BUSCAR ENDEREÇO PADRÃO
+### ===========================================
+
+### Buscar endereço padrão do usuário
+### GET /api/user/profile/address/default
+### Retorna: Address
+### Requer: Token JWT
+GET {{addressUrl}}/default
+Authorization: Bearer {{token}}
+
+### ===========================================
+### BUSCAR ENDEREÇO POR ID
+### ===========================================
+
+### Buscar endereço específico
+### GET /api/user/profile/address/:id
+### Retorna: Address
+### Requer: Token JWT
+GET {{addressUrl}}/1
+Authorization: Bearer {{token}}
+
+### ===========================================
+### ATUALIZAR ENDEREÇO
+### ===========================================
+
+### Atualizar endereço completo
+### PUT /api/user/profile/address/:id
+### Body: { street?, number?, complement?, neighborhood?, city?, state?, zipCode?, isDefault? }
+### Requer: Token JWT
+PUT {{addressUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "street": "Rua Nova",
+  "number": "456",
+  "complement": "Casa",
+  "neighborhood": "Jardins",
+  "city": "São Paulo",
+  "state": "SP",
+  "zipCode": "01452000"
+}
+
+### Atualizar apenas o CEP
+PUT {{addressUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "zipCode": "01310200"
+}
+
+### Definir endereço como padrão
+PUT {{addressUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "isDefault": true
+}
+
+### ===========================================
+### DELETAR ENDEREÇO
+### ===========================================
+
+### Remover endereço
+### DELETE /api/user/profile/address/:id
+### Retorna: 204 No Content
+### Requer: Token JWT
+DELETE {{addressUrl}}/1
+Authorization: Bearer {{token}}
+
+### ===========================================
+### EXEMPLOS DE ERROS
+### ===========================================
+
+### Erro 401: Requisição sem token
+GET {{addressUrl}}
+
+### Erro 400: Campos obrigatórios não informados
+POST {{addressUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "street": "Rua das Flores"
+}
+
+### Erro 400: CEP não informado
+POST {{addressUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "street": "Rua das Flores",
+  "number": "123",
+  "neighborhood": "Centro",
+  "city": "São Paulo",
+  "state": "SP"
+}
+
+### Erro 403: Endereço não pertence ao perfil do usuário
+GET {{addressUrl}}/9999
+Authorization: Bearer {{token}}
+

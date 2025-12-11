@@ -1,0 +1,188 @@
+### ===========================================
+### MÓDULO DE CARTÃO (CARD)
+### ===========================================
+### Base URL: http://localhost:3000/api/user/profile/card
+### Todas as rotas requerem autenticação JWT
+### ===========================================
+
+### Variáveis de ambiente
+@baseUrl = http://localhost:3000/api
+@cardUrl = {{baseUrl}}/user/profile/card
+@contentType = application/json
+
+### ===========================================
+### AUTENTICAÇÃO - Execute primeiro para obter o token
+### ===========================================
+
+# @name login
+POST {{baseUrl}}/auth/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "pessoafisica@exemplo.com",
+  "password": "senha123"
+}
+
+### Token salvo automaticamente da resposta do login
+@token = {{login.response.body.access_token}}
+
+### ===========================================
+### CRIAR CARTÃO
+### ===========================================
+
+### Criar novo cartão
+### POST /api/user/profile/card
+### Body: { cardNumber, holderName, expirationDate, brand, cvv, isDefault? }
+### Requer: Token JWT
+POST {{cardUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "cardNumber": "4111111111111111",
+  "holderName": "JOAO DA SILVA",
+  "expirationDate": "12/2028",
+  "brand": "visa",
+  "cvv": 123,
+  "isDefault": true
+}
+
+### Criar cartão secundário (Mastercard)
+POST {{cardUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "cardNumber": "5500000000000004",
+  "holderName": "MARIA SANTOS",
+  "expirationDate": "06/2027",
+  "brand": "mastercard",
+  "cvv": 456,
+  "isDefault": false
+}
+
+### ===========================================
+### LISTAR CARTÕES
+### ===========================================
+
+### Listar todos os cartões do usuário
+### GET /api/user/profile/card
+### Retorna: Card[]
+### Requer: Token JWT
+GET {{cardUrl}}
+Authorization: Bearer {{token}}
+
+### ===========================================
+### BUSCAR CARTÃO PADRÃO
+### ===========================================
+
+### Buscar cartão padrão do usuário
+### GET /api/user/profile/card/default
+### Retorna: Card
+### Requer: Token JWT
+GET {{cardUrl}}/default
+Authorization: Bearer {{token}}
+
+### ===========================================
+### BUSCAR CARTÃO POR ID
+### ===========================================
+
+### Buscar cartão específico
+### GET /api/user/profile/card/:id
+### Retorna: Card
+### Requer: Token JWT
+GET {{cardUrl}}/1
+Authorization: Bearer {{token}}
+
+### ===========================================
+### ATUALIZAR CARTÃO
+### ===========================================
+
+### Atualizar dados do cartão
+### PATCH /api/user/profile/card/:id
+### Body: { cardNumber?, holderName?, expirationDate?, brand?, isDefault? }
+### Requer: Token JWT
+PATCH {{cardUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "expirationDate": "12/2030"
+}
+
+### Atualizar nome do titular
+PATCH {{cardUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "holderName": "JOAO SILVA SANTOS"
+}
+
+### Definir cartão como padrão
+PATCH {{cardUrl}}/1
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "isDefault": true
+}
+
+### ===========================================
+### DELETAR CARTÃO
+### ===========================================
+
+### Remover cartão
+### DELETE /api/user/profile/card/:id
+### Retorna: 204 No Content
+### Requer: Token JWT
+DELETE {{cardUrl}}/1
+Authorization: Bearer {{token}}
+
+### ===========================================
+### EXEMPLOS DE ERROS
+### ===========================================
+
+### Erro 401: Requisição sem token
+GET {{cardUrl}}
+
+### Erro 400: Número do cartão não informado
+POST {{cardUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "holderName": "JOAO DA SILVA",
+  "expirationDate": "12/2028",
+  "brand": "visa",
+  "cvv": 123
+}
+
+### Erro 400: CVV não informado
+POST {{cardUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "cardNumber": "4111111111111111",
+  "holderName": "JOAO DA SILVA",
+  "expirationDate": "12/2028",
+  "brand": "visa"
+}
+
+### Erro 400: Bandeira não informada
+POST {{cardUrl}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "cardNumber": "4111111111111111",
+  "holderName": "JOAO DA SILVA",
+  "expirationDate": "12/2028",
+  "cvv": 123
+}
+
+### Erro 403: Cartão não pertence ao perfil do usuário
+GET {{cardUrl}}/9999
+Authorization: Bearer {{token}}
+
