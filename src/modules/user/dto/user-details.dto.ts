@@ -41,9 +41,10 @@ class PhoneDto {
 
 class CardDto {
   id: number;
-  cardNumber: string;
+  lastFourDigits: string;
   holderName: string;
-  expirationDate: string;
+  expirationMonth: string;
+  expirationYear: string;
   isDefault: boolean;
   brand: string;
 }
@@ -73,4 +74,4 @@ export class UserDetailsDto {
   @Expose({ name: 'card' })
   @Type(() => CardDto)
   card?: CardDto[];
-} 
+}

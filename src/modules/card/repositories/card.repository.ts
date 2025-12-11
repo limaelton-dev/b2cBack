@@ -20,23 +20,16 @@ export class CardRepository {
     return this.cardRepository.save(card);
   }
 
-  async findAll(): Promise<Card[]> {
-    return this.cardRepository.find({
-      relations: ['profile'],
-    });
-  }
-
   async findOne(id: number): Promise<Card> {
     return this.cardRepository.findOne({
       where: { id },
-      relations: ['profile'],
     });
   }
 
   async findByProfileId(profileId: number): Promise<Card[]> {
     return this.cardRepository.find({
       where: { profileId },
-      relations: ['profile'],
+      order: { isDefault: 'DESC', createdAt: 'DESC' },
     });
   }
 
@@ -46,7 +39,12 @@ export class CardRepository {
         profileId,
         isDefault: true,
       },
-      relations: ['profile'],
+    });
+  }
+
+  async findByToken(cardToken: string): Promise<Card> {
+    return this.cardRepository.findOne({
+      where: { cardToken },
     });
   }
 
@@ -82,4 +80,4 @@ export class CardRepository {
   private async setAsDefault(id: number): Promise<void> {
     await this.cardRepository.update(id, { isDefault: true });
   }
-} 
+}

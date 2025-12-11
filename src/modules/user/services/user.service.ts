@@ -31,14 +31,12 @@ export class UserService {
 
     const user = await this.userRepository.create(createUserDto);
     
-    // Se não for criação com perfil, retorna apenas o usuário
     if (!('profileType' in createUserDto)) {
       return plainToClass(UserProfileDto, user);
     }
     
     const withProfileDto = createUserDto as CreateUserWithProfileDto;
     
-    // Cria perfil de acordo com o tipo
     if (withProfileDto.profileType === ProfileType.PF) {
       await this.profileService.createProfilePf(
         user.id, 
@@ -51,7 +49,6 @@ export class UserService {
       );
     }
     
-    // Retorna o usuário com o perfil recém-criado
     return this.findWithProfile(user.id);
   }
 
@@ -133,7 +130,7 @@ export class UserService {
         id: profile.id,
         firstName: profile.profilePf.firstName,
         lastName: profile.profilePf.lastName,
-        cpf: profile.profilePf.cpf,
+        cpf: this.maskCpf(profile.profilePf.cpf),
         birthDate: profile.profilePf.birthDate,
         gender: profile.profilePf.gender,
       };
@@ -143,7 +140,7 @@ export class UserService {
       userProfile.profile = {
         id: profile.id,
         companyName: profile.profilePj.companyName,
-        cnpj: profile.profilePj.cnpj,
+        cnpj: this.maskCnpj(profile.profilePj.cnpj),
         tradingName: profile.profilePj.tradingName,
         stateRegistration: profile.profilePj.stateRegistration,
         municipalRegistration: profile.profilePj.municipalRegistration,
@@ -185,7 +182,7 @@ export class UserService {
         id: profile.id,
         firstName: profile.profilePf.firstName,
         lastName: profile.profilePf.lastName,
-        cpf: profile.profilePf.cpf,
+        cpf: this.maskCpf(profile.profilePf.cpf),
         birthDate: profile.profilePf.birthDate,
         gender: profile.profilePf.gender,
       };
@@ -195,7 +192,7 @@ export class UserService {
       userDetails.profile = {
         id: profile.id,
         companyName: profile.profilePj.companyName,
-        cnpj: profile.profilePj.cnpj,
+        cnpj: this.maskCnpj(profile.profilePj.cnpj),
         tradingName: profile.profilePj.tradingName,
         stateRegistration: profile.profilePj.stateRegistration,
         municipalRegistration: profile.profilePj.municipalRegistration,
@@ -229,9 +226,10 @@ export class UserService {
     if (profile.card && profile.card.length > 0) {
       userDetails.card = profile.card.map(card => ({
         id: card.id,
-        cardNumber: card.cardNumber,
+        lastFourDigits: card.lastFourDigits,
         holderName: card.holderName,
-        expirationDate: card.expirationDate,
+        expirationMonth: card.expirationMonth,
+        expirationYear: card.expirationYear,
         isDefault: card.isDefault,
         brand: card.brand,
       }));
@@ -242,4 +240,19 @@ export class UserService {
     });
   }
 
+  private maskCpf(cpf: string): string {
+    if (!cpf || cpf.length < 11) {
+      return cpf;
+    }
+    const cleaned = cpf.replace(/\D/g, '');
+    return `***.${cleaned.substring(3, 6)}.${cleaned.substring(6, 9)}-**`;
+  }
+
+  private maskCnpj(cnpj: string): string {
+    if (!cnpj || cnpj.length < 14) {
+      return cnpj;
+    }
+    const cleaned = cnpj.replace(/\D/g, '');
+    return `**.${cleaned.substring(2, 5)}.${cleaned.substring(5, 8)}/****-**`;
+  }
 }

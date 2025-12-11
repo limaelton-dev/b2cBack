@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from '../../user/repositories/user.repository';
 import { SignInDto } from '../dto/sign.in.dto';
@@ -71,7 +71,7 @@ export class AuthService {
           id: defaultProfile.id,
           firstName: profilePf.firstName,
           lastName: profilePf.lastName,
-          cpf: profilePf.cpf,
+          cpf: this.maskCpf(profilePf.cpf),
           birthDate: profilePf.birthDate,
           gender: profilePf.gender
         },
@@ -87,7 +87,7 @@ export class AuthService {
         profile: {
           id: defaultProfile.id,
           companyName: profilePj.companyName,
-          cnpj: profilePj.cnpj,
+          cnpj: this.maskCnpj(profilePj.cnpj),
           tradingName: profilePj.tradingName,
           stateRegistration: profilePj.stateRegistration,
           municipalRegistration: profilePj.municipalRegistration
@@ -146,7 +146,7 @@ export class AuthService {
           id: defaultProfile.id,
           firstName: profilePf.firstName,
           lastName: profilePf.lastName,
-          cpf: profilePf.cpf,
+          cpf: this.maskCpf(profilePf.cpf),
           birthDate: profilePf.birthDate,
           gender: profilePf.gender
         },
@@ -162,7 +162,7 @@ export class AuthService {
         profile: {
           id: defaultProfile.id,
           companyName: profilePj.companyName,
-          cnpj: profilePj.cnpj,
+          cnpj: this.maskCnpj(profilePj.cnpj),
           tradingName: profilePj.tradingName,
           stateRegistration: profilePj.stateRegistration,
           municipalRegistration: profilePj.municipalRegistration
@@ -177,4 +177,20 @@ export class AuthService {
       user: userProfile
     };
   }
-} 
+
+  private maskCpf(cpf: string): string {
+    if (!cpf || cpf.length < 11) {
+      return cpf;
+    }
+    const cleaned = cpf.replace(/\D/g, '');
+    return `***.${cleaned.substring(3, 6)}.${cleaned.substring(6, 9)}-**`;
+  }
+
+  private maskCnpj(cnpj: string): string {
+    if (!cnpj || cnpj.length < 14) {
+      return cnpj;
+    }
+    const cleaned = cnpj.replace(/\D/g, '');
+    return `**.${cleaned.substring(2, 5)}.${cleaned.substring(5, 8)}/****-**`;
+  }
+}

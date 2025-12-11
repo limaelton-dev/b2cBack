@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, MinLength, Matches } from 'class-validator';
 
 export class UpdateUserDto {
   @IsEmail({}, { message: 'Email inválido' })
@@ -7,5 +7,8 @@ export class UpdateUserDto {
 
   @IsOptional()
   @MinLength(6, { message: 'A senha deve ter pelo menos 6 caracteres' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/, {
+    message: 'A senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número'
+  })
   password?: string;
-} 
+}

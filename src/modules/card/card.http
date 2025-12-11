@@ -1,188 +1,160 @@
-### ===========================================
-### MÓDULO DE CARTÃO (CARD)
-### ===========================================
-### Base URL: http://localhost:3000/api/user/profile/card
+### ============================================
+### CARD API - Rotas de Cartões de Crédito
+### ============================================
 ### Todas as rotas requerem autenticação JWT
-### ===========================================
+### O token deve ser obtido através de login
+### ============================================
 
-### Variáveis de ambiente
-@baseUrl = http://localhost:3000/api
-@cardUrl = {{baseUrl}}/user/profile/card
-@contentType = application/json
+### Variáveis de Ambiente
+@baseUrl = http://localhost:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBlc3NvYWZpc2ljYUBleGVtcGxvLmNvbSIsInN1YiI6MSwicHJvZmlsZUlkIjoxLCJwcm9maWxlVHlwZSI6IlBGIiwiaWF0IjoxNzMzMzU1MDI3LCJleHAiOjE3MzMzNTg2Mjd9.b3H6kWxLCMaBmtRLZvKBBNIIYNMGFcMtBYCAAJzHSj8
 
-### ===========================================
-### AUTENTICAÇÃO - Execute primeiro para obter o token
-### ===========================================
+### ============================================
+### 1. CRIAR NOVO CARTÃO
+### ============================================
+### POST /card
+### Headers: Authorization Bearer Token
+### Body: { cardNumber, holderName, expirationMonth, expirationYear, cvv, brand, isDefault? }
+### 
+### IMPORTANTE: Os dados sensíveis (cardNumber, cvv) são usados apenas 
+### para extrair os últimos 4 dígitos e validação. Não são armazenados.
+### ============================================
 
-# @name login
-POST {{baseUrl}}/auth/signin
-Content-Type: {{contentType}}
-
-{
-  "email": "pessoafisica@exemplo.com",
-  "password": "senha123"
-}
-
-### Token salvo automaticamente da resposta do login
-@token = {{login.response.body.access_token}}
-
-### ===========================================
-### CRIAR CARTÃO
-### ===========================================
-
-### Criar novo cartão
-### POST /api/user/profile/card
-### Body: { cardNumber, holderName, expirationDate, brand, cvv, isDefault? }
-### Requer: Token JWT
-POST {{cardUrl}}
+### Criar cartão Visa
+POST {{baseUrl}}/card
 Authorization: Bearer {{token}}
-Content-Type: {{contentType}}
+Content-Type: application/json
 
 {
   "cardNumber": "4111111111111111",
-  "holderName": "JOAO DA SILVA",
-  "expirationDate": "12/2028",
-  "brand": "visa",
-  "cvv": 123,
+  "holderName": "João Silva",
+  "expirationMonth": "12",
+  "expirationYear": "2028",
+  "cvv": "123",
+  "brand": "Visa",
   "isDefault": true
 }
 
-### Criar cartão secundário (Mastercard)
-POST {{cardUrl}}
+### Criar cartão Mastercard
+POST {{baseUrl}}/card
 Authorization: Bearer {{token}}
-Content-Type: {{contentType}}
+Content-Type: application/json
 
 {
   "cardNumber": "5500000000000004",
-  "holderName": "MARIA SANTOS",
-  "expirationDate": "06/2027",
-  "brand": "mastercard",
-  "cvv": 456,
+  "holderName": "Maria Santos",
+  "expirationMonth": "06",
+  "expirationYear": "2027",
+  "cvv": "456",
+  "brand": "Mastercard",
   "isDefault": false
 }
 
-### ===========================================
-### LISTAR CARTÕES
-### ===========================================
+### ============================================
+### 2. LISTAR TODOS OS CARTÕES DO USUÁRIO
+### ============================================
+### GET /card
+### Headers: Authorization Bearer Token
+### Response: Lista de cartões com dados mascarados
+### ============================================
 
-### Listar todos os cartões do usuário
-### GET /api/user/profile/card
-### Retorna: Card[]
-### Requer: Token JWT
-GET {{cardUrl}}
+### Listar cartões
+GET {{baseUrl}}/card
 Authorization: Bearer {{token}}
 
-### ===========================================
-### BUSCAR CARTÃO PADRÃO
-### ===========================================
+### ============================================
+### 3. BUSCAR CARTÃO PADRÃO
+### ============================================
+### GET /card/default
+### Headers: Authorization Bearer Token
+### Response: Cartão marcado como padrão
+### ============================================
 
-### Buscar cartão padrão do usuário
-### GET /api/user/profile/card/default
-### Retorna: Card
-### Requer: Token JWT
-GET {{cardUrl}}/default
+### Buscar cartão padrão
+GET {{baseUrl}}/card/default
 Authorization: Bearer {{token}}
 
-### ===========================================
-### BUSCAR CARTÃO POR ID
-### ===========================================
+### ============================================
+### 4. BUSCAR CARTÃO POR ID
+### ============================================
+### GET /card/:id
+### Headers: Authorization Bearer Token
+### Response: Cartão com dados mascarados
+### ============================================
 
-### Buscar cartão específico
-### GET /api/user/profile/card/:id
-### Retorna: Card
-### Requer: Token JWT
-GET {{cardUrl}}/1
+### Buscar cartão por ID (substitua o ID)
+GET {{baseUrl}}/card/1
 Authorization: Bearer {{token}}
 
-### ===========================================
-### ATUALIZAR CARTÃO
-### ===========================================
-
-### Atualizar dados do cartão
-### PATCH /api/user/profile/card/:id
-### Body: { cardNumber?, holderName?, expirationDate?, brand?, isDefault? }
-### Requer: Token JWT
-PATCH {{cardUrl}}/1
-Authorization: Bearer {{token}}
-Content-Type: {{contentType}}
-
-{
-  "expirationDate": "12/2030"
-}
+### ============================================
+### 5. ATUALIZAR CARTÃO
+### ============================================
+### PATCH /card/:id
+### Headers: Authorization Bearer Token
+### Body: { holderName?, isDefault? }
+### 
+### Nota: Apenas holderName e isDefault podem ser atualizados
+### ============================================
 
 ### Atualizar nome do titular
-PATCH {{cardUrl}}/1
+PATCH {{baseUrl}}/card/1
 Authorization: Bearer {{token}}
-Content-Type: {{contentType}}
+Content-Type: application/json
 
 {
-  "holderName": "JOAO SILVA SANTOS"
+  "holderName": "João S. Silva"
 }
 
 ### Definir cartão como padrão
-PATCH {{cardUrl}}/1
+PATCH {{baseUrl}}/card/1
 Authorization: Bearer {{token}}
-Content-Type: {{contentType}}
+Content-Type: application/json
 
 {
   "isDefault": true
 }
 
-### ===========================================
-### DELETAR CARTÃO
-### ===========================================
+### ============================================
+### 6. REMOVER CARTÃO
+### ============================================
+### DELETE /card/:id
+### Headers: Authorization Bearer Token
+### Response: 204 No Content
+### ============================================
 
 ### Remover cartão
-### DELETE /api/user/profile/card/:id
-### Retorna: 204 No Content
-### Requer: Token JWT
-DELETE {{cardUrl}}/1
+DELETE {{baseUrl}}/card/1
 Authorization: Bearer {{token}}
 
-### ===========================================
-### EXEMPLOS DE ERROS
-### ===========================================
-
-### Erro 401: Requisição sem token
-GET {{cardUrl}}
-
-### Erro 400: Número do cartão não informado
-POST {{cardUrl}}
-Authorization: Bearer {{token}}
-Content-Type: {{contentType}}
-
-{
-  "holderName": "JOAO DA SILVA",
-  "expirationDate": "12/2028",
-  "brand": "visa",
-  "cvv": 123
-}
-
-### Erro 400: CVV não informado
-POST {{cardUrl}}
-Authorization: Bearer {{token}}
-Content-Type: {{contentType}}
-
-{
-  "cardNumber": "4111111111111111",
-  "holderName": "JOAO DA SILVA",
-  "expirationDate": "12/2028",
-  "brand": "visa"
-}
-
-### Erro 400: Bandeira não informada
-POST {{cardUrl}}
-Authorization: Bearer {{token}}
-Content-Type: {{contentType}}
-
-{
-  "cardNumber": "4111111111111111",
-  "holderName": "JOAO DA SILVA",
-  "expirationDate": "12/2028",
-  "cvv": 123
-}
-
-### Erro 403: Cartão não pertence ao perfil do usuário
-GET {{cardUrl}}/9999
-Authorization: Bearer {{token}}
-
+### ============================================
+### EXEMPLOS DE RESPOSTA
+### ============================================
+###
+### Criação de cartão (retorno):
+### {
+###   "id": 1,
+###   "profileId": 1,
+###   "lastFourDigits": "1111",
+###   "holderName": "JOÃO S.",
+###   "expirationMonth": "12",
+###   "expirationYear": "2028",
+###   "brand": "Visa",
+###   "isDefault": true,
+###   "cardToken": null,
+###   "createdAt": "2024-12-11T...",
+###   "updatedAt": "2024-12-11T..."
+### }
+###
+### Listagem de cartões (retorno):
+### [
+###   {
+###     "id": 1,
+###     "lastFourDigits": "1111",
+###     "holderName": "JOÃO S.",
+###     "expirationMonth": "12",
+###     "expirationYear": "2028",
+###     "brand": "Visa",
+###     "isDefault": true
+###   }
+### ]
+### ============================================

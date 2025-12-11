@@ -8,13 +8,11 @@ import { Address } from '../../modules/address/entities/address.entity';
 import { Phone } from '../../modules/phone/entities/phone.entity';
 import { Card } from '../../modules/card/entities/card.entity';
 import { ProfileType } from '../../common/enums/profile-type.enum';
-import { In } from 'typeorm';
 
 export class UserSeeder {
   constructor(private dataSource: DataSource, private forceCreate: boolean = false) {}
 
   async run(): Promise<void> {
-    // Verifica se já existem usuários no banco
     const userRepository = this.dataSource.getRepository(User);
     const profileRepository = this.dataSource.getRepository(Profile);
     const profilePfRepository = this.dataSource.getRepository(ProfilePf);
@@ -23,19 +21,15 @@ export class UserSeeder {
     const phoneRepository = this.dataSource.getRepository(Phone);
     const cardRepository = this.dataSource.getRepository(Card);
 
-    // Se estamos forçando a criação e existem os usuários de teste, removemos primeiro
     if (this.forceCreate) {
       console.log('Modo forçado: limpando registros existentes de usuários de teste...');
       
-      // Buscar perfis existentes para os emails específicos
       const userPF = await userRepository.findOne({ where: { email: 'pessoafisica@exemplo.com' } });
       const userPJ = await userRepository.findOne({ where: { email: 'pessoajuridica@exemplo.com' } });
       
-      // Se encontrou, remover os registros associados
       if (userPF) {
         const profilesPF = await profileRepository.find({ where: { userId: userPF.id } });
         if (profilesPF.length > 0) {
-          // Remover registros relacionados em ordem hierárquica para evitar violações de chave estrangeira
           for (const profile of profilesPF) {
             await cardRepository.delete({ profileId: profile.id });
             await phoneRepository.delete({ profileId: profile.id });
@@ -64,35 +58,28 @@ export class UserSeeder {
       }
     }
 
-    // Verificar se os usuários de exemplo já existem
     const existingPF = await userRepository.findOne({ where: { email: 'pessoafisica@exemplo.com' } });
     const existingPJ = await userRepository.findOne({ where: { email: 'pessoajuridica@exemplo.com' } });
 
-    // Se já existem e não estamos no modo forçado, pulamos
     if (existingPF && existingPJ && !this.forceCreate) {
       console.log('Usuários de exemplo já existem no banco. Pulando seed.');
       return;
     }
 
-    // Criação dos usuários de exemplo ==========================================
     console.log('Criando usuários de exemplo...');
 
-    // 1. Usuário Pessoa Física ================================================
     if (!existingPF || this.forceCreate) {
-      // 1.1 Criar usuário
-      const hashedPasswordPF = await hash('senha123', 10);
+      const hashedPasswordPF = await hash('Senha123', 10);
       const userPF = await userRepository.save({
         email: 'pessoafisica@exemplo.com',
         password: hashedPasswordPF,
       });
 
-      // 1.2 Criar perfil associado ao usuário
       const profilePF = await profileRepository.save({
         userId: userPF.id,
         profileType: ProfileType.PF,
       });
 
-      // 1.3 Criar dados de perfil PF
       await profilePfRepository.save({
         profileId: profilePF.id,
         firstName: 'Usuário',
@@ -102,7 +89,6 @@ export class UserSeeder {
         gender: 'Masculino',
       });
 
-      // 1.4 Criar endereço associado ao perfil
       await addressRepository.save({
         profileId: profilePF.id,
         street: 'Rua Exemplo',
@@ -115,7 +101,6 @@ export class UserSeeder {
         isDefault: true,
       });
 
-      // 1.5 Criar telefone associado ao perfil
       await phoneRepository.save({
         profileId: profilePF.id,
         ddd: '11',
@@ -124,36 +109,31 @@ export class UserSeeder {
         verified: true,
       });
 
-      // 1.6 Criar cartão associado ao perfil
       await cardRepository.save({
         profileId: profilePF.id,
-        cardNumber: '**** **** **** 1234',
-        holderName: 'USUARIO P FISICA',
-        expirationDate: '12/2030',
+        lastFourDigits: '1234',
+        holderName: 'USUARIO P.',
+        expirationMonth: '12',
+        expirationYear: '2030',
         brand: 'Visa',
         isDefault: true,
-        cvv: 123,
       });
 
       console.log('Usuário PF criado com ID:', userPF.id);
     }
 
-    // 2. Usuário Pessoa Jurídica ==============================================
     if (!existingPJ || this.forceCreate) {
-      // 2.1 Criar usuário
-      const hashedPasswordPJ = await hash('senha123', 10);
+      const hashedPasswordPJ = await hash('Senha123', 10);
       const userPJ = await userRepository.save({
         email: 'pessoajuridica@exemplo.com',
         password: hashedPasswordPJ,
       });
 
-      // 2.2 Criar perfil associado ao usuário
       const profilePJ = await profileRepository.save({
         userId: userPJ.id,
         profileType: ProfileType.PJ,
       });
 
-      // 2.3 Criar dados de perfil PJ
       await profilePjRepository.save({
         profileId: profilePJ.id,
         companyName: 'Empresa de Exemplo LTDA',
@@ -163,7 +143,6 @@ export class UserSeeder {
         municipalRegistration: '987654321',
       });
 
-      // 2.4 Criar endereço associado ao perfil
       await addressRepository.save({
         profileId: profilePJ.id,
         street: 'Avenida Comercial',
@@ -176,7 +155,6 @@ export class UserSeeder {
         isDefault: true,
       });
 
-      // 2.5 Criar telefone associado ao perfil
       await phoneRepository.save({
         profileId: profilePJ.id,
         ddd: '11',
@@ -185,15 +163,14 @@ export class UserSeeder {
         verified: true,
       });
 
-      // 2.6 Criar cartão associado ao perfil
       await cardRepository.save({
         profileId: profilePJ.id,
-        cardNumber: '**** **** **** 5678',
-        holderName: 'EMPRESA EXEMPLO',
-        expirationDate: '12/2030',
+        lastFourDigits: '5678',
+        holderName: 'EMPRESA E.',
+        expirationMonth: '12',
+        expirationYear: '2030',
         brand: 'Mastercard',
         isDefault: true,
-        cvv: 456,
       });
 
       console.log('Usuário PJ criado com ID:', userPJ.id);
@@ -201,4 +178,4 @@ export class UserSeeder {
 
     console.log('Seed de usuários concluído com sucesso!');
   }
-} 
+}

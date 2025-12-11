@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { Profile } from '../../profile/entities/profile.entity';
 
 @Entity('user')
@@ -10,6 +11,7 @@ export class User {
   email: string;
 
   @Column()
+  @Exclude()
   password: string;
 
   @CreateDateColumn({ name: 'created_at' })
@@ -20,4 +22,4 @@ export class User {
 
   @OneToMany(() => Profile, (profile) => profile.user)
   profile: Profile[];
-} 
+}

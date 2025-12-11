@@ -3,6 +3,14 @@
 ### ===========================================
 ### Base URL: http://localhost:3000/api/auth
 ### ===========================================
+###
+### REGRAS DE SENHA:
+### - Mínimo 6 caracteres
+### - Pelo menos uma letra maiúscula
+### - Pelo menos uma letra minúscula
+### - Pelo menos um número
+### Exemplo válido: "Senha123"
+### ===========================================
 
 ### Variáveis de ambiente
 @baseUrl = http://localhost:3000/api
@@ -18,8 +26,8 @@ POST {{authUrl}}/signin
 Content-Type: {{contentType}}
 
 {
-  "email": "eltonpf22133a@teste.com",
-  "password": "123456"
+  "email": "pessoafisica@exemplo.com",
+  "password": "Senha123"
 }
 
 ### Token salvo automaticamente da resposta do login
@@ -35,7 +43,7 @@ Content-Type: {{contentType}}
 
 {
   "email": "pessoafisica@exemplo.com",
-  "password": "senha123"
+  "password": "Senha123"
 }
 
 ### ===========================================
@@ -48,7 +56,7 @@ Content-Type: {{contentType}}
 
 {
   "email": "novo.usuario@email.com",
-  "password": "senha123456"
+  "password": "Senha123"
 }
 
 ### Cadastro com Perfil Pessoa Física (PF)
@@ -57,7 +65,7 @@ Content-Type: {{contentType}}
 
 {
   "email": "pessoa.fisica@email.com",
-  "password": "senha123456",
+  "password": "Senha123",
   "profileType": "PF",
   "profile": {
     "firstName": "João",
@@ -74,7 +82,7 @@ Content-Type: {{contentType}}
 
 {
   "email": "empresa@email.com",
-  "password": "senha123456",
+  "password": "Senha123",
   "profileType": "PJ",
   "profile": {
     "companyName": "Empresa Exemplo LTDA",
@@ -95,7 +103,7 @@ Content-Type: {{contentType}}
 
 {
   "email": "email-invalido",
-  "password": "senha123"
+  "password": "Senha123"
 }
 
 ### Login sem senha
@@ -107,12 +115,33 @@ Content-Type: {{contentType}}
 }
 
 ### Cadastro com senha curta (menos de 6 caracteres)
+### Erro esperado: "A senha deve ter pelo menos 6 caracteres"
 POST {{authUrl}}/signup
 Content-Type: {{contentType}}
 
 {
   "email": "teste@email.com",
-  "password": "123"
+  "password": "Ab1"
+}
+
+### Cadastro com senha sem complexidade (só minúsculas)
+### Erro esperado: "A senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número"
+POST {{authUrl}}/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "teste@email.com",
+  "password": "senhasimples"
+}
+
+### Cadastro com senha sem número
+### Erro esperado: "A senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número"
+POST {{authUrl}}/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "teste@email.com",
+  "password": "SenhaSemNumero"
 }
 
 ### Cadastro PF sem campos obrigatórios
@@ -121,7 +150,7 @@ Content-Type: {{contentType}}
 
 {
   "email": "teste@email.com",
-  "password": "senha123456",
+  "password": "Senha123",
   "profileType": "PF",
   "profile": {
     "firstName": "João"

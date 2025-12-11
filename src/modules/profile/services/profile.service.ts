@@ -101,12 +101,12 @@ export class ProfileService {
   }
 
   async findOne(id: number): Promise<Profile> {
-    console.log('ProfileService.findOne:', { id });
     const profile = await this.profileRepository.findOne(id);
+    
     if (!profile) {
-      console.error('ProfileService.findOne - Profile not found:', { id });
       throw new NotFoundException('Perfil não encontrado');
     }
+    
     return profile;
   }
 

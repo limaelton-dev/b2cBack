@@ -9,7 +9,8 @@ import {
   HttpCode, 
   HttpStatus, 
   UseGuards,
-  ForbiddenException 
+  ForbiddenException,
+  ParseIntPipe
 } from '@nestjs/common';
 import { CardService } from '../services/card.service';
 import { Card } from '../entities/card.entity';
@@ -33,130 +34,71 @@ export class CardController {
     @GetUser('sub') userId: number,
     @Body() createCardDto: CreateCardDto
   ): Promise<Card> {
-    // Buscar perfis do usuário
-    const profiles = await this.profileService.findAllByUserId(userId);
-    
-    if (!profiles || profiles.length === 0) {
-      throw new ForbiddenException('Perfil não encontrado para este usuário');
-    }
-    
-    // Usando o primeiro perfil do usuário
-    const profile = profiles[0];
-    
-    // Atualiza o profileId no DTO
+    const profile = await this.getProfileForUser(userId);
     createCardDto.profileId = profile.id;
-    
     return this.cardService.create(createCardDto);
   }
 
   @Get()
-  async findAll(
-    @GetUser('sub') userId: number
-  ): Promise<Card[]> {
-    // Buscar perfis do usuário
-    const profiles = await this.profileService.findAllByUserId(userId);
-    
-    if (!profiles || profiles.length === 0) {
-      throw new ForbiddenException('Perfil não encontrado para este usuário');
-    }
-    
-    // Usando o primeiro perfil do usuário
-    const profile = profiles[0];
-    
+  async findAll(@GetUser('sub') userId: number): Promise<Card[]> {
+    const profile = await this.getProfileForUser(userId);
     return this.cardService.findByProfileId(profile.id);
   }
 
   @Get('default')
-  async findDefault(
-    @GetUser('sub') userId: number
-  ): Promise<Card> {
-    // Buscar perfis do usuário
-    const profiles = await this.profileService.findAllByUserId(userId);
-    
-    if (!profiles || profiles.length === 0) {
-      throw new ForbiddenException('Perfil não encontrado para este usuário');
-    }
-    
-    // Usando o primeiro perfil do usuário
-    const profile = profiles[0];
-    
+  async findDefault(@GetUser('sub') userId: number): Promise<Card> {
+    const profile = await this.getProfileForUser(userId);
     return this.cardService.findDefaultByProfileId(profile.id);
   }
 
   @Get(':id')
   async findOne(
     @GetUser('sub') userId: number,
-    @Param('id') id: number
+    @Param('id', ParseIntPipe) id: number
   ): Promise<Card> {
-    // Buscar perfis do usuário
-    const profiles = await this.profileService.findAllByUserId(userId);
-    
-    if (!profiles || profiles.length === 0) {
-      throw new ForbiddenException('Perfil não encontrado para este usuário');
-    }
-    
-    // Usando o primeiro perfil do usuário
-    const profile = profiles[0];
-    
-    const card = await this.cardService.findOne(+id);
-    
-    // Verificar se o cartão pertence ao perfil
-    if (card.profileId !== profile.id) {
-      throw new ForbiddenException('Cartão não pertence a este perfil');
-    }
-    
+    const profile = await this.getProfileForUser(userId);
+    const card = await this.cardService.findOne(id);
+    this.validateCardOwnership(card, profile.id);
     return card;
   }
 
   @Patch(':id')
   async update(
     @GetUser('sub') userId: number,
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateCardDto: UpdateCardDto
   ): Promise<Card> {
-    // Buscar perfis do usuário
-    const profiles = await this.profileService.findAllByUserId(userId);
-    
-    if (!profiles || profiles.length === 0) {
-      throw new ForbiddenException('Perfil não encontrado para este usuário');
-    }
-    
-    // Usando o primeiro perfil do usuário
-    const profile = profiles[0];
-    
-    const card = await this.cardService.findOne(+id);
-    
-    // Verificar se o cartão pertence ao perfil
-    if (card.profileId !== profile.id) {
-      throw new ForbiddenException('Cartão não pertence a este perfil');
-    }
-    
-    return this.cardService.update(+id, updateCardDto);
+    const profile = await this.getProfileForUser(userId);
+    const card = await this.cardService.findOne(id);
+    this.validateCardOwnership(card, profile.id);
+    return this.cardService.update(id, updateCardDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
     @GetUser('sub') userId: number,
-    @Param('id') id: number
+    @Param('id', ParseIntPipe) id: number
   ): Promise<void> {
-    // Buscar perfis do usuário
+    const profile = await this.getProfileForUser(userId);
+    const card = await this.cardService.findOne(id);
+    this.validateCardOwnership(card, profile.id);
+    await this.cardService.remove(id);
+  }
+
+  private async getProfileForUser(userId: number) {
     const profiles = await this.profileService.findAllByUserId(userId);
     
     if (!profiles || profiles.length === 0) {
       throw new ForbiddenException('Perfil não encontrado para este usuário');
     }
     
-    // Usando o primeiro perfil do usuário
-    const profile = profiles[0];
-    
-    const card = await this.cardService.findOne(+id);
-    
-    // Verificar se o cartão pertence ao perfil
-    if (card.profileId !== profile.id) {
+    return profiles[0];
+  }
+
+  private validateCardOwnership(card: Card, profileId: number): void {
+    if (card.profileId !== profileId) {
       throw new ForbiddenException('Cartão não pertence a este perfil');
     }
-    
-    await this.cardService.remove(+id);
   }
-} 
+}
