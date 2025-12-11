@@ -4,10 +4,10 @@ export class CreateCardDto {
   @IsOptional()
   profileId?: number;
 
-  @IsNotEmpty({ message: 'Número do cartão é obrigatório' })
-  @IsString({ message: 'Número do cartão deve ser uma string' })
-  @Matches(/^\d{13,19}$/, { message: 'Número do cartão inválido' })
-  cardNumber: string;
+  @IsNotEmpty({ message: 'Últimos 4 dígitos do cartão são obrigatórios' })
+  @IsString({ message: 'Últimos 4 dígitos devem ser uma string' })
+  @Matches(/^\d{4}$/, { message: 'Últimos 4 dígitos inválidos' })
+  lastFourDigits: string;
 
   @IsNotEmpty({ message: 'Nome do titular é obrigatório' })
   @IsString({ message: 'Nome do titular deve ser uma string' })
@@ -23,11 +23,6 @@ export class CreateCardDto {
   @IsString({ message: 'Ano de expiração deve ser uma string' })
   @Matches(/^\d{4}$/, { message: 'Ano de expiração inválido (YYYY)' })
   expirationYear: string;
-
-  @IsNotEmpty({ message: 'CVV é obrigatório' })
-  @IsString({ message: 'CVV deve ser uma string' })
-  @Matches(/^\d{3,4}$/, { message: 'CVV inválido' })
-  cvv: string;
 
   @IsOptional()
   @IsBoolean({ message: 'Padrão deve ser um booleano' })

@@ -1,4 +1,6 @@
 import { Module, OnModuleInit } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CheckoutController } from './controllers/checkout.controller';
 import { CheckoutsService } from './services/checkouts.service';
 import { CieloService } from './services/cielo.service';
@@ -11,9 +13,15 @@ import { AppConfigModule } from '../../config/app.config.module';
 import { CieloGateway } from './payment-gateway/cielo/cielo.gateway';
 import { ProfileModule } from '../profile/profile.module';
 import { CieloConfigProvider } from './providers/cielo-config.provider';
-import { ICheckoutService } from './interfaces/checkout-service.interface';
-import { IPaymentService } from './interfaces/payment-service.interface';
 import { ShippingModule } from '../shipping/shipping.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from '../user/entities/user.entity';
+import { Profile } from '../profile/entities/profile.entity';
+import { ProfilePf } from '../profile/entities/profile-pf.entity';
+import { ProfilePj } from '../profile/entities/profile-pj.entity';
+import { Address } from '../address/entities/address.entity';
+import { Phone } from '../phone/entities/phone.entity';
+import { Card } from '../card/entities/card.entity';
 
 @Module({
   imports: [
@@ -23,6 +31,15 @@ import { ShippingModule } from '../shipping/shipping.module';
     AppConfigModule,
     ProfileModule,
     ShippingModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: { expiresIn: '24h' },
+      }),
+    }),
+    TypeOrmModule.forFeature([User, Profile, ProfilePf, ProfilePj, Address, Phone, Card]),
   ],
   controllers: [CheckoutController],
   providers: [

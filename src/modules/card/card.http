@@ -14,10 +14,10 @@
 ### ============================================
 ### POST /card
 ### Headers: Authorization Bearer Token
-### Body: { cardNumber, holderName, expirationMonth, expirationYear, cvv, brand, isDefault? }
+### Body: { lastFourDigits, holderName, expirationMonth, expirationYear, brand, isDefault? }
 ### 
-### IMPORTANTE: Os dados sensíveis (cardNumber, cvv) são usados apenas 
-### para extrair os últimos 4 dígitos e validação. Não são armazenados.
+### NOTA: Apenas os últimos 4 dígitos são armazenados para exibição.
+### Dados sensíveis (número completo, CVV) são usados apenas no pagamento.
 ### ============================================
 
 ### Criar cartão Visa
@@ -26,11 +26,10 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "cardNumber": "4111111111111111",
+  "lastFourDigits": "1111",
   "holderName": "João Silva",
   "expirationMonth": "12",
   "expirationYear": "2028",
-  "cvv": "123",
   "brand": "Visa",
   "isDefault": true
 }
@@ -41,11 +40,10 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "cardNumber": "5500000000000004",
+  "lastFourDigits": "0004",
   "holderName": "Maria Santos",
   "expirationMonth": "06",
   "expirationYear": "2027",
-  "cvv": "456",
   "brand": "Mastercard",
   "isDefault": false
 }

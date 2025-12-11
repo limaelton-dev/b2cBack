@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Param, Put, Query, Inject } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Param, Put, Query, Inject, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ICheckoutService } from '../interfaces/checkout-service.interface';
 import { IPaymentService } from '../interfaces/payment-service.interface';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -6,18 +6,28 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody, ApiParam, ApiResponse } 
 import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { PaymentMethod } from '../../../common/enums/payment-method.enum';
 import { ProcessCreditCardDto, ProcessTokenizedCardDto } from '../dto/payment.dto';
+import { GuestCheckoutDto } from '../dto/guest-checkout.dto';
+import { CheckoutsService, GuestCheckoutResult } from '../services/checkouts.service';
 
 @ApiTags('Checkout')
 @Controller('checkout')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class CheckoutController {
   constructor(
     @Inject('CheckoutService') private readonly checkoutService: ICheckoutService,
-    @Inject('CieloService') private readonly paymentService: IPaymentService
+    @Inject('CieloService') private readonly paymentService: IPaymentService,
+    private readonly checkoutsService: CheckoutsService,
   ) {}
 
+  @Post('register')
+  @ApiOperation({ summary: 'Registra um novo usuário com todos os dados para checkout (guest checkout)' })
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  async registerGuest(@Body() guestCheckoutDto: GuestCheckoutDto): Promise<GuestCheckoutResult> {
+    return this.checkoutsService.registerGuest(guestCheckoutDto);
+  }
+
   @Post('validateTrue')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Valida o processo de checkout' })
   async validateCheckout(
     @GetUser('profileId') profileId: number,
@@ -33,6 +43,8 @@ export class CheckoutController {
   }
 
   @Post('validate')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Valida o processo de checkout' })
   async tempCheckout() {
     
@@ -40,6 +52,8 @@ export class CheckoutController {
   }
 
   @Post('process')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Processa o pagamento do checkout' })
   async processPayment(
     @GetUser('profileId') profileId: number,
@@ -62,6 +76,8 @@ export class CheckoutController {
   }
 
   @Post('credit-card')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Processa pagamento com cartão de crédito via Cielo' })
   @ApiBody({ type: ProcessCreditCardDto })
   @ApiResponse({ 
@@ -151,6 +167,8 @@ export class CheckoutController {
   }
 
   @Post('credit-card/token')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Processa pagamento com cartão tokenizado via Cielo' })
   @ApiBody({ type: ProcessTokenizedCardDto })
   @ApiResponse({ 
@@ -234,6 +252,8 @@ export class CheckoutController {
   }
 
   @Get('transaction/:paymentId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Consulta uma transação na Cielo pelo ID' })
   @ApiParam({ name: 'paymentId', description: 'ID da transação na Cielo' })
   async consultTransaction(@Param('paymentId') paymentId: string) {
@@ -241,6 +261,8 @@ export class CheckoutController {
   }
 
   @Put('transaction/:paymentId/capture')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Captura uma transação na Cielo' })
   @ApiParam({ name: 'paymentId', description: 'ID da transação na Cielo' })
   async captureTransaction(
@@ -251,6 +273,8 @@ export class CheckoutController {
   }
 
   @Put('transaction/:paymentId/cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancela uma transação na Cielo' })
   @ApiParam({ name: 'paymentId', description: 'ID da transação na Cielo' })
   async cancelTransaction(
@@ -261,18 +285,24 @@ export class CheckoutController {
   }
 
   @Get('test-cards')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Retorna os cartões de teste disponíveis para ambiente sandbox' })
   getTestCards() {
     return this.paymentService.getTestCards();
   }
 
   @Get('gateways')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Lista os gateways de pagamento disponíveis' })
   async getAvailableGateways() {
     return this.checkoutService.getAvailablePaymentGateways();
   }
 
   @Get('gateways/info')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtém informações detalhadas sobre os gateways de pagamento disponíveis' })
   async getGatewaysInfo() {
     return this.checkoutService.getPaymentGatewaysInfo();

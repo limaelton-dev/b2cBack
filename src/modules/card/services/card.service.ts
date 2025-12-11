@@ -9,11 +9,8 @@ export class CardService {
   constructor(private readonly cardRepository: CardRepository) {}
 
   async create(createCardDto: CreateCardDto): Promise<Card> {
-    const { cardNumber, cvv, ...safeData } = createCardDto;
-    
     const cardData: Partial<Card> = {
-      ...safeData,
-      lastFourDigits: cardNumber.slice(-4),
+      ...createCardDto,
       holderName: this.maskHolderName(createCardDto.holderName),
     };
     
