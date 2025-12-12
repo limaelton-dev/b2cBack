@@ -1,13 +1,13 @@
-import { Controller, Post, Body, Get, UseGuards, Param, Put, Query, Inject, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Param, Put, Query, Inject, UsePipes, ValidationPipe, Headers } from '@nestjs/common';
 import { ICheckoutService } from '../interfaces/checkout-service.interface';
 import { IPaymentService } from '../interfaces/payment-service.interface';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody, ApiParam, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { PaymentMethod } from '../../../common/enums/payment-method.enum';
 import { ProcessCreditCardDto, ProcessTokenizedCardDto } from '../dto/payment.dto';
-import { GuestCheckoutDto } from '../dto/guest-checkout.dto';
-import { CheckoutsService, GuestCheckoutResult } from '../services/checkouts.service';
+import { CheckoutDto } from '../dto/checkout.dto';
+import { CheckoutsService, CheckoutResult } from '../services/checkouts.service';
 
 @ApiTags('Checkout')
 @Controller('checkout')
@@ -18,11 +18,15 @@ export class CheckoutController {
     private readonly checkoutsService: CheckoutsService,
   ) {}
 
-  @Post('register')
-  @ApiOperation({ summary: 'Registra um novo usuário com todos os dados para checkout (guest checkout)' })
+  @Post()
+  @ApiOperation({ summary: 'Processa checkout (novo usuário ou usuário existente)' })
+  @ApiHeader({ name: 'Authorization', required: false, description: 'Bearer token (obrigatório para isRegistered=true)' })
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  async registerGuest(@Body() guestCheckoutDto: GuestCheckoutDto): Promise<GuestCheckoutResult> {
-    return this.checkoutsService.registerGuest(guestCheckoutDto);
+  async processCheckout(
+    @Body() checkoutDto: CheckoutDto,
+    @Headers('authorization') authHeader?: string,
+  ): Promise<CheckoutResult> {
+    return this.checkoutsService.processCheckout(checkoutDto, authHeader);
   }
 
   @Post('validateTrue')

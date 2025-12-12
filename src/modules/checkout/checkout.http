@@ -3,26 +3,59 @@
 ### ===========================================
 ### Base URL: http://localhost:3000/api/checkout
 ### ===========================================
+###
+### RESPOSTA DE SUCESSO (201 Created):
+### {
+###   "userId": 1,
+###   "profileId": 1,
+###   "addressId": 1,
+###   "phoneId": 1,
+###   "cardId": 1,           // Só retorna se saveCard = true
+###   "cardToken": "token",  // Retorna se cartão foi enviado
+###   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+### }
+###
+### ERROS COMUNS:
+### - 400 Bad Request: Validação de campos falhou
+### - 401 Unauthorized: Token inválido/expirado (isRegistered=true)
+### - 403 Forbidden: Token não corresponde ao usuário
+### - 404 Not Found: Usuário/Perfil não encontrado
+### - 409 Conflict: Email/CPF/CNPJ já cadastrado
+###
+### OBS: Se ID de endereço/telefone não existir, cria novo automaticamente
+### ===========================================
 
-### Variáveis de ambiente
 @baseUrl = http://localhost:3000/api
 @checkoutUrl = {{baseUrl}}/checkout
+@authUrl = {{baseUrl}}/auth
 @contentType = application/json
 
 ### ===========================================
-### REGISTRO DE GUEST (CHECKOUT SEM LOGIN)
-### ===========================================
-### Rota pública - não requer autenticação
-### Cria: usuário + perfil + endereço + telefone + cartão
-### Retorna: access_token para continuar o checkout
+### AUTENTICAÇÃO (para usuários registrados)
 ### ===========================================
 
-### Registro completo PF para checkout
-POST {{checkoutUrl}}/register
+# @name login
+POST {{authUrl}}/signin
 Content-Type: {{contentType}}
 
 {
-  "email": "guest.checkout@email.com",
+  "email": "usuario@email.com",
+  "password": "Senha123"
+}
+
+@token = {{login.response.body.access_token}}
+
+### ===========================================
+### NOVO USUÁRIO - SEM CARTÃO
+### ===========================================
+### Resposta: { userId, profileId, addressId, phoneId, accessToken }
+
+POST {{checkoutUrl}}
+Content-Type: {{contentType}}
+
+{
+  "isRegistered": false,
+  "email": "novo.usuario@email.com",
   "password": "Senha123",
   "profileType": "PF",
   "profile": {
@@ -44,22 +77,99 @@ Content-Type: {{contentType}}
   "phone": {
     "ddd": "11",
     "number": "999998888"
+  }
+}
+
+### ===========================================
+### NOVO USUÁRIO - COM CARTÃO (SÓ TOKEN)
+### ===========================================
+### Resposta: { userId, profileId, addressId, phoneId, cardToken, accessToken }
+
+POST {{checkoutUrl}}
+Content-Type: {{contentType}}
+
+{
+  "isRegistered": false,
+  "email": "usuario.token@email.com",
+  "password": "Senha123",
+  "profileType": "PF",
+  "profile": {
+    "firstName": "Maria",
+    "lastName": "Santos",
+    "cpf": "987.654.321-00",
+    "birthDate": "1985-03-20",
+    "gender": "F"
+  },
+  "address": {
+    "street": "Av. Brasil",
+    "number": "500",
+    "neighborhood": "Jardins",
+    "city": "São Paulo",
+    "state": "SP",
+    "zipCode": "01234-000"
+  },
+  "phone": {
+    "ddd": "11",
+    "number": "988887777"
   },
   "card": {
-    "lastFourDigits": "2931",
-    "holderName": "JOAO SILVA",
+    "cardToken": "token_gerado_pelo_gateway_12345"
+  }
+}
+
+### ===========================================
+### NOVO USUÁRIO - SALVANDO CARTÃO
+### ===========================================
+### Resposta: { userId, profileId, addressId, phoneId, cardId, cardToken, accessToken }
+
+POST {{checkoutUrl}}
+Content-Type: {{contentType}}
+
+{
+  "isRegistered": false,
+  "email": "usuario.salva.cartao@email.com",
+  "password": "Senha123",
+  "profileType": "PF",
+  "profile": {
+    "firstName": "Pedro",
+    "lastName": "Oliveira",
+    "cpf": "123.456.789-09",
+    "birthDate": "1988-07-10"
+  },
+  "address": {
+    "street": "Rua Augusta",
+    "number": "1500",
+    "neighborhood": "Consolação",
+    "city": "São Paulo",
+    "state": "SP",
+    "zipCode": "01304-000"
+  },
+  "phone": {
+    "ddd": "11",
+    "number": "977776666"
+  },
+  "card": {
+    "cardToken": "token_visa_salvar_67890",
+    "saveCard": true,
+    "lastFourDigits": "1234",
+    "holderName": "PEDRO OLIVEIRA",
     "expirationMonth": "12",
     "expirationYear": "2030",
     "brand": "Visa"
   }
 }
 
-### Registro completo PJ para checkout
-POST {{checkoutUrl}}/register
+### ===========================================
+### NOVO USUÁRIO PJ
+### ===========================================
+### Resposta: { userId, profileId, addressId, phoneId, cardToken, accessToken }
+
+POST {{checkoutUrl}}
 Content-Type: {{contentType}}
 
 {
-  "email": "empresa.checkout@email.com",
+  "isRegistered": false,
+  "email": "empresa@email.com",
   "password": "Senha123",
   "profileType": "PJ",
   "profile": {
@@ -81,29 +191,196 @@ Content-Type: {{contentType}}
     "number": "32223333"
   },
   "card": {
-    "lastFourDigits": "9903",
-    "holderName": "EMPRESA EXEMPLO LTDA",
-    "expirationMonth": "12",
-    "expirationYear": "2030",
-    "brand": "Mastercard"
+    "cardToken": "token_empresa_pj_abc123"
   }
 }
 
 ### ===========================================
-### EXEMPLOS DE ERROS
+### USUÁRIO REGISTRADO - NOVO ENDEREÇO E TELEFONE
+### ===========================================
+### Requer: Authorization Bearer token
+### Resposta: { userId, profileId, addressId, phoneId, cardToken, accessToken }
+
+POST {{checkoutUrl}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "isRegistered": true,
+  "profileType": "PF",
+  "profile": {
+    "firstName": "João",
+    "lastName": "Silva Atualizado",
+    "cpf": "529.982.247-25",
+    "birthDate": "1990-05-15",
+    "gender": "M"
+  },
+  "address": {
+    "street": "Novo Endereço",
+    "number": "999",
+    "neighborhood": "Novo Bairro",
+    "city": "Rio de Janeiro",
+    "state": "RJ",
+    "zipCode": "20000-000",
+    "isDefault": true
+  },
+  "phone": {
+    "ddd": "21",
+    "number": "988889999",
+    "isDefault": true
+  },
+  "card": {
+    "cardToken": "token_usuario_existente_xyz"
+  }
+}
+
+### ===========================================
+### USUÁRIO REGISTRADO - USA ENDEREÇO/TELEFONE EXISTENTE
+### ===========================================
+### Requer: Authorization Bearer token
+### Resposta: { userId, profileId, addressId, phoneId, cardToken, accessToken }
+
+POST {{checkoutUrl}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "isRegistered": true,
+  "profileType": "PF",
+  "profile": {
+    "firstName": "João",
+    "lastName": "Silva",
+    "cpf": "529.982.247-25",
+    "birthDate": "1990-05-15"
+  },
+  "address": {
+    "id": 1,
+    "isDefault": true
+  },
+  "phone": {
+    "id": 1
+  },
+  "card": {
+    "cardToken": "token_para_pagamento"
+  }
+}
+
+### ===========================================
+### USUÁRIO REGISTRADO - SALVANDO NOVO CARTÃO
+### ===========================================
+### Requer: Authorization Bearer token
+### Resposta: { userId, profileId, addressId, phoneId, cardId, cardToken, accessToken }
+
+POST {{checkoutUrl}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "isRegistered": true,
+  "profileType": "PF",
+  "profile": {
+    "firstName": "João",
+    "lastName": "Silva",
+    "cpf": "529.982.247-25",
+    "birthDate": "1990-05-15"
+  },
+  "address": {
+    "street": "Endereço de Entrega",
+    "number": "100",
+    "neighborhood": "Centro",
+    "city": "São Paulo",
+    "state": "SP",
+    "zipCode": "01000-000"
+  },
+  "phone": {
+    "ddd": "11",
+    "number": "999990000"
+  },
+  "card": {
+    "cardToken": "token_mastercard_salvar_123",
+    "saveCard": true,
+    "lastFourDigits": "5678",
+    "holderName": "JOAO SILVA",
+    "expirationMonth": "06",
+    "expirationYear": "2028",
+    "brand": "Mastercard",
+    "isDefault": true
+  }
+}
+
+### ===========================================
+### ERROS DE VALIDAÇÃO
 ### ===========================================
 
-### Erro: Email já cadastrado
-POST {{checkoutUrl}}/register
+### Erro 401: Usuário registrado sem token
+### Resposta: { "message": "Token de autenticação obrigatório para usuários registrados", "error": "Unauthorized" }
+POST {{checkoutUrl}}
 Content-Type: {{contentType}}
 
 {
-  "email": "pessoa.fisica2@email.com",
+  "isRegistered": true,
+  "profileType": "PF",
+  "profile": {
+    "firstName": "Teste",
+    "lastName": "Sem Token",
+    "cpf": "529.982.247-25",
+    "birthDate": "1990-05-15"
+  },
+  "address": {
+    "id": 1
+  },
+  "phone": {
+    "id": 1
+  }
+}
+
+### Usando ID inexistente (cria novo com os dados)
+### Se o ID não existir, cria novo endereço/telefone com isDefault=true
+POST {{checkoutUrl}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "isRegistered": true,
+  "profileType": "PF",
+  "profile": {
+    "firstName": "Teste",
+    "lastName": "ID Inexistente",
+    "cpf": "529.982.247-25",
+    "birthDate": "1990-05-15"
+  },
+  "address": {
+    "id": 99999,
+    "street": "Rua Criada Automaticamente",
+    "number": "100",
+    "neighborhood": "Centro",
+    "city": "São Paulo",
+    "state": "SP",
+    "zipCode": "01000-000"
+  },
+  "phone": {
+    "id": 99999,
+    "ddd": "11",
+    "number": "999999999"
+  },
+  "card": {
+    "cardToken": "token_teste"
+  }
+}
+
+### Erro 400: saveCard=true sem dados do cartão
+### Resposta: { "message": ["Últimos 4 dígitos são obrigatórios para salvar o cartão", ...], "error": "Bad Request" }
+POST {{checkoutUrl}}
+Content-Type: {{contentType}}
+
+{
+  "isRegistered": false,
+  "email": "teste.erro@email.com",
   "password": "Senha123",
   "profileType": "PF",
   "profile": {
     "firstName": "Teste",
-    "lastName": "Duplicado",
+    "lastName": "Erro",
     "cpf": "529.982.247-25",
     "birthDate": "1990-05-15"
   },
@@ -120,81 +397,32 @@ Content-Type: {{contentType}}
     "number": "999999999"
   },
   "card": {
-    "lastFourDigits": "2931",
-    "holderName": "TESTE",
-    "expirationMonth": "12",
-    "expirationYear": "2030",
-    "brand": "Visa"
+    "cardToken": "token_teste",
+    "saveCard": true
   }
 }
 
-### Erro: CPF inválido
-POST {{checkoutUrl}}/register
+### Erro 400: Novo endereço sem dados completos
+### Resposta: { "message": ["Rua é obrigatória", ...], "error": "Bad Request" }
+POST {{checkoutUrl}}
 Content-Type: {{contentType}}
 
 {
-  "email": "teste.cpf@email.com",
+  "isRegistered": false,
+  "email": "teste.endereco@email.com",
   "password": "Senha123",
   "profileType": "PF",
   "profile": {
     "firstName": "Teste",
-    "lastName": "CPF Invalido",
-    "cpf": "111.111.111-11",
-    "birthDate": "1990-05-15"
-  },
-  "address": {
-    "street": "Rua Teste",
-    "number": "1",
-    "neighborhood": "Centro",
-    "city": "SP",
-    "state": "SP",
-    "zipCode": "01234-567"
-  },
-  "phone": {
-    "ddd": "11",
-    "number": "999999999"
-  },
-  "card": {
-    "lastFourDigits": "2931",
-    "holderName": "TESTE",
-    "expirationMonth": "12",
-    "expirationYear": "2030",
-    "brand": "Visa"
-  }
-}
-
-### Erro: Últimos 4 dígitos inválidos
-POST {{checkoutUrl}}/register
-Content-Type: {{contentType}}
-
-{
-  "email": "teste.card@email.com",
-  "password": "Senha123",
-  "profileType": "PF",
-  "profile": {
-    "firstName": "Teste",
-    "lastName": "Card Invalido",
+    "lastName": "Endereco",
     "cpf": "529.982.247-25",
     "birthDate": "1990-05-15"
   },
   "address": {
-    "street": "Rua Teste",
-    "number": "1",
-    "neighborhood": "Centro",
-    "city": "SP",
-    "state": "SP",
-    "zipCode": "01234-567"
+    "street": "Rua Incompleta"
   },
   "phone": {
     "ddd": "11",
     "number": "999999999"
-  },
-  "card": {
-    "lastFourDigits": "12",
-    "holderName": "TESTE",
-    "expirationMonth": "12",
-    "expirationYear": "2030",
-    "brand": "Visa"
   }
 }
-
