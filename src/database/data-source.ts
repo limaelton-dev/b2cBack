@@ -10,7 +10,9 @@ const fileExt = isTsRuntime ? 'ts' : 'js';
 const entitiesPath = path.join(baseDir, 'modules', '**', '*.entity.' + fileExt);
 const migrationsPath = path.join(baseDir, 'database', 'migrations', '*.' + fileExt);
 
-// Versão básica usando variáveis de ambiente para CLI de migrations
+const isProduction = process.env.NODE_ENV === 'production';
+const enableLogging = process.env.DB_LOGGING === 'true' && !isProduction;
+
 export const postgresDataSourceOptions: DataSourceOptions = {
   type: 'postgres',
   host: process.env.POSTGRES_DB_HOST,
@@ -22,8 +24,7 @@ export const postgresDataSourceOptions: DataSourceOptions = {
   migrations: [migrationsPath],
   migrationsTableName: 'migrations_history',
   synchronize: false,
-  logging: true, // Habilita logs para debug
-  // ssl: false, // Desabilita SSL para conexões locais
+  logging: enableLogging ? ['error', 'warn', 'migration'] : ['error'],
 };
 
 export const oracleDataSourceOptions: DataSourceOptions = {
@@ -33,11 +34,14 @@ export const oracleDataSourceOptions: DataSourceOptions = {
   connectString: `${process.env.ORACLE_DB_HOST}:${process.env.ORACLE_DB_PORT}/${process.env.ORACLE_DB_DATABASE}`,
   entities: ['dist/oracle/**/*.entity.js'],
   synchronize: false,
-  thickMode: true
+  thickMode: true,
+  logging: isProduction ? ['error'] : ['error', 'warn'],
 };
 
-// Funções que utilizam ConfigService
 export const getPostgresDataSourceOptions = (dbConfig: any): DataSourceOptions => {
+  const isProd = process.env.NODE_ENV === 'production';
+  const dbLogging = process.env.DB_LOGGING === 'true' && !isProd;
+
   return {
     type: 'postgres',
     host: dbConfig.host,
@@ -49,12 +53,14 @@ export const getPostgresDataSourceOptions = (dbConfig: any): DataSourceOptions =
     migrations: [migrationsPath],
     migrationsTableName: 'migrations_history',
     synchronize: false,
-    logging: true,
+    logging: dbLogging ? ['error', 'warn', 'migration'] : ['error'],
     ssl: false,
   };
 };
 
 export const getOracleDataSourceOptions = (dbConfig: any): DataSourceOptions => {
+  const isProd = process.env.NODE_ENV === 'production';
+
   return {
     type: 'oracle',
     username: dbConfig.username,
@@ -63,12 +69,10 @@ export const getOracleDataSourceOptions = (dbConfig: any): DataSourceOptions => 
     entities: ['dist/oracle/**/*.entity.js'],
     synchronize: false,
     thickMode: dbConfig.thickMode,
-    logging: ["query", "error"],        // faz o log de todas as queries e erros
-    logger: "advanced-console",         // logger avançado no console
+    logging: isProd ? ['error'] : ['error', 'warn'],
   };
 };
 
-// Instância do DataSource para CLI de migrations
 const dataSource = new DataSource(postgresDataSourceOptions);
 
 export default dataSource;

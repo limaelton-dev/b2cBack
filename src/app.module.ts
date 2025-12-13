@@ -8,7 +8,7 @@ import { PhoneModule } from './modules/phone/phone.module';
 import { CardModule } from './modules/card/card.module';
 import { ProductsModule } from './modules/products/products.module';
 import { OrdersModule } from './modules/orders/orders.module';
-import { PaymentModule } from './modules/payment/payment.module';
+// import { PaymentModule } from './modules/payment/payment.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { ProfileModule } from './modules/profile/profile.module';
@@ -31,7 +31,7 @@ import { BrandsModule } from './modules/brands/brands.module';
     CardModule,
     ProductsModule,
     OrdersModule,
-    PaymentModule,
+    // PaymentModule,
     AuthModule,
     CheckoutModule,
     ShippingModule,

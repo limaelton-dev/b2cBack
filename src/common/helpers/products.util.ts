@@ -1,10 +1,4 @@
-/**
- * Arredonda valor monetário para 2 casas decimais.
- */
-export function roundPrice(value: number | undefined | null): number {
-    if (value == null || isNaN(value)) return 0;
-    return Math.round(value * 100) / 100;
-}
+export { roundPrice, calculateItemsTotal, calculateGrandTotal } from './price.util';
 
 export function normalizeToSlug(text: string): string {
     return text

@@ -4,6 +4,7 @@ import { PaymentGateway, PaymentGatewayInfo, PaymentGatewayRequest, PaymentGatew
 import { PaymentMethod } from '../../../../common/enums/payment-method.enum';
 import { CieloConfig } from './cielo.config';
 import { ConfigService } from '@nestjs/config';
+import { redact, safeStringify, buildPaymentLogMessage } from '../../../../common/helpers/payment-log.util';
 
 @Injectable()
 export class CieloGateway implements PaymentGateway {
@@ -48,36 +49,38 @@ export class CieloGateway implements PaymentGateway {
   }
 
   async processPayment(request: PaymentGatewayRequest): Promise<PaymentGatewayResponse> {
+    const logContext = {
+      orderId: request.metadata?.orderId as number,
+      profileId: request.customer.id as number,
+      gateway: 'cielo',
+      method: request.paymentMethod,
+      amount: request.amount,
+    };
+
     try {
-      this.logger.log(`Processando pagamento via Cielo: ${JSON.stringify({
-        amount: request.amount,
-        paymentMethod: request.paymentMethod,
-        customer: `${request.customer.name} (${request.customer.email})`
-      })}`);
-      
-      // Mapear o método de pagamento para o formato esperado pela Cielo
+      this.logger.log(buildPaymentLogMessage(logContext, 'Iniciando processamento'));
+
       if (request.paymentMethod === PaymentMethod.CREDIT_CARD) {
         return this.processCreditCardPayment(request);
       } else if (request.paymentMethod === PaymentMethod.DEBIT_CARD) {
         return this.processDebitCardPayment(request);
-      } else {
-        throw new Error(`Método de pagamento ${request.paymentMethod} não suportado pela Cielo`);
       }
+
+      throw new Error(`Método de pagamento ${request.paymentMethod} não suportado pela Cielo`);
     } catch (error) {
-      this.logger.error('Erro ao processar pagamento na Cielo:', error.stack);
-      this.logger.error('Detalhes da resposta:', error.response?.data || 'Sem detalhes disponíveis');
-      
+      this.logger.error(buildPaymentLogMessage(logContext, `Erro: ${error.message}`));
+      this.logger.debug(`Detalhes: ${safeStringify(error.response?.data)}`);
+
       return {
         success: false,
         message: error.response?.data?.Message || error.message || 'Erro ao processar pagamento',
-        details: error.response?.data || { error: error.message }
+        details: redact(error.response?.data) || { error: error.message }
       };
     }
   }
 
   private async processCreditCardPayment(request: PaymentGatewayRequest): Promise<PaymentGatewayResponse> {
     if (!request.cardData) {
-      this.logger.error('Dados do cartão ausentes na requisição');
       return {
         success: false,
         message: 'Dados do cartão são obrigatórios para pagamento com cartão de crédito',
@@ -85,52 +88,18 @@ export class CieloGateway implements PaymentGateway {
       };
     }
 
-    // Validação mais específica dos dados do cartão
-    const { cardNumber, holder, expirationDate, securityCode, brand, token } = request.cardData;
-    
-    // Se não for um token, validar os dados do cartão
-    if (!token) {
-      if (!cardNumber) {
-        this.logger.error('Número do cartão ausente na requisição');
-        return {
-          success: false,
-          message: 'Número do cartão é obrigatório',
-          details: { error: 'missing_card_number' }
-        };
-      }
-      
-      if (!holder) {
-        this.logger.error('Nome do titular ausente na requisição');
-        return {
-          success: false,
-          message: 'Nome do titular do cartão é obrigatório',
-          details: { error: 'missing_card_holder' }
-        };
-      }
-      
-      if (!expirationDate) {
-        this.logger.error('Data de expiração do cartão ausente na requisição');
-        return {
-          success: false,
-          message: 'Data de expiração do cartão é obrigatória',
-          details: { error: 'missing_expiration_date' }
-        };
-      }
-      
-      if (!securityCode) {
-        this.logger.error('Código de segurança do cartão ausente na requisição');
-        return {
-          success: false,
-          message: 'Código de segurança do cartão é obrigatório',
-          details: { error: 'missing_security_code' }
-        };
-      }
+    const { token } = request.cardData;
+
+    if (!token && !this.validateCardData(request.cardData)) {
+      return {
+        success: false,
+        message: 'Dados do cartão incompletos',
+        details: { error: 'incomplete_card_data' }
+      };
     }
 
-    // Gerar IDs únicos para a transação
     const merchantOrderId = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    // Construir o payload para a Cielo
     const payload = {
       MerchantOrderId: merchantOrderId,
       Customer: {
@@ -139,9 +108,9 @@ export class CieloGateway implements PaymentGateway {
       },
       Payment: {
         Type: 'CreditCard',
-        Amount: Math.round(request.amount * 100), // Valor em centavos
-        Installments: 1, // Parcelas
-        SoftDescriptor: request.description?.substring(0, 13), // Texto que aparecerá na fatura do cliente (max 13 caracteres)
+        Amount: Math.round(request.amount * 100),
+        Installments: 1,
+        SoftDescriptor: request.description?.substring(0, 13),
         CreditCard: request.cardData.token ? {
           CardToken: request.cardData.token,
           Brand: request.cardData.brand || 'Visa'
@@ -152,41 +121,38 @@ export class CieloGateway implements PaymentGateway {
           SecurityCode: request.cardData.securityCode,
           Brand: request.cardData.brand || 'Visa'
         },
-        Capture: true // Captura automática
+        Capture: true
       }
     };
 
     try {
-      this.logger.log(`Enviando requisição para API da Cielo: ${this.baseUrl}/1/sales`);
       const response = await axios.post(
         `${this.baseUrl}/1/sales`,
         payload,
         { headers: this.getHeaders() }
       );
 
-      if (response.data && response.data.Payment) {
-        this.logger.log(`Resposta recebida da Cielo: Status ${response.data.Payment.Status}, Código ${response.data.Payment.ReturnCode}`);
+      if (response.data?.Payment) {
+        this.logger.log(`Resposta Cielo: Status ${response.data.Payment.Status}, Code ${response.data.Payment.ReturnCode}`);
         return {
-          success: response.data.Payment.Status === 2, // Status 2 = Autorizado
+          success: response.data.Payment.Status === 2,
           transactionId: response.data.Payment.PaymentId,
           paymentId: response.data.Payment.PaymentId,
           status: this.mapCieloStatus(response.data.Payment.Status),
           code: String(response.data.Payment.ReturnCode),
           message: response.data.Payment.ReturnMessage,
-          details: response.data
+          details: redact(response.data)
         };
       }
 
       throw new Error('Resposta inesperada da Cielo');
     } catch (error) {
-      this.logger.error('Erro na chamada à API da Cielo:', error.message);
-      throw error; // Repassar o erro para ser tratado pelo método processPayment
+      throw error;
     }
   }
 
   private async processDebitCardPayment(request: PaymentGatewayRequest): Promise<PaymentGatewayResponse> {
     if (!request.cardData) {
-      this.logger.error('Dados do cartão ausentes na requisição de débito');
       return {
         success: false,
         message: 'Dados do cartão são obrigatórios para pagamento com cartão de débito',
@@ -194,49 +160,16 @@ export class CieloGateway implements PaymentGateway {
       };
     }
 
-    // Validação mais específica dos dados do cartão
-    const { cardNumber, holder, expirationDate, securityCode, brand, token } = request.cardData;
-    
-    // Se não for um token, validar os dados do cartão
-    if (!token) {
-      if (!cardNumber) {
-        this.logger.error('Número do cartão ausente na requisição de débito');
-        return {
-          success: false,
-          message: 'Número do cartão é obrigatório',
-          details: { error: 'missing_card_number' }
-        };
-      }
-      
-      if (!holder) {
-        this.logger.error('Nome do titular ausente na requisição de débito');
-        return {
-          success: false,
-          message: 'Nome do titular do cartão é obrigatório',
-          details: { error: 'missing_card_holder' }
-        };
-      }
-      
-      if (!expirationDate) {
-        this.logger.error('Data de expiração do cartão ausente na requisição de débito');
-        return {
-          success: false,
-          message: 'Data de expiração do cartão é obrigatória',
-          details: { error: 'missing_expiration_date' }
-        };
-      }
-      
-      if (!securityCode) {
-        this.logger.error('Código de segurança do cartão ausente na requisição de débito');
-        return {
-          success: false,
-          message: 'Código de segurança do cartão é obrigatório',
-          details: { error: 'missing_security_code' }
-        };
-      }
+    const { token } = request.cardData;
+
+    if (!token && !this.validateCardData(request.cardData)) {
+      return {
+        success: false,
+        message: 'Dados do cartão incompletos',
+        details: { error: 'incomplete_card_data' }
+      };
     }
 
-    // Gerar IDs únicos para a transação
     const merchantOrderId = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     const payload = {
@@ -247,67 +180,55 @@ export class CieloGateway implements PaymentGateway {
       },
       Payment: {
         Type: 'DebitCard',
-        Amount: Math.round(request.amount * 100), // Valor em centavos
+        Amount: Math.round(request.amount * 100),
         DebitCard: token ? {
           CardToken: token,
-          Brand: brand || 'Visa'
+          Brand: request.cardData.brand || 'Visa'
         } : {
-          CardNumber: cardNumber,
-          Holder: holder,
-          ExpirationDate: expirationDate,
-          SecurityCode: securityCode,
-          Brand: brand || 'Visa'
+          CardNumber: request.cardData.cardNumber,
+          Holder: request.cardData.holder,
+          ExpirationDate: request.cardData.expirationDate,
+          SecurityCode: request.cardData.securityCode,
+          Brand: request.cardData.brand || 'Visa'
         },
         ReturnUrl: this.config.returnUrl || 'https://www.seusite.com.br/retorno'
       }
     };
 
     try {
-      this.logger.log(`Enviando requisição de cartão de débito para Cielo: ${JSON.stringify({
-        merchantOrderId,
-        amount: request.amount,
-        brand: request.cardData.brand,
-        returnUrl: this.config.returnUrl
-      })}`);
-      
       const response = await axios.post(
         `${this.baseUrl}/1/sales`,
         payload,
         { headers: this.getHeaders() }
       );
 
-      if (response.data && response.data.Payment) {
-        const result = {
+      if (response.data?.Payment) {
+        return {
           success: !!response.data.Payment.AuthenticationUrl,
           transactionId: response.data.Payment.PaymentId,
           paymentId: response.data.Payment.PaymentId,
           status: this.mapCieloStatus(response.data.Payment.Status),
           code: String(response.data.Payment.ReturnCode),
           message: response.data.Payment.ReturnMessage,
-          details: {
+          details: redact({
             ...response.data,
             authenticationUrl: response.data.Payment.AuthenticationUrl
-          }
+          })
         };
-        
-        this.logger.log(`Resposta da Cielo para débito: ${JSON.stringify({
-          success: result.success,
-          transactionId: result.transactionId,
-          status: result.status
-        })}`);
-        
-        return result;
       }
 
       throw new Error('Resposta inesperada da Cielo para cartão de débito');
     } catch (error) {
-      this.logger.error(`Erro ao processar pagamento com cartão de débito na Cielo: ${error.message}`);
-      throw error; // Repassar o erro para ser tratado pelo método processPayment
+      throw error;
     }
   }
 
+  private validateCardData(cardData: any): boolean {
+    return !!(cardData.cardNumber && cardData.holder && cardData.expirationDate && cardData.securityCode);
+  }
+
   private mapCieloStatus(statusCode: number): string {
-    const statusMap = {
+    const statusMap: Record<number, string> = {
       0: 'NotFinished',
       1: 'Authorized',
       2: 'PaymentConfirmed',
@@ -318,7 +239,7 @@ export class CieloGateway implements PaymentGateway {
       13: 'Aborted',
       20: 'Scheduled'
     };
-    
+
     return statusMap[statusCode] || `Unknown(${statusCode})`;
   }
 
@@ -331,104 +252,50 @@ export class CieloGateway implements PaymentGateway {
     };
   }
 
-  // Método para consultar transação
   async consultTransaction(paymentId: string): Promise<any> {
     try {
-      this.logger.log(`Consultando transação ${paymentId} na Cielo`);
       const response = await axios.get(
         `${this.queryUrl}/1/sales/${paymentId}`,
         { headers: this.getHeaders() }
       );
-      
-      this.logger.log(`Consulta da transação ${paymentId} realizada com sucesso`);
-      return response.data;
+      return redact(response.data);
     } catch (error) {
-      this.logger.error(`Erro ao consultar transação ${paymentId} na Cielo:`, error.response?.data || error.message);
+      this.logger.error(`Erro ao consultar transação ${paymentId}: ${error.message}`);
       throw error;
     }
   }
 
-  // Método para capturar transação
   async captureTransaction(paymentId: string, amount?: number): Promise<any> {
     try {
       const url = `${this.baseUrl}/1/sales/${paymentId}/capture`;
       const queryParam = amount ? `?amount=${Math.round(amount * 100)}` : '';
-      
-      this.logger.log(`Capturando transação ${paymentId}${amount ? ` no valor de ${amount}` : ''} na Cielo`);
+
       const response = await axios.put(
         `${url}${queryParam}`,
         {},
         { headers: this.getHeaders() }
       );
-      
-      this.logger.log(`Captura da transação ${paymentId} realizada com sucesso`);
-      return response.data;
+      return redact(response.data);
     } catch (error) {
-      this.logger.error(`Erro ao capturar transação ${paymentId} na Cielo:`, error.response?.data || error.message);
+      this.logger.error(`Erro ao capturar transação ${paymentId}: ${error.message}`);
       throw error;
     }
   }
 
-  // Método para cancelar transação
   async cancelTransaction(paymentId: string, amount?: number): Promise<any> {
     try {
       const url = `${this.baseUrl}/1/sales/${paymentId}/void`;
       const queryParam = amount ? `?amount=${Math.round(amount * 100)}` : '';
-      
-      this.logger.log(`Cancelando transação ${paymentId}${amount ? ` no valor de ${amount}` : ''} na Cielo`);
+
       const response = await axios.put(
         `${url}${queryParam}`,
         {},
         { headers: this.getHeaders() }
       );
-      
-      this.logger.log(`Cancelamento da transação ${paymentId} realizado com sucesso`);
-      return response.data;
+      return redact(response.data);
     } catch (error) {
-      this.logger.error(`Erro ao cancelar transação ${paymentId} na Cielo:`, error.response?.data || error.message);
+      this.logger.error(`Erro ao cancelar transação ${paymentId}: ${error.message}`);
       throw error;
     }
   }
-
-  // Método para obter cartões de teste (apenas informativo)
-  public getTestCards() {
-    return {
-      creditCards: [
-        {
-          brand: 'Visa',
-          cardNumber: '4012001038443335',
-          holder: 'TESTE CIELO',
-          expirationDate: '12/2030',
-          securityCode: '123',
-          info: 'Cartão de Crédito Visa - Autorização com sucesso'
-        },
-        {
-          brand: 'Mastercard',
-          cardNumber: '5453010000066167',
-          holder: 'TESTE CIELO',
-          expirationDate: '12/2030',
-          securityCode: '123',
-          info: 'Cartão de Crédito Mastercard - Autorização com sucesso'
-        },
-        {
-          brand: 'Visa',
-          cardNumber: '4012001037141112',
-          holder: 'TESTE CIELO',
-          expirationDate: '12/2030',
-          securityCode: '123',
-          info: 'Cartão de Crédito Visa - Autorização negada'
-        }
-      ],
-      debitCards: [
-        {
-          brand: 'Visa',
-          cardNumber: '4024007153763191',
-          holder: 'TESTE CIELO',
-          expirationDate: '12/2030',
-          securityCode: '123',
-          info: 'Cartão de Débito Visa - Autorização com sucesso'
-        }
-      ]
-    };
-  }
-} 
+}

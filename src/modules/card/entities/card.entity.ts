@@ -27,9 +27,6 @@ export class Card {
   @Column({ length: 20 })
   brand: string;
 
-  @Column({ name: 'card_token', nullable: true })
-  cardToken: string;
-
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

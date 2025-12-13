@@ -5,7 +5,7 @@ import { Cart } from '../entities/cart.entity';
 import { CartItemDto } from '../dto/cart-item.dto';
 import { CartWithDetailsDto, CartItemWithDetailsDto } from '../dto/cart-with-details.dto';
 import { ProductsService } from 'src/modules/products/services/products.service';
-import { roundPrice } from 'src/common/helpers/products.util';
+import { calculateItemsTotal } from 'src/common/helpers/price.util';
 import { UpdateCartItemDto } from '../dto/update-cart-item.dto';
 import { CartPreviewDto } from '../dto/cart-preview.dto';
 
@@ -26,15 +26,7 @@ export class CartsService {
     const skuIds = items.map(item => item.skuId);
     const skuDetailsMap = await this.productsService.findSkusForCart(skuIds);
 
-    const subtotal = roundPrice(
-      items.reduce((sum, item) => {
-        if (!item.available) return sum;
-        const sku = skuDetailsMap.get(item.skuId);
-        if (!sku) return sum;
-        const price = sku._rawPrice ?? 0;
-        return sum + price * item.quantity;
-      }, 0),
-    );
+    const subtotal = calculateItemsTotal(items, skuDetailsMap);
 
     const detailedItems: CartItemWithDetailsDto[] = items
       .map(item => {

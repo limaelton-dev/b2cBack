@@ -38,14 +38,26 @@ export class OrdersSyncService {
     );
   }
 
+  private async resolveProfileIdFromOrder(anymarketOrder: any): Promise<number | null> {
+    if (!anymarketOrder.customer?.email) {
+      return null;
+    }
+
+    const existingOrder = await this.ordersRepository.findByAnymarketOrderId(
+      anymarketOrder.id,
+    );
+    if (existingOrder?.profileId) {
+      return existingOrder.profileId;
+    }
+
+    return null;
+  }
+
   private async processSingleFeed(feed: AnymarketOrderFeed): Promise<void> {
     const anymarketOrder =
       await this.ordersAnymarketRepository.findById(feed.orderId);
 
-    // TODO: encontrar o profileId correspondente.
-    // Para pedidos de marketplace, pode ser que não exista profile local.
-    // Por enquanto, considera profileId nulo.
-    const profileId = 0;
+    const profileId = await this.resolveProfileIdFromOrder(anymarketOrder);
 
     const orderData = {
       profileId,

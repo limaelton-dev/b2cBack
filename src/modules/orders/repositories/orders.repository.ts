@@ -101,6 +101,12 @@ export class OrdersRepository {
     });
   }
 
+  async findByAnymarketOrderId(anymarketOrderId: number): Promise<Order | null> {
+    return this.orderEntityRepository.findOne({
+      where: { anymarketOrderId },
+    });
+  }
+
   async updateOrderStatus(
     orderId: number,
     status: OrderStatus,

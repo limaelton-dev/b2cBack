@@ -4,7 +4,7 @@ export interface PaymentGatewayRequest {
   amount: number;
   currency: string;
   description: string;
-  paymentMethod: string;
+  paymentMethod: PaymentMethod;
   customer: {
     id: string | number;
     email: string;
