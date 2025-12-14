@@ -41,10 +41,10 @@ POST {{authUrl}}/signin
 Content-Type: {{contentType}}
 
 {
-  "email": "usuario@email.com",
+  "email": "novo.usuario@email.com",
   "password": "Senha123"
 }
-
+### Token salvo automaticamente da resposta do login
 @token = {{login.response.body.access_token}}
 @profileId = {{login.response.body.profileId}}
 
@@ -258,7 +258,8 @@ Authorization: Bearer {{token}}
 POST {{checkoutUrl}}/order
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
-X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440001
+# obrigatório para criar o pedido, gere um UUID aleatório para cada tentativa de criação
+X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440001 
 
 {
   "shippingAddressId": 1,
