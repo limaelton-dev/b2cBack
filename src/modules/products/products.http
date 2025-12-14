@@ -4,6 +4,27 @@
 ### Base URL: http://localhost:3000/api/products
 ### Endpoints públicos (sem autenticação)
 ### ===========================================
+###
+### IMPORTANTE - INTEGRAÇÃO ANYMARKET:
+### Os produtos são consumidos do AnyMarket e filtrados por:
+### 1. Marketplace configurado (env: ANYMARKET_MARKETPLACE_NAME)
+### 2. Apenas anúncios ATIVOS (publicationStatus: ACTIVE)
+### 3. Apenas SKUs com estoque > 0
+###
+### PREÇOS DO MARKETPLACE:
+### Os preços vêm do anúncio (SKU Marketplace), não do cadastro base:
+### - originalPrice: preço original do anúncio
+### - finalPrice: preço com desconto (ou igual ao original)
+### - hasDiscount: true se finalPrice < originalPrice
+###
+### STOCK:
+### - marketplaceStock: estoque do marketplace (quando disponível)
+### - Fallback para estoque do SKU base se marketplace não informar
+###
+### IDENTIFICADORES:
+### - marketplacePartnerId: código do anúncio no marketplace (usado em orders)
+### - partnerId: código base do SKU
+### ===========================================
 
 ### Variáveis de ambiente
 @baseUrl = http://localhost:3000/api
@@ -14,6 +35,7 @@
 ### ===========================================
 
 ### Listar todos os produtos (padrão: página 0, 50 itens)
+### Retorna apenas produtos com anúncio ATIVO no marketplace configurado
 GET {{productsUrl}}
 
 ### ===========================================
@@ -21,15 +43,16 @@ GET {{productsUrl}}
 ### ===========================================
 
 ### Paginação por page/size (recomendado)
-GET {{productsUrl}}?page=0&size=3
+### page: índice da página (0-based)
+### size: quantidade de itens por página
+GET {{productsUrl}}?page=0&size=10
 
 ### Segunda página
-GET {{productsUrl}}?page=1&size=3
-
-### Terceira página com 20 itens
-GET {{productsUrl}}?page=2&size=3
+GET {{productsUrl}}?page=1&size=10
 
 ### Paginação por offset/limit (alternativo)
+### offset: posição inicial
+### limit: quantidade máxima de itens
 GET {{productsUrl}}?offset=0&limit=10
 
 ### Offset 20, limit 10
@@ -43,12 +66,12 @@ GET {{productsUrl}}?offset=20&limit=10
 GET {{productsUrl}}?term=mouse
 
 ### Busca por termo com paginação
-GET {{productsUrl}}?term=azul&page=0&size=10
+GET {{productsUrl}}?term=gamer&page=0&size=10
 
 ### Filtrar por categoria (ID)
 GET {{productsUrl}}?categories=123
 
-### Filtrar por múltiplas categorias
+### Filtrar por múltiplas categorias (separadas por vírgula)
 GET {{productsUrl}}?categories=123,456,789
 
 ### Filtrar por marca (ID)
@@ -65,60 +88,155 @@ GET {{productsUrl}}?term=camisa&categories=123&brands=10&page=0&size=20
 ### ===========================================
 
 ### Buscar produto por ID
+### Retorna 404 se produto não existe ou não tem anúncio ativo no canal
 GET {{productsUrl}}/73414029
 
-### Buscar produto por ID (outro exemplo)
-GET {{productsUrl}}/12345
+### Buscar outro produto
+GET {{productsUrl}}/73414031
 
 ### ===========================================
 ### BUSCAR PRODUTO POR SLUG
 ### ===========================================
 
-### Buscar produto por slug
-GET {{productsUrl}}/slug/camiseta-azul-manga-longa-1
-
-### Buscar produto por slug (outro exemplo)
-GET {{productsUrl}}/slug/mouse-gamer-usb-c3tech-mg-800bk-osprey-ate-12000-dpi-rgb-1
+### Buscar produto por slug (SEO-friendly)
+### Slug é gerado automaticamente: titulo-do-produto-{id}
+GET {{productsUrl}}/slug/mouse-gamer-usb-c3tech-mg-800bk-osprey-ate-12000-dpi-rgb-73414029
 
 ### ===========================================
-### EXEMPLOS DE RESPOSTA
+### ESTRUTURA DE RESPOSTA - LISTAGEM
 ### ===========================================
 
-### Resposta da listagem (GET /products):
-# {
-#   "items": [
-#     {
-#       "id": 123,
-#       "title": "Camiseta Azul",
-#       "slug": "camiseta-azul-1",
-#       "description": "...",
-#       "brand": { "id": 10, "name": "Marca X" },
-#       "category": { "id": 456, "name": "Camisetas" },
-#       "skus": [
-#         {
-#           "id": 789,
-#           "title": "Camiseta Azul - P",
-#           "price": 99.90,
-#           "amount": 15
-#         }
-#       ],
-#       "images": [...]
-#     }
-#   ],
-#   "offset": 0,
-#   "limit": 10,
-#   "total": 150,
-#   "page": 1,
-#   "lastPage": 15
-# }
+### GET /products - Resposta:
+### {
+###   "items": [
+###     {
+###       "id": 73414029,
+###       "title": "Mouse Gamer USB C3Tech MG-800BK Osprey",
+###       "slug": "mouse-gamer-usb-c3tech-mg-800bk-osprey-73414029",
+###       "description": "...",
+###       "isProductActive": true,
+###       "brand": { "id": 10, "name": "C3Tech", "partnerId": "123" },
+###       "category": { "id": 456, "name": "Mouses" },
+###       "skus": [
+###         {
+###           "id": 30494035,
+###           "title": "Mouse Gamer USB C3Tech MG-800BK",
+###           "partnerId": "402060820100",
+###           "marketplacePartnerId": "402060820100",
+###           "ean": "7898555213845",
+###           "amount": 15,
+###           "originalPrice": 69.90,
+###           "finalPrice": 59.90,
+###           "hasDiscount": true,
+###           "marketplaceStock": 15,
+###           "marketplaceData": {
+###             "listingId": 243904140,
+###             "skuId": 30494035,
+###             "partnerId": "402060820100",
+###             "marketplace": "MERCADO_LIVRE",
+###             "status": "ACTIVE",
+###             "originalPrice": 69.90,
+###             "finalPrice": 59.90,
+###             "hasDiscount": true,
+###             "stock": 0,
+###             "isActive": true
+###           },
+###           "variations": [
+###             { "type": "COR", "description": "Preto" }
+###           ]
+###         }
+###       ],
+###       "images": [
+###         {
+###           "main": true,
+###           "url": "https://...",
+###           "standardUrl": "https://...",
+###           "originalImage": "https://..."
+###         }
+###       ],
+###       "characteristics": [
+###         { "name": "Tipo", "value": "Gamer" }
+###       ]
+###     }
+###   ],
+###   "offset": 0,
+###   "limit": 10,
+###   "total": 150,
+###   "page": 1,
+###   "lastPage": 15
+### }
 
 ### ===========================================
-### OBSERVAÇÕES
+### ESTRUTURA DE RESPOSTA - DETALHE
 ### ===========================================
 
-### • Apenas produtos ATIVOS são retornados
-### • Apenas SKUs com ESTOQUE > 0 são incluídos
-### • Produtos sem SKUs disponíveis são excluídos
-### • Slugs são gerados automaticamente a partir do título
-### • Filtro "term" busca em: título, descrição, modelo, SKUs, características
+### GET /products/:id ou /products/slug/:slug - Resposta:
+### (mesmo objeto de items[0] acima, sem paginação)
 
+### ===========================================
+### CAMPOS IMPORTANTES PARA O FRONTEND
+### ===========================================
+###
+### Para exibir preço no catálogo:
+### - Usar sku.finalPrice como preço principal
+### - Se sku.hasDiscount === true:
+###   - Exibir "De: R$ {sku.originalPrice}" riscado
+###   - Exibir "Por: R$ {sku.finalPrice}" destacado
+###
+### Para adicionar ao carrinho:
+### - Usar sku.id como identificador
+### - Verificar sku.marketplaceStock > 0
+### - O carrinho valida disponibilidade no checkout
+###
+### Para exibir variações:
+### - Usar sku.variations[].description
+### - Agrupar SKUs por variação para seletor
+###
+### Para imagens:
+### - product.images[].main === true é a imagem principal
+### - Usar standardUrl para thumbnails
+### - Usar originalImage para zoom
+###
+### ===========================================
+
+### ===========================================
+### ERROS POSSÍVEIS
+### ===========================================
+
+### Erro 404: Produto não encontrado
+GET {{productsUrl}}/999999999
+
+### Erro 404: Produto existe mas sem anúncio ativo no canal
+### (produto pode existir no AnyMarket mas não no marketplace atual)
+GET {{productsUrl}}/12345
+
+### Erro 404: Slug não encontrado
+GET {{productsUrl}}/slug/produto-inexistente-123
+
+### ===========================================
+### OBSERVAÇÕES TÉCNICAS
+### ===========================================
+###
+### Filtros aplicados automaticamente:
+### 1. isProductActive === true (produto ativo no AnyMarket)
+### 2. sku.amount > 0 (estoque base > 0)
+### 3. Anúncio com publicationStatus === "ACTIVE" no marketplace
+### 4. Marketplace === env.ANYMARKET_MARKETPLACE_NAME
+###
+### Preços e estoque:
+### - Preços vêm do endpoint /skus/{skuId}/marketplaces
+### - Campo price no anúncio = originalPrice
+### - Campo discountPrice no anúncio = finalPrice (se existir)
+### - Estoque do marketplace não está disponível no endpoint
+### - Fallback para estoque do SKU base (sku.amount)
+###
+### Performance:
+### - Produtos são carregados sob demanda (streaming)
+### - Dados de marketplace são buscados em batch (5 concurrent)
+### - Cache futuro: Redis por skuId+marketplace (TTL 60-300s)
+###
+### Slugs:
+### - Gerados automaticamente: slugify(title)-{id}
+### - Garantem unicidade pelo ID no final
+### - Case-insensitive na busca
+### ===========================================

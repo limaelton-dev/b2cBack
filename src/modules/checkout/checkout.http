@@ -5,10 +5,17 @@
 ### ===========================================
 ###
 ### FLUXO COMPLETO:
-### 1. POST /checkout/guest ou /checkout/registered - Preparar dados do cliente
-### 2. POST /checkout/order - Criar pedido (requer X-Idempotency-Key)
-### 3. POST /checkout/payment/:type/gateway/:gateway - Processar pagamento (requer X-Idempotency-Key)
-### 4. Webhook (automático) - Atualizar status de pagamentos assíncronos (PIX)
+### 1. Adicionar produtos ao carrinho (POST /carts/items)
+### 2. POST /checkout/guest ou /checkout/registered - Preparar dados do cliente
+### 3. POST /checkout/order - Criar pedido (requer X-Idempotency-Key)
+### 4. POST /checkout/payment/:type/gateway/:gateway - Processar pagamento (requer X-Idempotency-Key)
+### 5. Webhook (automático) - Atualizar status de pagamentos assíncronos (PIX)
+###
+### PREÇOS E VALIDAÇÃO:
+### - Preços são validados no momento da criação da order
+### - Usa o finalPrice do anúncio ativo no marketplace
+### - SKUs sem anúncio ativo são rejeitados
+### - Estoque é validado antes de criar a order
 ###
 ### SEGURANÇA IMPLEMENTADA:
 ### - X-Idempotency-Key OBRIGATÓRIO em /order e /payment (cliente gera UUID por tentativa)
@@ -41,9 +48,10 @@ POST {{authUrl}}/signin
 Content-Type: {{contentType}}
 
 {
-  "email": "novo.usuario@email.com",
+  "email": "usuario@email.com",
   "password": "Senha123"
 }
+
 ### Token salvo automaticamente da resposta do login
 @token = {{login.response.body.access_token}}
 @profileId = {{login.response.body.profileId}}
@@ -253,22 +261,28 @@ Authorization: Bearer {{token}}
 ### Cria pedido a partir do carrinho
 ### Resposta: { orderId, partnerOrderId, status, itemsTotal, shippingTotal, discountTotal, grandTotal }
 ### X-Idempotency-Key: UUID gerado pelo cliente (um por tentativa de criação)
+###
+### VALIDAÇÕES REALIZADAS:
+### - Carrinho não pode estar vazio
+### - Todos os SKUs devem ter anúncio ativo no marketplace
+### - Estoque suficiente para cada item
+### - Preços são capturados do marketplace (finalPrice)
 
 # @name createOrder
 POST {{checkoutUrl}}/order
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
-# obrigatório para criar o pedido, gere um UUID aleatório para cada tentativa de criação
 X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440005
 
 {
-  "shippingAddressId": 3,
+  "shippingAddressId": 1,
   "shippingOptionCode": "PAC"
 }
+
 ### orderId é o id do pedido criado
 @orderId = {{createOrder.response.body.orderId}}
 
-### CREATE ORDER - COM ENDEREÇO OVERRIDE
+### CREATE ORDER - COM ENDEREÇO TEMPORÁRIO (override)
 
 POST {{checkoutUrl}}/order
 Content-Type: {{contentType}}
@@ -317,6 +331,7 @@ GET {{checkoutUrl}}/gateways/info
 Authorization: Bearer {{token}}
 
 ### PAGAMENTO PIX - MERCADO PAGO
+### Retorna QR Code e código para copiar/colar
 
 POST {{checkoutUrl}}/payment/pix/gateway/mercado-pago
 Content-Type: {{contentType}}
@@ -384,22 +399,6 @@ X-Idempotency-Key: 660e8400-e29b-41d4-a716-446655440004
   "installments": 6
 }
 
-### PAGAMENTO - IDEMPOTÊNCIA (mesma chave retorna transação existente)
-
-POST {{checkoutUrl}}/payment/credit-card/gateway/mercado-pago
-Content-Type: {{contentType}}
-Authorization: Bearer {{token}}
-X-Idempotency-Key: 660e8400-e29b-41d4-a716-446655440002
-
-{
-  "orderId": {{orderId}},
-  "card": {
-    "token": "token_gerado_pelo_mp_frontend_sdk",
-    "brand": "visa"
-  },
-  "installments": 3
-}
-
 ### ===========================================
 ### 5. WEBHOOKS (APENAS DOCUMENTAÇÃO)
 ### ===========================================
@@ -407,7 +406,7 @@ X-Idempotency-Key: 660e8400-e29b-41d4-a716-446655440002
 ### NÃO executar manualmente - apenas para referência
 
 ### WEBHOOK MERCADO PAGO (POST recebido do MP)
-### URL configurada no painel MP: https://seu-dominio.com/webhooks/mercadopago
+### URL configurada no painel MP: https://seu-dominio.com/api/webhooks/mercadopago
 ### Validação: Consulta API do MP com o paymentId recebido
 
 POST {{webhooksUrl}}/mercadopago
@@ -417,7 +416,7 @@ Content-Type: {{contentType}}
   "id": 12345,
   "live_mode": true,
   "type": "payment",
-  "date_created": "2025-12-13T10:00:00.000Z",
+  "date_created": "2025-12-14T10:00:00.000Z",
   "user_id": 123456,
   "api_version": "v1",
   "action": "payment.updated",
@@ -425,6 +424,93 @@ Content-Type: {{contentType}}
     "id": "1234567890"
   }
 }
+
+### ===========================================
+### ESTRUTURA DE RESPOSTA - CREATE ORDER
+### ===========================================
+
+### POST /checkout/order - Resposta:
+### {
+###   "orderId": 1,
+###   "partnerOrderId": "ECOM-42-1702567890123",
+###   "status": "WAITING_PAYMENT",
+###   "itemsTotal": "139.80",
+###   "shippingTotal": "15.00",
+###   "discountTotal": "0.00",
+###   "grandTotal": "154.80",
+###   "items": [
+###     {
+###       "skuId": 30494035,
+###       "title": "Mouse Gamer USB C3Tech MG-800BK",
+###       "quantity": 2,
+###       "unitPrice": "69.90",
+###       "total": "139.80"
+###     }
+###   ]
+### }
+
+### ===========================================
+### ESTRUTURA DE RESPOSTA - PAYMENT PIX
+### ===========================================
+
+### POST /checkout/payment/pix/... - Resposta:
+### {
+###   "success": true,
+###   "transactionId": "123456789",
+###   "status": "pending",
+###   "paymentMethod": "pix",
+###   "amount": 154.80,
+###   "pixData": {
+###     "qrCode": "00020126...",
+###     "qrCodeBase64": "data:image/png;base64,...",
+###     "expirationDate": "2025-12-14T11:00:00.000Z"
+###   }
+### }
+
+### ===========================================
+### ESTRUTURA DE RESPOSTA - PAYMENT CARD
+### ===========================================
+
+### POST /checkout/payment/credit-card/... - Resposta:
+### {
+###   "success": true,
+###   "transactionId": "123456789",
+###   "status": "approved",
+###   "paymentMethod": "credit_card",
+###   "amount": 154.80,
+###   "installments": 3,
+###   "installmentAmount": 51.60
+### }
+
+### ===========================================
+### CAMPOS IMPORTANTES PARA O FRONTEND
+### ===========================================
+###
+### Guest Checkout (resposta):
+### - accessToken: usar para autorização nas próximas requests
+### - profileId: ID do perfil criado
+###
+### Create Order:
+### - orderId: usar em /checkout/payment
+### - partnerOrderId: número do pedido para exibir ao cliente
+### - grandTotal: valor total para pagamento
+###
+### Payment PIX:
+### - pixData.qrCodeBase64: imagem do QR Code para exibir
+### - pixData.qrCode: código para copiar/colar
+### - pixData.expirationDate: tempo limite para pagamento
+### - Fazer polling em GET /orders/:id até status != WAITING_PAYMENT
+###
+### Payment Card:
+### - status: "approved" = sucesso, "rejected" = falha
+### - Redirecionar para página de sucesso/erro conforme status
+###
+### Idempotência:
+### - Gerar novo UUID para cada NOVA tentativa
+### - Manter mesmo UUID para retry da mesma operação
+### - Frontend deve armazenar UUID durante o fluxo
+###
+### ===========================================
 
 ### ===========================================
 ### ERROS COMUNS
@@ -439,6 +525,20 @@ Authorization: Bearer {{token}}
 {
   "orderId": 1
 }
+
+### Erro 400: SKU sem anúncio ativo no marketplace
+
+POST {{checkoutUrl}}/order
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440099
+
+{
+  "shippingAddressId": 1
+}
+
+### Erro 400: Estoque insuficiente
+### (quando quantidade no carrinho > estoque disponível)
 
 ### Erro 400: ProfileType incompatível (PF enviando dados PJ)
 
@@ -469,38 +569,6 @@ Authorization: Bearer {{token}}
 
 ### Erro 409: CPF/CNPJ já cadastrado em outro perfil
 
-POST {{checkoutUrl}}/registered
-Content-Type: {{contentType}}
-Authorization: Bearer {{token}}
-
-{
-  "profile": {
-    "pf": {
-      "firstName": "João",
-      "lastName": "Silva",
-      "cpf": "111.111.111-11",
-      "birthDate": "1990-05-15"
-    }
-  },
-  "address": {
-    "id": 1
-  },
-  "phone": {
-    "id": 1
-  }
-}
-
-### Erro 409: Race condition - checkoutKey duplicada (retorna order existente)
-
-POST {{checkoutUrl}}/order
-Content-Type: {{contentType}}
-Authorization: Bearer {{token}}
-X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440001
-
-{
-  "shippingAddressId": 1
-}
-
 ### Erro 400: Order não está WAITING_PAYMENT
 
 POST {{checkoutUrl}}/payment/credit-card/gateway/mercado-pago
@@ -530,3 +598,35 @@ X-Idempotency-Key: 660e8400-e29b-41d4-a716-446655440098
     "brand": "visa"
   }
 }
+
+### ===========================================
+### NOTAS TÉCNICAS
+### ===========================================
+###
+### Fluxo de preços:
+### 1. Carrinho armazena skuId + quantity (sem preço)
+### 2. Ao criar order, busca preço atual do marketplace
+### 3. Usa finalPrice do anúncio ativo (com desconto se houver)
+### 4. Preço é "travado" na order (não muda depois)
+###
+### Integração AnyMarket:
+### - Order criada localmente primeiro (status: PENDING)
+### - Após integração: status -> WAITING_PAYMENT
+### - partnerId do SKU = marketplacePartnerId do anúncio
+### - Falha no AnyMarket não impede criação local
+###
+### Carrinho:
+### - NÃO é limpo ao criar order (permite retry)
+### - Limpo APENAS quando pagamento é APROVADO
+###
+### Idempotência:
+### - checkoutKey (X-Idempotency-Key) amarrado ao profileId
+### - Mesma chave + mesmo profileId = retorna order existente
+### - Chave diferente = nova tentativa de order
+###
+### Webhook PIX:
+### - Gateway envia notificação ao endpoint /webhooks/mercadopago
+### - Backend consulta API do gateway para validar
+### - Atualiza status da order e limpa carrinho se aprovado
+###
+### ===========================================

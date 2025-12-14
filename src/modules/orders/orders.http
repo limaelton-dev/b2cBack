@@ -2,6 +2,7 @@
 ### MÓDULO DE PEDIDOS (ORDERS)
 ### ===========================================
 ### Base URL: http://localhost:3000/api/orders
+### Todos os endpoints requerem autenticação
 ### ===========================================
 ###
 ### IMPORTANTE:
@@ -9,11 +10,15 @@
 ### Para CRIAR pedidos, use o módulo /checkout (ver checkout.http)
 ###
 ### FLUXO DE CRIAÇÃO (resumo):
-### 1. POST /checkout/guest ou /checkout/registered
-### 2. POST /checkout/order (com X-Idempotency-Key)
-### 3. POST /checkout/payment/:type/gateway/:gateway (com X-Idempotency-Key)
+### 1. Adicionar produtos ao carrinho (via /carts)
+### 2. POST /checkout/guest ou /checkout/registered
+### 3. POST /checkout/order (com X-Idempotency-Key)
+### 4. POST /checkout/payment/:type/gateway/:gateway (com X-Idempotency-Key)
+### 5. Consultar pedido aqui (GET /orders/:id)
 ###
-### Este arquivo documenta apenas consultas e sincronização.
+### PREÇOS:
+### Os valores dos itens são capturados do marketplace no momento
+### da criação do pedido (finalPrice do anúncio ativo).
 ### ===========================================
 
 @baseUrl = http://localhost:3000/api
@@ -40,68 +45,47 @@ Content-Type: {{contentType}}
 ### ===========================================
 ### 1. LISTAR PEDIDOS DO PERFIL
 ### ===========================================
-### Retorna resumo dos pedidos com filtros opcionais
+### Retorna resumo dos pedidos do usuário logado
 ### Requer: Authorization Bearer token
 
 ### Listar todos os pedidos do usuário logado
-
 GET {{ordersUrl}}
 Authorization: Bearer {{token}}
 
-### Listar pedidos com filtro por status - PENDENTE
-### Status disponíveis: INCOMPLETE, PENDING, WAITING_PAYMENT, PAID_WAITING_SHIP, 
-### INVOICED, PAID_WAITING_DELIVERY, IN_TRANSIT, CONCLUDED, CANCELED, DELIVERY_ISSUE
+### ===========================================
+### FILTROS DISPONÍVEIS
+### ===========================================
 
-GET {{ordersUrl}}?status=PENDING
-Authorization: Bearer {{token}}
-
-### Listar pedidos aguardando pagamento
-
+### Filtrar por status - AGUARDANDO PAGAMENTO
 GET {{ordersUrl}}?status=WAITING_PAYMENT
 Authorization: Bearer {{token}}
 
-### Listar pedidos pagos aguardando envio
-
+### Filtrar por status - PAGOS AGUARDANDO ENVIO
 GET {{ordersUrl}}?status=PAID_WAITING_SHIP
 Authorization: Bearer {{token}}
 
-### Listar pedidos em trânsito
-
+### Filtrar por status - EM TRÂNSITO
 GET {{ordersUrl}}?status=IN_TRANSIT
 Authorization: Bearer {{token}}
 
-### Listar pedidos concluídos
-
+### Filtrar por status - CONCLUÍDOS
 GET {{ordersUrl}}?status=CONCLUDED
 Authorization: Bearer {{token}}
 
-### Listar pedidos cancelados
-
+### Filtrar por status - CANCELADOS
 GET {{ordersUrl}}?status=CANCELED
 Authorization: Bearer {{token}}
 
-### Listar pedidos do marketplace ECOMMERCE
-
+### Filtrar por marketplace
 GET {{ordersUrl}}?marketplace=ECOMMERCE
 Authorization: Bearer {{token}}
 
-### Listar com múltiplos filtros
-
+### Filtrar por status + marketplace
 GET {{ordersUrl}}?status=CONCLUDED&marketplace=ECOMMERCE
 Authorization: Bearer {{token}}
 
-### Listar pedidos por período (createdFrom e createdTo)
-
-GET {{ordersUrl}}?createdFrom=2025-12-01&createdTo=2025-12-31
-Authorization: Bearer {{token}}
-
-### Listar pedidos combinando todos os filtros
-
-GET {{ordersUrl}}?status=PAID_WAITING_SHIP&marketplace=ECOMMERCE&createdFrom=2025-12-01
-Authorization: Bearer {{token}}
-
 ### ===========================================
-### 2. BUSCAR DETALHES DO PEDIDO
+### 2. DETALHES DO PEDIDO
 ### ===========================================
 ### Retorna informações completas de um pedido específico
 ### Requer: Authorization Bearer token
@@ -113,24 +97,14 @@ Authorization: Bearer {{token}}
 @orderId = {{getOrder.response.body.id}}
 
 ### Buscar outro pedido
-
 GET {{ordersUrl}}/2
 Authorization: Bearer {{token}}
 
 ### ===========================================
-### 3. SINCRONIZAÇÃO COM ANYMARKET (ADMIN)
-### ===========================================
-### Endpoint administrativo para sincronizar pedidos do AnyMarket
-### Importa pedidos via feed do AnyMarket
-
-POST {{ordersUrl}}/sync
-Content-Type: {{contentType}}
-
-### ===========================================
-### ESTRUTURA DE RESPOSTA
+### ESTRUTURA DE RESPOSTA - LISTAGEM
 ### ===========================================
 
-### Resposta de GET /orders (lista de pedidos):
+### GET /orders - Resposta:
 ### [
 ###   {
 ###     "id": 1,
@@ -142,24 +116,28 @@ Content-Type: {{contentType}}
 ###     "shippingTotal": "20.00",
 ###     "discountTotal": "0.00",
 ###     "grandTotal": "299.70",
-###     "createdAt": "2025-12-13T10:00:00.000Z",
-###     "updatedAt": "2025-12-13T10:30:00.000Z",
+###     "createdAt": "2025-12-14T10:00:00.000Z",
+###     "updatedAt": "2025-12-14T10:30:00.000Z",
 ###     "items": [
 ###       {
 ###         "id": 1,
-###         "productId": 0,
+###         "productId": 73414029,
 ###         "skuId": 30494035,
-###         "title": "Camiseta Exemplo - P Vermelho",
+###         "title": "Mouse Gamer USB C3Tech MG-800BK",
 ###         "quantity": 2,
-###         "unitPrice": "99.90",
+###         "unitPrice": "69.90",
 ###         "discount": "0.00",
-###         "total": "199.80"
+###         "total": "139.80"
 ###       }
 ###     ]
 ###   }
 ### ]
 
-### Resposta de GET /orders/:id (detalhes do pedido):
+### ===========================================
+### ESTRUTURA DE RESPOSTA - DETALHES
+### ===========================================
+
+### GET /orders/:id - Resposta:
 ### {
 ###   "id": 1,
 ###   "profileId": 42,
@@ -179,132 +157,97 @@ Content-Type: {{contentType}}
 ###   "shippingService": null,
 ###   "shippingEstimatedDeliveryDate": null,
 ###   "shippingTrackingCode": null,
-###   "anymarketRawPayload": { ... },
-###   "extraData": null,
-###   "anymarketCreatedAt": "2025-12-13T10:00:00.000Z",
-###   "anymarketUpdatedAt": null,
 ###   "items": [
 ###     {
 ###       "id": 1,
-###       "productId": 0,
+###       "productId": 73414029,
 ###       "skuId": 30494035,
-###       "title": "Camiseta Exemplo - P Vermelho",
+###       "title": "Mouse Gamer USB C3Tech MG-800BK",
 ###       "quantity": 2,
-###       "unitPrice": "99.90",
+###       "unitPrice": "69.90",
 ###       "discount": "0.00",
-###       "total": "199.80"
+###       "total": "139.80"
 ###     }
 ###   ],
-###   "createdAt": "2025-12-13T10:00:00.000Z",
-###   "updatedAt": "2025-12-13T10:30:00.000Z"
+###   "createdAt": "2025-12-14T10:00:00.000Z",
+###   "updatedAt": "2025-12-14T10:30:00.000Z"
 ### }
 
 ### ===========================================
-### STATUS DOS PEDIDOS - REFERÊNCIA COMPLETA
+### STATUS DOS PEDIDOS
 ### ===========================================
 ### 
 ### INCOMPLETE (0)
-###   - Pedido incompleto, aguardando informações
-###   - Transição: Criado localmente, ainda sem AnyMarket
+###   Pedido incompleto, aguardando informações
 ###
 ### PENDING (1)
-###   - Pedido criado, aguardando integração AnyMarket
-###   - Transição: Order criada localmente, AnyMarket pendente
-###   - Próximo: WAITING_PAYMENT (após integração) ou erro
+###   Pedido criado localmente, aguardando integração AnyMarket
+###   Próximo: WAITING_PAYMENT (após integração)
 ###
 ### WAITING_PAYMENT (2)
-###   - Aguardando processamento de pagamento
-###   - Transição: AnyMarket integrado, aguardando payment
-###   - Próximo: PAID_WAITING_SHIP ou CANCELED
+###   Aguardando processamento de pagamento
+###   Próximo: PAID_WAITING_SHIP ou CANCELED
 ###
 ### PAID_WAITING_SHIP (3)
-###   - Pagamento aprovado, aguardando envio
-###   - Transição: Pagamento processado e aprovado
-###   - Carrinho limpo automaticamente neste ponto
-###   - Próximo: INVOICED
+###   Pagamento aprovado, aguardando envio
+###   Carrinho limpo automaticamente neste ponto
+###   Próximo: INVOICED
 ###
 ### INVOICED (4)
-###   - Nota fiscal emitida
-###   - Próximo: PAID_WAITING_DELIVERY
+###   Nota fiscal emitida
+###   Próximo: PAID_WAITING_DELIVERY
 ###
 ### PAID_WAITING_DELIVERY (5)
-###   - Aguardando postagem/envio
-###   - Próximo: IN_TRANSIT
+###   Aguardando postagem/envio
+###   Próximo: IN_TRANSIT
 ###
 ### IN_TRANSIT (6)
-###   - Em trânsito para o cliente
-###   - shippingTrackingCode disponível
-###   - Próximo: CONCLUDED ou DELIVERY_ISSUE
+###   Em trânsito - shippingTrackingCode disponível
+###   Próximo: CONCLUDED ou DELIVERY_ISSUE
 ###
 ### DELIVERY_ISSUE (7)
-###   - Problema na entrega
-###   - Ação manual necessária
+###   Problema na entrega (ação manual necessária)
 ###
 ### CONCLUDED (8)
-###   - Pedido entregue e concluído
-###   - Estado final (sucesso)
+###   Pedido entregue e concluído (estado final)
 ###
 ### CANCELED (9)
-###   - Pedido cancelado
-###   - Estado final (falha)
-###   - Pode ocorrer em WAITING_PAYMENT ou PAID_WAITING_SHIP
+###   Pedido cancelado (estado final)
 ###
 ### ===========================================
 
 ### ===========================================
-### MÉTODOS DE PAGAMENTO SUPORTADOS
+### MÉTODOS DE PAGAMENTO
 ### ===========================================
 ###
-### PENDING (0)
-###   - Método ainda não definido
-###   - Estado inicial da order
-###
-### CREDIT_CARD (1)
-###   - Cartão de crédito
-###   - Suporta parcelamento (1-12x)
-###   - Gateways: Mercado Pago, Cielo
-###
-### DEBIT_CARD (2)
-###   - Cartão de débito
-###   - Sempre à vista
-###   - Gateways: Mercado Pago, Cielo
-###
-### PIX (3)
-###   - Pagamento instantâneo
-###   - Sempre à vista
-###   - Apenas Mercado Pago
-###   - Pagamento assíncrono (webhook)
+### PENDING (0) - Método ainda não definido
+### CREDIT_CARD (1) - Cartão de crédito (1-12x)
+### DEBIT_CARD (2) - Cartão de débito (à vista)
+### PIX (3) - Pagamento instantâneo (à vista)
 ###
 ### ===========================================
 
 ### ===========================================
-### CAMPOS IMPORTANTES
+### CAMPOS IMPORTANTES PARA O FRONTEND
 ### ===========================================
 ###
-### checkoutKey
-###   - UUID de idempotência da criação da order
-###   - Amarrado ao profileId (evita acesso cruzado)
-###   - Usado em /checkout/order
+### Para exibir lista de pedidos:
+### - status: usar para filtros e badges de status
+### - grandTotal: valor total do pedido
+### - createdAt: data de criação formatada
+### - items[].quantity: quantidade por item
 ###
-### partnerOrderId
-###   - Formato: ECOM-{profileId}-{timestamp}
-###   - Identificador único para integração AnyMarket
+### Para exibir detalhes:
+### - partnerOrderId: número do pedido para exibir ao cliente
+### - paymentMethod + installments: forma de pagamento
+### - shippingTrackingCode: link de rastreamento (quando IN_TRANSIT)
+### - items[]: lista de produtos com quantidade e valores
 ###
-### anymarketOrderId
-###   - ID do pedido no sistema AnyMarket
-###   - null se integração AnyMarket falhou
-###
-### profileId
-###   - Dono do pedido
-###   - Usado para validação de autorização
-###
-### paymentMethod
-###   - Definido após pagamento aprovado
-###   - Valores: PENDING, CREDIT_CARD, DEBIT_CARD, PIX
-###
-### installments
-###   - Número de parcelas (1-12)
-###   - Apenas para CREDIT_CARD
+### Estados relevantes para UI:
+### - WAITING_PAYMENT: exibir botão "Pagar" ou QR Code PIX
+### - IN_TRANSIT: exibir link de rastreamento
+### - CONCLUDED: exibir opção de avaliação
+### - CANCELED: exibir motivo (se disponível)
 ###
 ### ===========================================
 
@@ -313,60 +256,39 @@ Content-Type: {{contentType}}
 ### ===========================================
 
 ### Erro 404: Pedido não encontrado
-
 GET {{ordersUrl}}/999999
 Authorization: Bearer {{token}}
 
 ### Erro 403: Pedido não pertence ao usuário logado
-
+### (tentando acessar pedido de outro profileId)
 GET {{ordersUrl}}/1
-Authorization: Bearer {{token}}
-
-### Erro 400: ID de pedido inválido
-
-GET {{ordersUrl}}/abc
 Authorization: Bearer {{token}}
 
 ### Erro 401: Token ausente ou inválido
-
 GET {{ordersUrl}}/1
-
-### ===========================================
-### INTEGRAÇÃO COM CHECKOUT
-### ===========================================
-### Para criar novos pedidos, consulte: checkout.http
-###
-### Fluxo completo:
-### 1. Adicionar produtos ao carrinho (via /cart)
-### 2. Processar checkout (/checkout/guest ou /checkout/registered)
-### 3. Criar order (/checkout/order com X-Idempotency-Key)
-### 4. Processar pagamento (/checkout/payment/:type/gateway/:gateway)
-### 5. Consultar order aqui (/orders/:id)
-### 6. Webhook atualiza status automaticamente (PIX)
-### ===========================================
 
 ### ===========================================
 ### NOTAS TÉCNICAS
 ### ===========================================
 ###
-### Idempotência:
-### - Order criada com status PENDING
-### - Após integração AnyMarket: WAITING_PAYMENT
-### - Após pagamento aprovado: PAID_WAITING_SHIP
-### - Race conditions tratadas com UniqueViolation
+### Preços dos itens:
+### - unitPrice: preço capturado do marketplace (finalPrice do anúncio)
+### - discount: desconto aplicado no checkout (cupom, etc)
+### - total: (unitPrice * quantity) - discount
+###
+### Identificadores:
+### - id: ID interno do pedido no banco local
+### - anymarketOrderId: ID no sistema AnyMarket
+### - partnerOrderId: formato ECOM-{profileId}-{timestamp}
+### - checkoutKey: UUID de idempotência (interno)
+###
+### Integração AnyMarket:
+### - Order criada localmente primeiro (status: PENDING)
+### - Após integração AnyMarket: status -> WAITING_PAYMENT
+### - partnerId do SKU = marketplacePartnerId do anúncio ativo
 ###
 ### Carrinho:
 ### - NÃO é limpo ao criar order (permite retry)
-### - Limpo APENAS quando pagamento é aprovado
-### - Status aprovado: carrinho zerado automaticamente
+### - Limpo APENAS quando pagamento é APROVADO
 ###
-### AnyMarket:
-### - Integração ocorre DEPOIS de criar order local
-### - Falha no AnyMarket não impede criação da order
-### - Order fica PENDING até integração bem-sucedida
-###
-### Webhook:
-### - Atualiza orders de pagamentos assíncronos (PIX)
-### - Consulta API do gateway antes de atualizar
-### - Não confia apenas no payload recebido
 ### ===========================================
