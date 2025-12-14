@@ -2,27 +2,23 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ShippingController } from './controllers/shipping.controller';
 import { ShippingService } from './services/shipping.service';
-import { CorreiosProviderService } from './services/providers/correios-provider.service';
-import { SimulationProviderService } from './services/providers/simulation-provider.service';
-import { ProductsModule } from '../products/products.module';
-/**
- * Módulo para gerenciamento de serviços de frete
- */
+import { AnyMarketProviderService } from './services/providers/anymarket-provider.service';
+import { AnyMarketModule } from '../../shared/anymarket/any-market.module';
+
 @Module({
   imports: [
     ConfigModule,
-    ProductsModule,
+    AnyMarketModule,
   ],
   controllers: [
     ShippingController,
   ],
   providers: [
     ShippingService,
-    CorreiosProviderService,
-    SimulationProviderService,
+    AnyMarketProviderService,
   ],
   exports: [
     ShippingService,
-  ]
+  ],
 })
-export class ShippingModule {} 
+export class ShippingModule {}

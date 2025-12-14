@@ -311,7 +311,6 @@ export class CheckoutService {
   }
 
 
-  //TODO: verificar esse método(Não apagar ou resolver isso já)...
   private async calculateShipping(
     dto: CreateOrderDto,
     address: Address,
@@ -321,25 +320,16 @@ export class CheckoutService {
       const destZip = address.zipCode?.replace(/\D/g, '');
       if (!destZip) return 0;
 
-      const originZip = '01001000';
       const shippingItems = items.map((item) => ({
-        productId: item.skuId,
-        serviceCode: dto.shippingOptionCode ?? '',
+        skuId: item.skuId,
+        partnerId: item.partnerId || String(item.skuId),
         quantity: item.quantity,
-        weight: 0,
-        dimensions: undefined,
       }));
 
-      //TODO: ta sem modo simulação, vamos ajustar isso também depois de finalizar módulo de shipping.(não remover esse comentário)
-      const response = await this.shippingService.calculateShipping(
-        'simulation',
-        originZip,
-        destZip,
-        shippingItems,
-      );
+      const response = await this.shippingService.calculateForCart(destZip, shippingItems);
 
-      if (response.success && response.data) {
-        return Number(response.data.totalPrice);
+      if (response.success && response.services?.length) {
+        return Number(response.services[0].price);
       }
     } catch {
       // fallback

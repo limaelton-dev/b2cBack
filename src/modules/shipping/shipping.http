@@ -1,0 +1,119 @@
+### ===========================================
+### MÓDULO DE SHIPPING (FRETE)
+### ===========================================
+### Base URL: http://localhost:3000/api/shipping
+### Endpoints públicos (sem autenticação)
+### ===========================================
+###
+### PROVIDER: AnyMarket
+### Dimensões: Buscadas automaticamente do SKU via API AnyMarket
+### Fallback: height=2, width=11, length=16, weight=300 (com log de warning)
+###
+### ===========================================
+
+@baseUrl = http://localhost:3000/api
+@shippingUrl = {{baseUrl}}/shipping
+@contentType = application/json
+
+### ===========================================
+### 1. CALCULAR FRETE PARA CARRINHO
+### ===========================================
+### POST /shipping/cart
+### Calcula frete para múltiplos itens do carrinho
+### Dimensões são buscadas automaticamente do AnyMarket
+
+POST {{shippingUrl}}/cart
+Content-Type: {{contentType}}
+
+{
+  "destinationZipCode": "84033161",
+  "items": [
+    {
+      "skuId": 30494035,
+      "partnerId": "402060820100",
+      "quantity": 1
+    }
+  ]
+}
+
+### Carrinho com múltiplos itens
+
+POST {{shippingUrl}}/cart
+Content-Type: {{contentType}}
+
+{
+  "destinationZipCode": "22041080",
+  "items": [
+    {
+      "skuId": 30494035,
+      "partnerId": "402060820100",
+      "quantity": 2
+    },
+    {
+      "skuId": 30494036,
+      "partnerId": "402060830100",
+      "quantity": 1
+    }
+  ]
+}
+
+### ===========================================
+### 2. CALCULAR FRETE PARA PRODUTO ÚNICO
+### ===========================================
+### GET /shipping/product/:skuId
+### Calcula frete para um produto específico
+### Dimensões são buscadas automaticamente do AnyMarket
+
+GET {{shippingUrl}}/product/30494035?destinationZipCode=84033161&partnerId=402060820100
+
+### Outro CEP
+
+GET {{shippingUrl}}/product/30494035?destinationZipCode=22041080&partnerId=402060820100
+
+### ===========================================
+### ESTRUTURA DE RESPOSTA
+### ===========================================
+
+### Resposta de sucesso:
+### {
+###   "success": true,
+###   "zipCode": "84033161",
+###   "services": [
+###     {
+###       "serviceName": "Frete Padrão",
+###       "carrierName": "AnyMarket",
+###       "price": 19.90,
+###       "deliveryDays": 7,
+###       "estimatedDeliveryDate": "2025-12-21T00:00:00.000Z"
+###     }
+###   ]
+### }
+
+### Resposta de erro:
+### {
+###   "success": false,
+###   "message": "CEP inválido. Deve conter 8 dígitos."
+### }
+
+### ===========================================
+### CAMPOS IMPORTANTES PARA O FRONTEND
+### ===========================================
+###
+### Request (POST /cart):
+### - destinationZipCode: CEP destino (8 dígitos)
+### - items[].skuId: ID do SKU no AnyMarket
+### - items[].partnerId: Código do anúncio no marketplace
+### - items[].quantity: Quantidade
+###
+### Request (GET /product/:skuId):
+### - skuId: ID do SKU (path param)
+### - destinationZipCode: CEP destino (query param)
+### - partnerId: Código do anúncio (query param, opcional)
+###
+### Response:
+### - services[]: Lista de opções de frete
+### - services[].price: Valor do frete
+### - services[].deliveryDays: Prazo em dias
+### - services[].estimatedDeliveryDate: Data estimada de entrega
+###
+### ===========================================
