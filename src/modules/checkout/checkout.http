@@ -259,7 +259,7 @@ POST {{checkoutUrl}}/order
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 # obrigatório para criar o pedido, gere um UUID aleatório para cada tentativa de criação
-X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440004 
+X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440005
 
 {
   "shippingAddressId": 3,

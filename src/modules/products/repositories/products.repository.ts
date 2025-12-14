@@ -1,28 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { AnyMarketApiProvider } from '../../../shared/anymarket';
+import { AnyMarketApiProvider, SkuMarketplaceRepository, SkuMarketplaceData } from '../../../shared/anymarket';
 import { PaginationHelperService } from 'src/shared/anymarket/pagination/pagination-helper.service';
 
-/**
- * Verifica se um SKU está disponível para venda.
- */
 export function isSkuAvailable(sku: any): boolean {
   if (!sku) return false;
   const stock = sku.amount ?? sku.quantity ?? 0;
   return stock > 0;
 }
 
-/**
- * Verifica se um produto está disponível para venda.
- * Produto válido = ativo + tem pelo menos 1 SKU com estoque.
- */
 export function isProductAvailable(product: any): boolean {
   if (!product?.isProductActive) return false;
   return product.skus?.some(isSkuAvailable) ?? false;
 }
 
-/**
- * Filtra apenas SKUs disponíveis de um produto.
- */
 export function filterAvailableSkus(product: any): any {
   if (!product) return null;
   return {
@@ -39,6 +29,7 @@ export class ProductsRepository {
   constructor(
     private readonly api: AnyMarketApiProvider,
     private readonly pager: PaginationHelperService,
+    private readonly skuMarketplace: SkuMarketplaceRepository,
   ) {}
 
   /**
@@ -97,6 +88,31 @@ export class ProductsRepository {
     }
 
     return results;
+  }
+
+  async findBySkuIdsWithMarketplace(skuIds: number[]): Promise<any[]> {
+    if (!skuIds?.length) return [];
+
+    const products = await this.findBySkuIds(skuIds);
+    const marketplaceMap = await this.skuMarketplace.findBySkuIds(skuIds);
+
+    return products.map((product) => ({
+      ...product,
+      skus: product.skus?.map((sku: any) => {
+        const mpData = marketplaceMap.get(sku.id);
+        return {
+          ...sku,
+          marketplaceData: mpData ?? null,
+          marketplacePartnerId: mpData?.partnerId ?? null,
+          marketplacePrice: mpData?.price ?? sku.price,
+          marketplaceStock: mpData?.stock ?? sku.amount ?? sku.quantity ?? 0,
+        };
+      }) ?? [],
+    }));
+  }
+
+  getSkuMarketplaceRepository(): SkuMarketplaceRepository {
+    return this.skuMarketplace;
   }
 
   /**

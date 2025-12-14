@@ -379,6 +379,7 @@ export class CheckoutService {
       const sku = skuDetailsMap.get(item.skuId);
       const unitPrice = sku?._rawPrice ?? 0;
       const total = unitPrice * item.quantity;
+      const skuPartnerId = sku?.marketplacePartnerId ?? sku?.partnerId ?? String(item.skuId);
 
       return {
         product: {
@@ -387,7 +388,7 @@ export class CheckoutService {
         },
         sku: {
           id: sku?.id ?? 0,
-          partnerId: sku?.partnerId ? String(sku.partnerId) : String(item.skuId),
+          partnerId: String(skuPartnerId),
           title: sku?.title ?? item.sku?.title ?? '',
         },
         amount: item.quantity,

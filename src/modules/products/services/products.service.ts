@@ -62,20 +62,17 @@ export class ProductsService {
     throw new NotFoundException(`Produto '${slug}' não encontrado`);
   }
 
-  /**
-   * Busca detalhes dos SKUs para exibição no carrinho.
-   */
   async findSkusForCart(skuIds: number[]): Promise<Map<number, any>> {
     if (!skuIds?.length) return new Map();
 
-    const products = await this.repository.findBySkuIds(skuIds);
+    const products = await this.repository.findBySkuIdsWithMarketplace(skuIds);
     const skuMap = new Map<number, any>();
 
     for (const product of products) {
       for (const sku of product.skus ?? []) {
         if (!skuIds.includes(sku.id)) continue;
 
-        const price = sku.price ?? 0;
+        const price = sku.marketplacePrice ?? sku.price ?? 0;
 
         skuMap.set(sku.id, {
           id: sku.id,
@@ -84,8 +81,9 @@ export class ProductsService {
           price: roundPrice(price),
           _rawPrice: price,
           partnerId: sku.partnerId,
+          marketplacePartnerId: sku.marketplacePartnerId,
           ean: sku.ean,
-          stock: sku.amount ?? sku.quantity ?? 0,
+          stock: sku.marketplaceStock ?? sku.amount ?? sku.quantity ?? 0,
           variations: sku.variations?.map((v: any) => ({ description: v.description })) ?? [],
           product: {
             id: product.id,
