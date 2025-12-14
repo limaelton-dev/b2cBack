@@ -1,13 +1,12 @@
 ### ===========================================
 ### MÓDULO DE TELEFONE (PHONE)
 ### ===========================================
-### Base URL: http://localhost:3000/api/user/profile/phone
+### Base URL: http://localhost:3000/api/phone
 ### Todas as rotas requerem autenticação JWT
 ### ===========================================
 
-### Variáveis de ambiente
 @baseUrl = http://localhost:3000/api
-@phoneUrl = {{baseUrl}}/user/profile/phone
+@phoneUrl = {{baseUrl}}/phone
 @contentType = application/json
 
 ### ===========================================
@@ -31,7 +30,7 @@ Content-Type: {{contentType}}
 ### ===========================================
 
 ### Criar novo telefone
-### POST /api/user/profile/phone
+### POST /api/phone
 ### Body: { ddd: string, number: string, isDefault?: boolean, verified?: boolean }
 ### Requer: Token JWT
 POST {{phoneUrl}}
@@ -60,7 +59,7 @@ Content-Type: {{contentType}}
 ### ===========================================
 
 ### Listar todos os telefones do usuário
-### GET /api/user/profile/phone
+### GET /api/phone
 ### Retorna: Phone[]
 ### Requer: Token JWT
 GET {{phoneUrl}}
@@ -71,7 +70,7 @@ Authorization: Bearer {{token}}
 ### ===========================================
 
 ### Buscar telefone padrão do usuário
-### GET /api/user/profile/phone/default
+### GET /api/phone/default
 ### Retorna: Phone
 ### Requer: Token JWT
 GET {{phoneUrl}}/default
@@ -82,7 +81,7 @@ Authorization: Bearer {{token}}
 ### ===========================================
 
 ### Buscar telefone específico
-### GET /api/user/profile/phone/:id
+### GET /api/phone/:id
 ### Retorna: Phone
 ### Requer: Token JWT
 GET {{phoneUrl}}/1
@@ -93,7 +92,7 @@ Authorization: Bearer {{token}}
 ### ===========================================
 
 ### Atualizar telefone existente
-### PATCH /api/user/profile/phone/:id
+### PATCH /api/phone/:id
 ### Body: { ddd?: string, number?: string, isDefault?: boolean, verified?: boolean }
 ### Requer: Token JWT
 PATCH {{phoneUrl}}/1
@@ -119,7 +118,7 @@ Content-Type: {{contentType}}
 ### ===========================================
 
 ### Marcar telefone como verificado
-### PATCH /api/user/profile/phone/:id/verify
+### PATCH /api/phone/:id/verify
 ### Requer: Token JWT
 PATCH {{phoneUrl}}/1/verify
 Authorization: Bearer {{token}}
@@ -129,7 +128,7 @@ Authorization: Bearer {{token}}
 ### ===========================================
 
 ### Remover telefone
-### DELETE /api/user/profile/phone/:id
+### DELETE /api/phone/:id
 ### Retorna: 204 No Content
 ### Requer: Token JWT
 DELETE {{phoneUrl}}/1
@@ -163,4 +162,3 @@ Content-Type: {{contentType}}
 ### Erro 403: Telefone não pertence ao perfil do usuário
 GET {{phoneUrl}}/9999
 Authorization: Bearer {{token}}
-

@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   UseGuards,
@@ -86,7 +87,7 @@ export class ProfileController {
   @Get(':id')
   async findOne(
     @GetUser('userId') userId: number,
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
   ) {
     const profile = await this.profileService.findOne(id);
     
@@ -100,7 +101,7 @@ export class ProfileController {
   @Get(':id/pf')
   async findProfilePf(
     @GetUser('userId') userId: number,
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
   ) {
     const profile = await this.profileService.findOne(id);
     
@@ -114,7 +115,7 @@ export class ProfileController {
   @Get(':id/pj')
   async findProfilePj(
     @GetUser('userId') userId: number,
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
   ) {
     const profile = await this.profileService.findOne(id);
     
@@ -129,7 +130,7 @@ export class ProfileController {
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async updateProfilePf(
     @GetUser('userId') userId: number,
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateProfilePfDto: UpdateProfilePfDto,
   ) {
     try {
@@ -139,7 +140,7 @@ export class ProfileController {
         throw new ForbiddenException('Você não tem permissão para atualizar este perfil');
       }
             
-      return this.profileService.updateProfilePf(+id, updateProfilePfDto);
+      return this.profileService.updateProfilePf(id, updateProfilePfDto);
     } catch (error) {
       if (error.status) {
         throw error;
@@ -153,7 +154,7 @@ export class ProfileController {
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async updateProfilePj(
     @GetUser('userId') userId: number,
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateProfilePjDto: UpdateProfilePjDto,
   ) {
     try {
@@ -163,7 +164,7 @@ export class ProfileController {
         throw new ForbiddenException('Você não tem permissão para atualizar este perfil');
       }
       
-      return this.profileService.updateProfilePj(+id, updateProfilePjDto);
+      return this.profileService.updateProfilePj(id, updateProfilePjDto);
     } catch (error) {
       if (error.status) {
         throw error;
@@ -177,7 +178,7 @@ export class ProfileController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
     @GetUser('userId') userId: number,
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
   ) {
     const profile = await this.profileService.findOne(id);
     

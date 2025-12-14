@@ -1,13 +1,12 @@
 ### ===========================================
 ### MÓDULO DE ENDEREÇO (ADDRESS)
 ### ===========================================
-### Base URL: http://localhost:3000/api/user/profile/address
+### Base URL: http://localhost:3000/api/address
 ### Todas as rotas requerem autenticação JWT
 ### ===========================================
 
-### Variáveis de ambiente
 @baseUrl = http://localhost:3000/api
-@addressUrl = {{baseUrl}}/user/profile/address
+@addressUrl = {{baseUrl}}/address
 @contentType = application/json
 
 ### ===========================================
@@ -31,7 +30,7 @@ Content-Type: {{contentType}}
 ### ===========================================
 
 ### Criar novo endereço
-### POST /api/user/profile/address
+### POST /api/address
 ### Body: { street, number, complement?, neighborhood, city, state, zipCode, isDefault? }
 ### Requer: Token JWT
 POST {{addressUrl}}
@@ -69,7 +68,7 @@ Content-Type: {{contentType}}
 ### ===========================================
 
 ### Listar todos os endereços do usuário
-### GET /api/user/profile/address
+### GET /api/address
 ### Retorna: Address[]
 ### Requer: Token JWT
 GET {{addressUrl}}
@@ -80,7 +79,7 @@ Authorization: Bearer {{token}}
 ### ===========================================
 
 ### Buscar endereço padrão do usuário
-### GET /api/user/profile/address/default
+### GET /api/address/default
 ### Retorna: Address
 ### Requer: Token JWT
 GET {{addressUrl}}/default
@@ -91,7 +90,7 @@ Authorization: Bearer {{token}}
 ### ===========================================
 
 ### Buscar endereço específico
-### GET /api/user/profile/address/:id
+### GET /api/address/:id
 ### Retorna: Address
 ### Requer: Token JWT
 GET {{addressUrl}}/1
@@ -102,7 +101,7 @@ Authorization: Bearer {{token}}
 ### ===========================================
 
 ### Atualizar endereço completo
-### PUT /api/user/profile/address/:id
+### PUT /api/address/:id
 ### Body: { street?, number?, complement?, neighborhood?, city?, state?, zipCode?, isDefault? }
 ### Requer: Token JWT
 PUT {{addressUrl}}/1
@@ -142,7 +141,7 @@ Content-Type: {{contentType}}
 ### ===========================================
 
 ### Remover endereço
-### DELETE /api/user/profile/address/:id
+### DELETE /api/address/:id
 ### Retorna: 204 No Content
 ### Requer: Token JWT
 DELETE {{addressUrl}}/1
@@ -180,4 +179,3 @@ Content-Type: {{contentType}}
 ### Erro 403: Endereço não pertence ao perfil do usuário
 GET {{addressUrl}}/9999
 Authorization: Bearer {{token}}
-

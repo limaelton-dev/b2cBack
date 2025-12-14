@@ -5,7 +5,6 @@
 ### Rotas autenticadas requerem JWT
 ### ===========================================
 
-### Variáveis de ambiente
 @baseUrl = http://localhost:3000/api
 @userUrl = {{baseUrl}}/user
 @usersUrl = {{baseUrl}}/users
@@ -42,14 +41,14 @@ Authorization: Bearer {{token}}
 ### ATUALIZAR USUÁRIO
 ### ===========================================
 
-### Atualizar email do usuário
-### PATCH /api/user/:id
+### Atualizar email do usuário autenticado
+### PATCH /api/user
 ### Body: { email?: string, password?: string }
 ### Requer: Token JWT
 ### Validações:
 ###   - email: formato válido de email
 ###   - password: mínimo 6 caracteres
-PATCH {{userUrl}}/1
+PATCH {{userUrl}}
 Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
 
@@ -58,7 +57,7 @@ Content-Type: {{contentType}}
 }
 
 ### Atualizar senha do usuário
-PATCH {{userUrl}}/1
+PATCH {{userUrl}}
 Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
 
@@ -67,7 +66,7 @@ Content-Type: {{contentType}}
 }
 
 ### Atualizar email e senha do usuário
-PATCH {{userUrl}}/1
+PATCH {{userUrl}}
 Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
 
@@ -102,7 +101,7 @@ GET {{usersUrl}}/availability/cpf?value=52998224725
 GET {{userUrl}}
 
 ### Erro 400: Email inválido (formato incorreto)
-PATCH {{userUrl}}/1
+PATCH {{userUrl}}
 Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
 
@@ -111,7 +110,7 @@ Content-Type: {{contentType}}
 }
 
 ### Erro 400: Senha muito curta (menos de 6 caracteres)
-PATCH {{userUrl}}/1
+PATCH {{userUrl}}
 Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
 

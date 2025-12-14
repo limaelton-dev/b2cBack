@@ -1,13 +1,29 @@
 ### ============================================
 ### CARD API - Rotas de Cartões de Crédito
 ### ============================================
+### Base URL: http://localhost:3000/api/card
 ### Todas as rotas requerem autenticação JWT
-### O token deve ser obtido através de login
 ### ============================================
 
-### Variáveis de Ambiente
-@baseUrl = http://localhost:3000
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBlc3NvYWZpc2ljYUBleGVtcGxvLmNvbSIsInN1YiI6MSwicHJvZmlsZUlkIjoxLCJwcm9maWxlVHlwZSI6IlBGIiwiaWF0IjoxNzMzMzU1MDI3LCJleHAiOjE3MzMzNTg2Mjd9.b3H6kWxLCMaBmtRLZvKBBNIIYNMGFcMtBYCAAJzHSj8
+@baseUrl = http://localhost:3000/api
+@cardUrl = {{baseUrl}}/card
+@contentType = application/json
+
+### ===========================================
+### AUTENTICAÇÃO - Execute primeiro para obter o token
+### ===========================================
+
+# @name login
+POST {{baseUrl}}/auth/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "pessoafisica@exemplo.com",
+  "password": "senha123"
+}
+
+### Token salvo automaticamente da resposta do login
+@token = {{login.response.body.access_token}}
 
 ### ============================================
 ### 1. CRIAR NOVO CARTÃO
@@ -21,9 +37,9 @@
 ### ============================================
 
 ### Criar cartão Visa
-POST {{baseUrl}}/card
+POST {{cardUrl}}
 Authorization: Bearer {{token}}
-Content-Type: application/json
+Content-Type: {{contentType}}
 
 {
   "lastFourDigits": "1111",
@@ -35,9 +51,9 @@ Content-Type: application/json
 }
 
 ### Criar cartão Mastercard
-POST {{baseUrl}}/card
+POST {{cardUrl}}
 Authorization: Bearer {{token}}
-Content-Type: application/json
+Content-Type: {{contentType}}
 
 {
   "lastFourDigits": "0004",
@@ -51,43 +67,43 @@ Content-Type: application/json
 ### ============================================
 ### 2. LISTAR TODOS OS CARTÕES DO USUÁRIO
 ### ============================================
-### GET /card
+### GET /api/card
 ### Headers: Authorization Bearer Token
 ### Response: Lista de cartões com dados mascarados
 ### ============================================
 
 ### Listar cartões
-GET {{baseUrl}}/card
+GET {{cardUrl}}
 Authorization: Bearer {{token}}
 
 ### ============================================
 ### 3. BUSCAR CARTÃO PADRÃO
 ### ============================================
-### GET /card/default
+### GET /api/card/default
 ### Headers: Authorization Bearer Token
 ### Response: Cartão marcado como padrão
 ### ============================================
 
 ### Buscar cartão padrão
-GET {{baseUrl}}/card/default
+GET {{cardUrl}}/default
 Authorization: Bearer {{token}}
 
 ### ============================================
 ### 4. BUSCAR CARTÃO POR ID
 ### ============================================
-### GET /card/:id
+### GET /api/card/:id
 ### Headers: Authorization Bearer Token
 ### Response: Cartão com dados mascarados
 ### ============================================
 
 ### Buscar cartão por ID (substitua o ID)
-GET {{baseUrl}}/card/1
+GET {{cardUrl}}/1
 Authorization: Bearer {{token}}
 
 ### ============================================
 ### 5. ATUALIZAR CARTÃO
 ### ============================================
-### PATCH /card/:id
+### PATCH /api/card/:id
 ### Headers: Authorization Bearer Token
 ### Body: { holderName?, isDefault? }
 ### 
@@ -95,18 +111,18 @@ Authorization: Bearer {{token}}
 ### ============================================
 
 ### Atualizar nome do titular
-PATCH {{baseUrl}}/card/1
+PATCH {{cardUrl}}/1
 Authorization: Bearer {{token}}
-Content-Type: application/json
+Content-Type: {{contentType}}
 
 {
   "holderName": "João S. Silva"
 }
 
 ### Definir cartão como padrão
-PATCH {{baseUrl}}/card/1
+PATCH {{cardUrl}}/1
 Authorization: Bearer {{token}}
-Content-Type: application/json
+Content-Type: {{contentType}}
 
 {
   "isDefault": true
@@ -115,13 +131,24 @@ Content-Type: application/json
 ### ============================================
 ### 6. REMOVER CARTÃO
 ### ============================================
-### DELETE /card/:id
+### DELETE /api/card/:id
 ### Headers: Authorization Bearer Token
 ### Response: 204 No Content
 ### ============================================
 
 ### Remover cartão
-DELETE {{baseUrl}}/card/1
+DELETE {{cardUrl}}/1
+Authorization: Bearer {{token}}
+
+### ============================================
+### EXEMPLOS DE ERROS
+### ============================================
+
+### Erro 401: Requisição sem token
+GET {{cardUrl}}
+
+### Erro 403: Cartão não pertence ao perfil do usuário
+GET {{cardUrl}}/9999
 Authorization: Bearer {{token}}
 
 ### ============================================
