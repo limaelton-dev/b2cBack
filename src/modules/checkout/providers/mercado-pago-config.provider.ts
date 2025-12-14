@@ -4,11 +4,18 @@ import { MercadoPagoConfig } from "../payment-gateway/mercado-pago/mercado-pago.
 
 export const MercadoPagoConfigProvider: Provider = {
     provide: 'MercadoPagoConfig',
-    useFactory: (configService: ConfigService): MercadoPagoConfig => {
+    useFactory: (configService: ConfigService): MercadoPagoConfig | null => {
+        const accessToken = configService.get<string>('MERCADO_PAGO_ACCESS_TOKEN');
+        const environment = configService.get<string>('MP_ENVIRONMENT') || 'sandbox';
+        const notificationUrl = configService.get<string>('MP_NOTIFICATION_URL');
+
+        if (!accessToken) {
+            return null;
+        }
         return {
-            accessToken: configService.get<string>('MP_ACCESS_TOKEN')!,
-            environment: configService.get<string>('MP_ENVIRONMENT') === 'production' ? 'production' : 'sandbox',
-            notificationUrl: configService.get<string>('MP_NOTIFICATION_URL'),
+            accessToken,
+            environment: environment === 'production' ? 'production' : 'sandbox',
+            notificationUrl,
         }
     },
     inject: [ConfigService]

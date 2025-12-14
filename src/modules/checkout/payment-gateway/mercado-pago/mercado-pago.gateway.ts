@@ -8,20 +8,26 @@ import { redact, safeStringify, buildPaymentLogMessage } from '../../../../commo
 @Injectable()
 export class MercadoPagoGateway implements PaymentGateway {
   private readonly logger = new Logger(MercadoPagoGateway.name);
-  private readonly client: MPConfig;
-  private readonly payment: Payment;
+  private readonly client: MPConfig | null;
+  private readonly payment: Payment | null;
 
   constructor(
     @Inject('MercadoPagoConfig')
-    private readonly config: MercadoPagoConfig
+    private readonly config: MercadoPagoConfig | null
   ) {
+    if (!config) {
+      this.client = null;
+      this.payment = null;
+      return;
+    }
+
     this.logger.log(`Inicializando gateway Mercado Pago no ambiente ${config.environment}`);
 
     this.client = new MPConfig({
-      accessToken: this.config.accessToken,
+      accessToken: config.accessToken,
       options: {
         timeout: 10000,
-        ...(this.config.environment === 'production' ? {} : { platformId: 'mp' })
+        ...(config.environment === 'production' ? {} : { platformId: 'mp' })
       }
     });
 
@@ -30,6 +36,10 @@ export class MercadoPagoGateway implements PaymentGateway {
   }
 
   async processPayment(request: PaymentGatewayRequest): Promise<PaymentGatewayResponse> {
+    if (!this.config || !this.payment) {
+      throw new Error('Mercado Pago não está configurado');
+    }
+
     const logContext = {
       orderId: request.metadata?.orderId as number,
       profileId: request.customer.id as number,
@@ -219,11 +229,15 @@ export class MercadoPagoGateway implements PaymentGateway {
         PaymentMethod.DEBIT_CARD,
         PaymentMethod.PIX
       ],
-      environment: this.config.environment
+      environment: this.config?.environment || 'sandbox'
     };
   }
 
   async getPayment(paymentId: string): Promise<any> {
+    if (!this.payment) {
+      throw new Error('Mercado Pago não está configurado');
+    }
+
     try {
       const response = await this.payment.get({ id: paymentId });
       return redact(response);
@@ -234,6 +248,10 @@ export class MercadoPagoGateway implements PaymentGateway {
   }
 
   async refundPayment(paymentId: string, amount?: number): Promise<any> {
+    if (!this.payment) {
+      throw new Error('Mercado Pago não está configurado');
+    }
+
     try {
       const refundParams: any = { id: paymentId };
       if (amount) {
@@ -249,6 +267,10 @@ export class MercadoPagoGateway implements PaymentGateway {
   }
 
   async cancelPayment(paymentId: string): Promise<any> {
+    if (!this.payment) {
+      throw new Error('Mercado Pago não está configurado');
+    }
+
     try {
       const response = await this.payment.cancel({ id: paymentId });
       return redact(response);

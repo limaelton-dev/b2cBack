@@ -1,5 +1,5 @@
-import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
+import { Injectable, ConflictException, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { GuestCheckoutDto } from '../dto/guest-checkout.dto';
@@ -36,6 +36,8 @@ export interface RegisteredCheckoutResult {
 
 @Injectable()
 export class CheckoutService {
+  private readonly logger = new Logger(CheckoutService.name);
+
   constructor(
     private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
@@ -70,7 +72,6 @@ export class CheckoutService {
     };
   }
 
-  //se recebermos profile, aqui precisamos também receber profile ID e validar se é o mesmo ID para segurança de atualização.
   async processRegisteredCheckout(dto: RegisteredCheckoutDto, profileId: number): Promise<RegisteredCheckoutResult> {
     const profile = await this.dataSource.getRepository(Profile).findOne({
       where: { id: profileId }
@@ -80,26 +81,52 @@ export class CheckoutService {
       throw new NotFoundException('Perfil não encontrado');
     }
 
-    const result = await this.dataSource.transaction(async (manager) => {
-      //aqui poderiamos cometer o erro de atualizar informações de um usuário que não é o mesmo da request, dando margem para ataques
-      await this.updateProfileDetails(manager, profileId, dto.profileType, dto.profile);
-      const address = await this.resolveAddress(manager, profileId, dto.address);
-      const phone = await this.resolvePhone(manager, profileId, dto.phone);
-      
-      let card: Card | null = null;
-      if (dto.card?.saveCard) {
-        card = await this.createCard(manager, profileId, dto.card);
+    this.validateProfileDataForType(profile.profileType, dto.profile);
+
+    try {
+      const result = await this.dataSource.transaction(async (manager) => {
+        await this.updateProfileDetails(manager, profileId, profile.profileType, dto.profile);
+        const address = await this.resolveAddress(manager, profileId, dto.address);
+        const phone = await this.resolvePhone(manager, profileId, dto.phone);
+        
+        let card: Card | null = null;
+        if (dto.card?.saveCard) {
+          card = await this.createCard(manager, profileId, dto.card);
+        }
+
+        return { address, phone, card };
+      });
+
+      return {
+        profileId,
+        addressId: result.address.id,
+        phoneId: result.phone.id,
+        cardId: result.card?.id,
+      };
+    } catch (error) {
+      if (this.isUniqueViolation(error)) {
+        throw new ConflictException('Documento (CPF/CNPJ) já cadastrado em outro perfil');
       }
+      throw error;
+    }
+  }
 
-      return { address, phone, card };
-    });
-
-    return {
-      profileId,
-      addressId: result.address.id,
-      phoneId: result.phone.id,
-      cardId: result.card?.id,
-    };
+  private validateProfileDataForType(profileType: ProfileType, profileData: { pf?: any; pj?: any }): void {
+    if (profileType === ProfileType.PF) {
+      if (!profileData.pf) {
+        throw new BadRequestException('Dados de pessoa física são obrigatórios para este perfil');
+      }
+      if (profileData.pj) {
+        throw new BadRequestException('Dados de pessoa jurídica não são permitidos para perfil PF');
+      }
+    } else {
+      if (!profileData.pj) {
+        throw new BadRequestException('Dados de pessoa jurídica são obrigatórios para este perfil');
+      }
+      if (profileData.pf) {
+        throw new BadRequestException('Dados de pessoa física não são permitidos para perfil PJ');
+      }
+    }
   }
 
   async createOrder(
@@ -109,14 +136,12 @@ export class CheckoutService {
   ): Promise<OrderResult> {
     if (idempotencyKey) {
       const existing = await this.dataSource.getRepository(Order).findOne({
-        where: { checkoutKey: idempotencyKey },
+        where: { checkoutKey: idempotencyKey, profileId },
       });
       if (existing) {
         return this.mapOrderToResult(existing);
       }
-      //se existir a chave, mas não encontrar a order, continua.
     }
-    //e se não existir uma idempotencyKey, continua execução
 
     const cartDetails = await this.cartsService.findWithDetails(profileId);
     
@@ -139,60 +164,101 @@ export class CheckoutService {
     }
 
     const shippingAddress = await this.resolveShippingAddress(profileId, dto);
-    const itemsTotal = cartDetails.subtotal;
+    
+    const skuIds = cartDetails.items.map(i => i.skuId);
+    const skuDetailsMap = await this.productsService.findSkusForCart(skuIds);
+    const itemsTotal = calculateItemsTotal(cartDetails.items, skuDetailsMap);
+    
     const shippingTotal = await this.calculateShipping(dto, shippingAddress, cartDetails.items);
     const discountTotal = 0;
     const grandTotal = calculateGrandTotal(itemsTotal, shippingTotal, discountTotal);
 
     const partnerOrderId = this.generatePartnerOrderId(profileId);
 
-    const anymarketPayload = await this.buildAnymarketPayload(
-      partnerOrderId,
-      profile,
-      shippingAddress,
-      cartDetails.items,
-      itemsTotal,
-      shippingTotal,
-      discountTotal,
-      grandTotal,
-    );
-
-    //TODO: verificar uma estratégia, pois não temos controle sobre o servidor externo(anymarket)
-    const anymarketOrder = await this.ordersAnymarketRepository.create(anymarketPayload);
+    const itemsData = cartDetails.items.map((item) => {
+      const sku = skuDetailsMap.get(item.skuId);
+      const unitPrice = sku?._rawPrice ?? 0;
+      return {
+        productId: 0,
+        skuId: item.skuId,
+        title: sku?.title ?? item.sku?.title ?? '',
+        quantity: item.quantity,
+        unitPrice: unitPrice.toFixed(2),
+        discount: '0.00',
+        total: (unitPrice * item.quantity).toFixed(2),
+      };
+    });
 
     const orderData: Partial<Order> = {
       profileId,
       checkoutKey: idempotencyKey || null,
-      anymarketOrderId: anymarketOrder.id, //aqui, por enquanto usamos await, porém temos que tratar isso em caso de instabilidade
       partnerOrderId,
       marketplace: 'ECOMMERCE',
-      status: 'WAITING_PAYMENT',
+      status: 'PENDING',
       itemsTotal: itemsTotal.toFixed(2),
       shippingTotal: shippingTotal.toFixed(2),
       discountTotal: discountTotal.toFixed(2),
       grandTotal: grandTotal.toFixed(2),
       paymentMethod: 'PENDING',
-      anymarketRawPayload: anymarketOrder,//aqui, por enquanto usamos await, porém temos que tratar isso em caso de instabilidade
-      anymarketCreatedAt: anymarketOrder.createdAt ? new Date(anymarketOrder.createdAt) : null,
     };
 
-    const itemsData = cartDetails.items.map((item) => ({
-      productId: 0,
-      skuId: item.skuId,
-      title: item.sku?.title ?? '',
-      quantity: item.quantity,
-      unitPrice: (item.sku as any)?._rawPrice?.toFixed(2) ?? '0.00',
-      discount: '0.00', //tranquili, mas quando estivermos no módulo de desconto, precisamos ver isso
-      total: ((item.sku as any)?._rawPrice * item.quantity).toFixed(2),
-    }));
+    try {
+      const order = await this.ordersRepository.createOrderWithItemsAndStatusHistory(
+        orderData,
+        itemsData,
+        'SYSTEM',
+      );
 
-    const order = await this.ordersRepository.createOrderWithItemsAndStatusHistory(
-      orderData,
-      itemsData,
-      'SYSTEM',
-    );
+      const anymarketPayload = await this.buildAnymarketPayload(
+        partnerOrderId,
+        profile,
+        shippingAddress,
+        cartDetails.items,
+        itemsTotal,
+        shippingTotal,
+        discountTotal,
+        grandTotal,
+      );
 
-    return this.mapOrderToResult(order);
+      try {
+        const anymarketOrder = await this.ordersAnymarketRepository.create(anymarketPayload);
+        
+        await this.dataSource.getRepository(Order).update(order.id, {
+          anymarketOrderId: anymarketOrder.id,
+          anymarketRawPayload: anymarketOrder,
+          anymarketCreatedAt: anymarketOrder.createdAt ? new Date(anymarketOrder.createdAt) : null,
+          status: 'WAITING_PAYMENT',
+        });
+        
+        order.status = 'WAITING_PAYMENT';
+        order.anymarketOrderId = anymarketOrder.id;
+        
+        await this.ordersRepository.updateOrderStatus(
+          order.id,
+          'WAITING_PAYMENT',
+          'SYSTEM',
+          'Integração AnyMarket concluída',
+        );
+      } catch (anymarketError) {
+        this.logger.error(`Falha na integração AnyMarket para order ${order.id}: ${anymarketError.message}`);
+      }
+
+      return this.mapOrderToResult(order);
+    } catch (error) {
+      if (this.isUniqueViolation(error) && idempotencyKey) {
+        const existing = await this.dataSource.getRepository(Order).findOne({
+          where: { checkoutKey: idempotencyKey, profileId },
+        });
+        if (existing) {
+          return this.mapOrderToResult(existing);
+        }
+      }
+      throw error;
+    }
+  }
+
+  private isUniqueViolation(error: unknown): boolean {
+    return error instanceof QueryFailedError && (error as any).code === '23505';
   }
 
   private mapOrderToResult(order: Order): OrderResult {
@@ -441,28 +507,30 @@ export class CheckoutService {
     manager: EntityManager,
     profileId: number,
     profileType: ProfileType,
-    profileData: any,
+    profileData: { pf?: any; pj?: any },
   ): Promise<void> {
-    if (profileType === ProfileType.PF) {
+    if (profileType === ProfileType.PF && profileData.pf) {
+      const pfData = profileData.pf;
       await manager.getRepository(ProfilePf).update(
         { profileId },
         {
-          firstName: profileData.firstName,
-          lastName: profileData.lastName,
-          cpf: profileData.cpf,
-          birthDate: new Date(profileData.birthDate),
-          gender: profileData.gender,
+          firstName: pfData.firstName,
+          lastName: pfData.lastName,
+          cpf: pfData.cpf,
+          birthDate: new Date(pfData.birthDate),
+          gender: pfData.gender,
         }
       );
-    } else {
+    } else if (profileType === ProfileType.PJ && profileData.pj) {
+      const pjData = profileData.pj;
       await manager.getRepository(ProfilePj).update(
         { profileId },
         {
-          companyName: profileData.companyName,
-          cnpj: profileData.cnpj,
-          tradingName: profileData.tradingName,
-          stateRegistration: profileData.stateRegistration,
-          municipalRegistration: profileData.municipalRegistration,
+          companyName: pjData.companyName,
+          cnpj: pjData.cnpj,
+          tradingName: pjData.tradingName,
+          stateRegistration: pjData.stateRegistration,
+          municipalRegistration: pjData.municipalRegistration,
         }
       );
     }

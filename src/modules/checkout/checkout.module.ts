@@ -1,10 +1,12 @@
-import { Module, OnModuleInit, Logger } from '@nestjs/common';
+import { Module, OnModuleInit, Logger, Inject } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CheckoutController } from './controllers/checkout.controller';
+import { WebhookController } from './controllers/webhook.controller';
 import { CheckoutService } from './services/checkout.service';
 import { PaymentService } from './services/payment.service';
+import { WebhookService } from './services/webhook.service';
 import { PaymentGatewayFactory } from './factories/payment-gateway.factory';
 import { CieloGateway } from './payment-gateway/cielo/cielo.gateway';
 import { MercadoPagoGateway } from './payment-gateway/mercado-pago/mercado-pago.gateway';
@@ -40,17 +42,18 @@ import { ShippingModule } from '../shipping/shipping.module';
     ProductsModule,
     ShippingModule,
   ],
-  controllers: [CheckoutController],
+  controllers: [CheckoutController, WebhookController],
   providers: [
     CheckoutService,
     PaymentService,
+    WebhookService,
     PaymentGatewayFactory,
     CieloGateway,
     MercadoPagoGateway,
     CieloConfigProvider,
     MercadoPagoConfigProvider,
   ],
-  exports: [CheckoutService, PaymentService],
+  exports: [CheckoutService, PaymentService, WebhookService],
 })
 export class CheckoutModule implements OnModuleInit {
   private readonly logger = new Logger(CheckoutModule.name);
@@ -58,14 +61,31 @@ export class CheckoutModule implements OnModuleInit {
   constructor(
     private readonly paymentGatewayFactory: PaymentGatewayFactory,
     private readonly cieloGateway: CieloGateway,
-    private readonly mercadoPagoGateway: MercadoPagoGateway
+    private readonly mercadoPagoGateway: MercadoPagoGateway,
+    @Inject('CieloConfig') private readonly cieloConfig: any,
+    @Inject('MercadoPagoConfig') private readonly mercadoPagoConfig: any,
   ) {}
 
   onModuleInit() {
-    this.paymentGatewayFactory.registerGateway('cielo', this.cieloGateway);
-    this.paymentGatewayFactory.registerGateway('mercadopago', this.mercadoPagoGateway);
+    if (this.cieloConfig) {
+      this.paymentGatewayFactory.registerGateway('cielo', this.cieloGateway);
+      this.logger.log('Gateway Cielo registrado');
+    } else {
+      this.logger.warn('Gateway Cielo não configurado (CIELO_MERCHANT_ID/CIELO_MERCHANT_KEY ausentes)');
+    }
+
+    if (this.mercadoPagoConfig) {
+      this.paymentGatewayFactory.registerGateway('mercadopago', this.mercadoPagoGateway);
+      this.logger.log('Gateway Mercado Pago registrado');
+    } else {
+      this.logger.warn('Gateway Mercado Pago não configurado (MERCADO_PAGO_ACCESS_TOKEN ausente)');
+    }
 
     const availableGateways = this.paymentGatewayFactory.getAvailableGateways();
-    this.logger.log(`Gateways disponíveis: ${availableGateways.join(', ')}`);
+    if (availableGateways.length > 0) {
+      this.logger.log(`Gateways disponíveis: ${availableGateways.join(', ')}`);
+    } else {
+      this.logger.warn('Nenhum gateway de pagamento configurado');
+    }
   }
 }

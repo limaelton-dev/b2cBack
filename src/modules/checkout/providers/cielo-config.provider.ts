@@ -4,14 +4,14 @@ import { ConfigService } from '@nestjs/config';
 
 export const CieloConfigProvider: Provider = {
   provide: 'CieloConfig',
-  useFactory: (configService: ConfigService): CieloConfig => {
+  useFactory: (configService: ConfigService): CieloConfig | null => {
     const merchantId = configService.get<string>('CIELO_MERCHANT_ID');
     const merchantKey = configService.get<string>('CIELO_MERCHANT_KEY');
     const environment = configService.get<string>('CIELO_ENVIRONMENT') || 'sandbox';
     const returnUrl = configService.get<string>('CIELO_RETURN_URL');
 
     if (!merchantId || !merchantKey) {
-      throw new Error('CIELO_MERCHANT_ID e CIELO_MERCHANT_KEY são obrigatórios');
+      return null;
     }
 
     return {

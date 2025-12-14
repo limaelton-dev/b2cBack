@@ -59,17 +59,23 @@ export class CheckoutController {
   @ApiOperation({ summary: 'Processa pagamento com gateway específico' })
   @ApiParam({ name: 'type', enum: PaymentType, description: 'Tipo de pagamento' })
   @ApiParam({ name: 'gateway', enum: GatewayType, description: 'Gateway de pagamento' })
+  @ApiHeader({ name: 'X-Idempotency-Key', required: true, description: 'UUID único por tentativa de pagamento' })
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async processPayment(
     @Param('type') type: string, 
     @Param('gateway') gateway: string, 
     @Body() dto: ProcessPaymentDto,
     @GetUser('profileId') profileId: number,
+    @Headers('x-idempotency-key') idempotencyKey: string,
   ): Promise<PaymentGatewayResponse> {
+    if (!idempotencyKey) {
+      throw new BadRequestException('Header X-Idempotency-Key é obrigatório');
+    }
+
     const paymentType = this.parsePaymentType(type);
     const gatewayType = this.parseGatewayType(gateway);
 
-    return this.paymentService.processPayment(paymentType, gatewayType, dto, profileId);
+    return this.paymentService.processPayment(paymentType, gatewayType, dto, profileId, idempotencyKey);
   }
 
   @Get('gateways')

@@ -22,25 +22,36 @@ export class CieloGateway implements PaymentGateway {
   private readonly logger = new Logger(CieloGateway.name);
 
   constructor(
-    @Inject('CieloConfig') private readonly config: CieloConfig,
+    @Inject('CieloConfig') private readonly config: CieloConfig | null,
     private readonly configService: ConfigService
   ) {
-    this.logger.log(`Gateway Cielo inicializado no ambiente ${config.environment}`);
+    if (config) {
+      this.logger.log(`Gateway Cielo inicializado no ambiente ${config.environment}`);
+    }
   }
 
   private get baseUrl(): string {
+    if (!this.config) {
+      throw new Error('Cielo não está configurado');
+    }
     return this.config.environment === 'production' 
       ? this.apiUrls.production.transaction 
       : this.apiUrls.sandbox.transaction;
   }
 
   private get queryUrl(): string {
+    if (!this.config) {
+      throw new Error('Cielo não está configurado');
+    }
     return this.config.environment === 'production' 
       ? this.apiUrls.production.query 
       : this.apiUrls.sandbox.query;
   }
 
   private getHeaders() {
+    if (!this.config) {
+      throw new Error('Cielo não está configurado');
+    }
     return {
       'Content-Type': 'application/json',
       'MerchantId': this.config.merchantId,
@@ -49,6 +60,10 @@ export class CieloGateway implements PaymentGateway {
   }
 
   async processPayment(request: PaymentGatewayRequest): Promise<PaymentGatewayResponse> {
+    if (!this.config) {
+      throw new Error('Cielo não está configurado');
+    }
+
     const logContext = {
       orderId: request.metadata?.orderId as number,
       profileId: request.customer.id as number,
@@ -248,7 +263,7 @@ export class CieloGateway implements PaymentGateway {
       name: 'Cielo',
       description: 'Gateway de pagamento Cielo',
       supportedMethods: [PaymentMethod.CREDIT_CARD, PaymentMethod.DEBIT_CARD],
-      environment: this.config.environment
+      environment: this.config?.environment || 'sandbox'
     };
   }
 

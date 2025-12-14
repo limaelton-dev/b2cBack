@@ -1,21 +1,36 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { randomUUID } from 'crypto';
 import { PaymentGatewayFactory, GatewayName } from '../factories/payment-gateway.factory';
 import { PaymentGatewayRequest, PaymentGatewayResponse } from '../payment-gateway/interfaces/payment-gateway.interface';
 import { PaymentMethod } from '../../../common/enums/payment-method.enum';
 import { ProcessPaymentDto, PaymentType, GatewayType } from '../dto/process-payment.dto';
-import { Order, OrderStatus } from '../../orders/entities/order.entity';
+import { Order } from '../../orders/entities/order.entity';
 import { PaymentTransaction, PaymentTransactionStatus, PaymentMethodType } from '../entities/payment-transaction.entity';
 import { OrdersRepository } from '../../orders/repositories/orders.repository';
 import { CartsService } from '../../carts/services/carts.service';
 import { redact, buildPaymentLogMessage } from '../../../common/helpers/payment-log.util';
 
-//verificar a padronização de uso de constantes, pode ser enum? pode ser objeto?... pode continuar assim?
-const APPROVED_STATUSES = ['approved', 'PaymentConfirmed', 'Authorized'];
-const PENDING_STATUSES = ['pending', 'in_process', 'Pending', 'NotFinished'];
-const REJECTED_STATUSES = ['rejected', 'cancelled', 'Denied', 'Aborted', 'Voided'];
+type NormalizedPaymentStatus = 'approved' | 'pending' | 'rejected' | 'unknown';
+
+interface GatewayStatusMap {
+  approved: string[];
+  pending: string[];
+  rejected: string[];
+}
+
+const GATEWAY_STATUS_MAPS: Record<GatewayName, GatewayStatusMap> = {
+  mercadopago: {
+    approved: ['approved'],
+    pending: ['pending', 'in_process', 'authorized'],
+    rejected: ['rejected', 'cancelled', 'refunded', 'charged_back'],
+  },
+  cielo: {
+    approved: ['2'],
+    pending: ['0', '1', '12'],
+    rejected: ['3', '10', '11', '13'],
+  },
+};
 
 @Injectable()
 export class PaymentService {
@@ -26,8 +41,6 @@ export class PaymentService {
     [GatewayType.CIELO]: 'cielo',
   };
 
-  //não entendi a diferença dessas duas...
-  //PaymentMethod e PaymentMethod estão duplicados? tem funções iguais ou diferentes? é possível abstrair código sem deixar complexo?
   private readonly paymentMethodMap: Record<PaymentType, PaymentMethod> = {
     [PaymentType.CREDIT_CARD]: PaymentMethod.CREDIT_CARD,
     [PaymentType.DEBIT_CARD]: PaymentMethod.DEBIT_CARD,
@@ -55,22 +68,22 @@ export class PaymentService {
     gateway: GatewayType,
     dto: ProcessPaymentDto,
     profileId: number,
+    idempotencyKey: string,
   ): Promise<PaymentGatewayResponse> {
-    const order = await this.findAndValidateOrder(dto.orderId, profileId);
+    const order = await this.getPayableOrderForProfile(dto.orderId, profileId);
     const gatewayName = this.gatewayMap[gateway];
     const amount = parseFloat(order.grandTotal);
 
     this.validatePaymentRequest(paymentType, gateway, dto, order);
 
-    const idempotencyKey = this.generateIdempotencyKey(order.id, gatewayName);
-    const existingTransaction = await this.findExistingTransaction(idempotencyKey);
+    const existingTransaction = await this.findExistingTransaction(idempotencyKey, profileId);
 
     if (existingTransaction) {
       this.logger.warn(buildPaymentLogMessage(
         { orderId: order.id, profileId, gateway: gatewayName, method: paymentType, amount },
         'Transação duplicada detectada',
       ));
-      return this.buildResponseFromTransaction(existingTransaction);
+      return this.buildSanitizedResponseFromTransaction(existingTransaction);
     }
 
     const transaction = await this.createTransaction(order, profileId, gatewayName, paymentType, dto, idempotencyKey);
@@ -78,7 +91,6 @@ export class PaymentService {
     try {
       const gatewayInstance = this.gatewayFactory.getGateway(gatewayName);
       const paymentMethod = this.paymentMethodMap[paymentType];
-      //TODO: verificar se estamos pegando holder name corretamente em casos de cartão(pode ser que o holder seja diferente do usuário que está comprando)
       const request = this.buildPaymentRequest(paymentType, paymentMethod, dto, order);
 
       this.logger.log(buildPaymentLogMessage(
@@ -88,15 +100,15 @@ export class PaymentService {
 
       const response = await gatewayInstance.processPayment(request);
 
-      await this.updateTransactionFromResponse(transaction, response);
-      await this.updateOrderStatusFromResponse(order, response, profileId, paymentType);
+      await this.updateTransactionFromResponse(transaction, response, gatewayName);
+      await this.updateOrderStatusFromResponse(order, response, profileId, paymentType, gatewayName);
 
       this.logger.log(buildPaymentLogMessage(
         { orderId: order.id, profileId, gateway: gatewayName, method: paymentType, amount },
         `Processamento finalizado: status=${response.status}`,
       ));
 
-      return response;
+      return this.sanitizeGatewayResponse(response, paymentType);
     } catch (error) {
       await this.updateTransactionWithError(transaction, error);
 
@@ -105,7 +117,7 @@ export class PaymentService {
         `Erro no processamento: ${error.message}`,
       ));
 
-      throw error;
+      throw new BadRequestException('Erro ao processar pagamento. Tente novamente.');
     }
   }
 
@@ -114,15 +126,16 @@ export class PaymentService {
     response: PaymentGatewayResponse,
     profileId: number,
     paymentType: PaymentType,
+    gatewayName: GatewayName,
   ): Promise<void> {
-    const gatewayStatus = response.status ?? '';
+    const normalizedStatus = this.normalizeGatewayStatus(response.status ?? '', gatewayName);
     
-    if (this.isApprovedStatus(gatewayStatus)) {
+    if (normalizedStatus === 'approved') {
       await this.ordersRepository.updateOrderStatus(
         order.id,
         'PAID_WAITING_SHIP',
         'SYSTEM',
-        `Pagamento aprovado: ${gatewayStatus}`,
+        `Pagamento aprovado: ${response.status}`,
       );
 
       await this.updateOrderPaymentMethod(order.id, paymentType);
@@ -133,23 +146,32 @@ export class PaymentService {
       } catch (error) {
         this.logger.warn(`Falha ao limpar carrinho - Order: ${order.id}: ${error.message}`);
       }
-    } else if (this.isRejectedStatus(gatewayStatus)) {
-      this.logger.log(`Pagamento rejeitado - Order: ${order.id}, Status: ${gatewayStatus}`);
-    } else if (this.isPendingStatus(gatewayStatus)) {
-      this.logger.log(`Pagamento pendente - Order: ${order.id}, Status: ${gatewayStatus}`);
+    } else if (normalizedStatus === 'rejected') {
+      this.logger.log(`Pagamento rejeitado - Order: ${order.id}, Status: ${response.status}`);
+    } else if (normalizedStatus === 'pending') {
+      this.logger.log(`Pagamento pendente - Order: ${order.id}, Status: ${response.status}`);
     }
   }
 
-  private isApprovedStatus(status: string): boolean {
-    return APPROVED_STATUSES.some(s => status.toLowerCase().includes(s.toLowerCase()));
-  }
+  private normalizeGatewayStatus(status: string, gatewayName: GatewayName): NormalizedPaymentStatus {
+    const statusMap = GATEWAY_STATUS_MAPS[gatewayName];
+    if (!statusMap) {
+      return 'unknown';
+    }
 
-  private isPendingStatus(status: string): boolean {
-    return PENDING_STATUSES.some(s => status.toLowerCase().includes(s.toLowerCase()));
-  }
+    const normalizedInput = status.toLowerCase();
 
-  private isRejectedStatus(status: string): boolean {
-    return REJECTED_STATUSES.some(s => status.toLowerCase().includes(s.toLowerCase()));
+    if (statusMap.approved.some(s => s.toLowerCase() === normalizedInput)) {
+      return 'approved';
+    }
+    if (statusMap.pending.some(s => s.toLowerCase() === normalizedInput)) {
+      return 'pending';
+    }
+    if (statusMap.rejected.some(s => s.toLowerCase() === normalizedInput)) {
+      return 'rejected';
+    }
+
+    return 'unknown';
   }
 
   private async updateOrderPaymentMethod(orderId: number, paymentType: PaymentType): Promise<void> {
@@ -162,13 +184,9 @@ export class PaymentService {
     await this.orderRepository.update(orderId, { paymentMethod: paymentMethodStr });
   }
 
-  private generateIdempotencyKey(orderId: number, gateway: GatewayName): string {
-    return `${gateway}-${orderId}-${randomUUID().substring(0, 8)}`;
-  }
-
-  private async findExistingTransaction(idempotencyKey: string): Promise<PaymentTransaction | null> {
+  private async findExistingTransaction(idempotencyKey: string, profileId: number): Promise<PaymentTransaction | null> {
     return this.transactionRepository.findOne({
-      where: { idempotencyKey },
+      where: { idempotencyKey, profileId },
     });
   }
 
@@ -203,18 +221,23 @@ export class PaymentService {
   private async updateTransactionFromResponse(
     transaction: PaymentTransaction,
     response: PaymentGatewayResponse,
+    gatewayName: GatewayName,
   ): Promise<void> {
-    const gatewayStatus = response.status ?? '';
+    const normalizedStatus = this.normalizeGatewayStatus(response.status ?? '', gatewayName);
     let status: PaymentTransactionStatus;
 
-    if (this.isApprovedStatus(gatewayStatus)) {
-      status = 'approved';
-    } else if (this.isRejectedStatus(gatewayStatus)) {
-      status = 'rejected';
-    } else if (this.isPendingStatus(gatewayStatus)) {
-      status = 'pending';
-    } else {
-      status = response.success ? 'approved' : 'rejected';
+    switch (normalizedStatus) {
+      case 'approved':
+        status = 'approved';
+        break;
+      case 'rejected':
+        status = 'rejected';
+        break;
+      case 'pending':
+        status = 'pending';
+        break;
+      default:
+        status = response.success ? 'approved' : 'rejected';
     }
 
     await this.transactionRepository.update(transaction.id, {
@@ -226,7 +249,6 @@ export class PaymentService {
         success: response.success,
         status: response.status,
         code: response.code,
-        message: response.message,
         transactionId: response.transactionId,
       }),
     });
@@ -243,19 +265,53 @@ export class PaymentService {
     });
   }
 
-  private buildResponseFromTransaction(transaction: PaymentTransaction): PaymentGatewayResponse {
+  private buildSanitizedResponseFromTransaction(transaction: PaymentTransaction): PaymentGatewayResponse {
     return {
-      //validamos esses undefined?
       success: transaction.status === 'approved',
       transactionId: transaction.gatewayPaymentId ?? undefined,
       status: transaction.gatewayStatus ?? undefined,
-      code: transaction.statusDetail ?? undefined,
       message: 'Transação já processada anteriormente',
     };
   }
 
-  //um método com duas responsabilidades é aceitavel aqui? Por que sim ou não?
-  private async findAndValidateOrder(orderId: number, profileId: number): Promise<Order> {
+  private sanitizeGatewayResponse(response: PaymentGatewayResponse, paymentType: PaymentType): PaymentGatewayResponse {
+    const sanitized: PaymentGatewayResponse = {
+      success: response.success,
+      status: response.status,
+      transactionId: response.transactionId,
+      paymentId: response.paymentId,
+      message: this.sanitizeErrorMessage(response.message),
+    };
+
+    if (paymentType === PaymentType.PIX && response.details) {
+      sanitized.details = {
+        qrCode: response.details.qrCode,
+        qrCodeBase64: response.details.qrCodeBase64,
+        ticketUrl: response.details.ticketUrl,
+        expirationDate: response.details.expirationDate,
+      };
+    }
+
+    return sanitized;
+  }
+
+  private sanitizeErrorMessage(message?: string): string | undefined {
+    if (!message) return undefined;
+    
+    const sensitivePatterns = [
+      /cpf|cnpj|email|token|card|senha|password/i,
+    ];
+    
+    for (const pattern of sensitivePatterns) {
+      if (pattern.test(message)) {
+        return 'Erro no processamento do pagamento';
+      }
+    }
+    
+    return message;
+  }
+
+  private async getPayableOrderForProfile(orderId: number, profileId: number): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
       relations: ['profile', 'profile.profilePf', 'profile.profilePj', 'profile.user'],

@@ -1,11 +1,8 @@
 import { Type } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsString, IsOptional, IsBoolean, ValidateNested, ValidateIf, Length, Matches, IsNumber } from 'class-validator';
-import { ProfileType } from 'src/common/enums';
+import { IsNotEmpty, IsString, IsOptional, IsBoolean, ValidateNested, ValidateIf, Length, Matches, IsNumber } from 'class-validator';
 import { IsCpf, IsCnpj } from 'src/common/validators/document.validator';
 
-//precisamos adicionar aqui o id para validar sendo obrigatório para usuário autenticado
-// (caso usemos em outros lugares esse dto, verificar melhor maneira de implementar.)
-class ProfilePfDto {
+class ProfilePfDataDto {
   @IsNotEmpty({ message: 'Nome é obrigatório' })
   @IsString()
   firstName: string;
@@ -27,7 +24,7 @@ class ProfilePfDto {
   gender?: string;
 }
 
-class ProfilePjDto {
+class ProfilePjDataDto {
   @IsNotEmpty({ message: 'Razão social é obrigatória' })
   @IsString()
   companyName: string;
@@ -47,6 +44,18 @@ class ProfilePjDto {
   @IsOptional()
   @IsString()
   municipalRegistration?: string;
+}
+
+export class ProfileUpdateDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProfilePfDataDto)
+  pf?: ProfilePfDataDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProfilePjDataDto)
+  pj?: ProfilePjDataDto;
 }
 
 class AddressDto {
@@ -153,17 +162,10 @@ class CardDto {
 }
 
 export class RegisteredCheckoutDto {
-  @IsNotEmpty({ message: 'Tipo de perfil é obrigatório' })
-  @IsEnum(ProfileType, { message: 'Tipo de perfil inválido' })
-  profileType: ProfileType;
-
   @IsNotEmpty({ message: 'Dados do perfil são obrigatórios' })
   @ValidateNested()
-  @Type((opts) => {
-    const profileType = opts?.object?.profileType;
-    return profileType === ProfileType.PJ ? ProfilePjDto : ProfilePfDto;
-  })
-  profile: ProfilePfDto | ProfilePjDto;
+  @Type(() => ProfileUpdateDto)
+  profile: ProfileUpdateDto;
 
   @IsNotEmpty({ message: 'Endereço é obrigatório' })
   @ValidateNested()

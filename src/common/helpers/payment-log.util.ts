@@ -47,7 +47,12 @@ function isSensitiveField(key: string): boolean {
   return SENSITIVE_FIELDS.has(key.toLowerCase());
 }
 
-export function redact<T>(obj: T): T {
+const MAX_DEPTH = 8;
+
+export function redact<T>(obj: T, seen?: WeakSet<object>, depth?: number): T {
+  const currentDepth = depth ?? 0;
+  const visitedSet = seen ?? new WeakSet<object>();
+
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -56,11 +61,24 @@ export function redact<T>(obj: T): T {
     return obj as T;
   }
 
+  if (currentDepth >= MAX_DEPTH) {
+    return '[MAX_DEPTH]' as T;
+  }
+
   if (Array.isArray(obj)) {
-    return obj.map(item => redact(item)) as T;
+    if (visitedSet.has(obj)) {
+      return '[CIRCULAR]' as T;
+    }
+    visitedSet.add(obj);
+    return obj.map(item => redact(item, visitedSet, currentDepth + 1)) as T;
   }
 
   if (typeof obj === 'object') {
+    if (visitedSet.has(obj)) {
+      return '[CIRCULAR]' as T;
+    }
+    visitedSet.add(obj);
+
     const result: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(obj)) {
@@ -69,7 +87,7 @@ export function redact<T>(obj: T): T {
       } else if (isSensitiveField(key) && typeof value === 'string') {
         result[key] = maskValue(key, value);
       } else if (typeof value === 'object') {
-        result[key] = redact(value);
+        result[key] = redact(value, visitedSet, currentDepth + 1);
       } else {
         result[key] = value;
       }

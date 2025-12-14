@@ -1,37 +1,39 @@
 ### ===========================================
-### MÓDULO DE CHECKOUT
+### MÓDULO DE CHECKOUT - DOCUMENTAÇÃO COMPLETA
 ### ===========================================
-### Base URL: http://localhost:3000/api/checkout
+### Base URL: http://localhost:3000/api
 ### ===========================================
 ###
-### RESPOSTA DE SUCESSO (201 Created):
-### {
-###   "userId": 1,
-###   "profileId": 1,
-###   "addressId": 1,
-###   "phoneId": 1,
-###   "cardId": 1,           // Só retorna se saveCard = true
-###   "cardToken": "token",  // Retorna se cartão foi enviado
-###   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-### }
+### FLUXO COMPLETO:
+### 1. POST /checkout/guest ou /checkout/registered - Preparar dados do cliente
+### 2. POST /checkout/order - Criar pedido (requer X-Idempotency-Key)
+### 3. POST /checkout/payment/:type/gateway/:gateway - Processar pagamento (requer X-Idempotency-Key)
+### 4. Webhook (automático) - Atualizar status de pagamentos assíncronos (PIX)
+###
+### SEGURANÇA IMPLEMENTADA:
+### - X-Idempotency-Key OBRIGATÓRIO em /order e /payment (cliente gera UUID por tentativa)
+### - CheckoutKey amarrado ao profileId (evita acesso cruzado)
+### - ProfileType do banco é source of truth (não pode ser alterado)
+### - Documento (CPF/CNPJ) validado por unique constraint
+### - Order criada localmente primeiro (PENDING), depois AnyMarket
+### - Webhook consulta API do gateway antes de atualizar (não confia no payload)
 ###
 ### ERROS COMUNS:
-### - 400 Bad Request: Validação de campos falhou
-### - 401 Unauthorized: Token inválido/expirado (isRegistered=true)
-### - 403 Forbidden: Token não corresponde ao usuário
-### - 404 Not Found: Usuário/Perfil não encontrado
-### - 409 Conflict: Email/CPF/CNPJ já cadastrado
-###
-### OBS: Se ID de endereço/telefone não existir, cria novo automaticamente
+### - 400 Bad Request: Validação falhou ou X-Idempotency-Key ausente
+### - 401 Unauthorized: Token inválido/expirado
+### - 403 Forbidden: Recurso não pertence ao usuário
+### - 404 Not Found: Recurso não encontrado
+### - 409 Conflict: Email/CPF/CNPJ/CheckoutKey já cadastrado
 ### ===========================================
 
 @baseUrl = http://localhost:3000/api
 @checkoutUrl = {{baseUrl}}/checkout
+@webhooksUrl = {{baseUrl}}/webhooks
 @authUrl = {{baseUrl}}/auth
 @contentType = application/json
 
 ### ===========================================
-### AUTENTICAÇÃO (para usuários registrados)
+### AUTENTICAÇÃO
 ### ===========================================
 
 # @name login
@@ -44,17 +46,19 @@ Content-Type: {{contentType}}
 }
 
 @token = {{login.response.body.access_token}}
+@profileId = {{login.response.body.profileId}}
 
 ### ===========================================
-### NOVO USUÁRIO - SEM CARTÃO
+### 1. CHECKOUT GUEST (NOVO USUÁRIO)
 ### ===========================================
-### Resposta: { userId, profileId, addressId, phoneId, accessToken }
+### Cria conta e retorna token
+### Resposta: { userId, profileId, accessToken }
 
-POST {{checkoutUrl}}
+# @name guestCheckout
+POST {{checkoutUrl}}/guest
 Content-Type: {{contentType}}
 
 {
-  "isRegistered": false,
   "email": "novo.usuario@email.com",
   "password": "Senha123",
   "profileType": "PF",
@@ -80,54 +84,44 @@ Content-Type: {{contentType}}
   }
 }
 
-### ===========================================
-### NOVO USUÁRIO - COM CARTÃO (SÓ TOKEN)
-### ===========================================
-### Resposta: { userId, profileId, addressId, phoneId, cardToken, accessToken }
+### GUEST CHECKOUT - PESSOA JURÍDICA
 
-POST {{checkoutUrl}}
+POST {{checkoutUrl}}/guest
 Content-Type: {{contentType}}
 
 {
-  "isRegistered": false,
-  "email": "usuario.token@email.com",
+  "email": "empresa@email.com",
   "password": "Senha123",
-  "profileType": "PF",
+  "profileType": "PJ",
   "profile": {
-    "firstName": "Maria",
-    "lastName": "Santos",
-    "cpf": "987.654.321-00",
-    "birthDate": "1985-03-20",
-    "gender": "F"
+    "companyName": "Empresa Exemplo LTDA",
+    "cnpj": "11.222.333/0001-81",
+    "tradingName": "Empresa Exemplo",
+    "stateRegistration": "123456789",
+    "municipalRegistration": "987654321"
   },
   "address": {
-    "street": "Av. Brasil",
-    "number": "500",
-    "neighborhood": "Jardins",
+    "street": "Av. Paulista",
+    "number": "1000",
+    "complement": "Sala 101",
+    "neighborhood": "Bela Vista",
     "city": "São Paulo",
     "state": "SP",
-    "zipCode": "01234-000"
+    "zipCode": "01310-100"
   },
   "phone": {
     "ddd": "11",
-    "number": "988887777"
-  },
-  "card": {
-    "cardToken": "token_gerado_pelo_gateway_12345"
+    "number": "32223333"
   }
 }
 
-### ===========================================
-### NOVO USUÁRIO - SALVANDO CARTÃO
-### ===========================================
-### Resposta: { userId, profileId, addressId, phoneId, cardId, cardToken, accessToken }
+### GUEST CHECKOUT - COM CARTÃO SALVO
 
-POST {{checkoutUrl}}
+POST {{checkoutUrl}}/guest
 Content-Type: {{contentType}}
 
 {
-  "isRegistered": false,
-  "email": "usuario.salva.cartao@email.com",
+  "email": "usuario.cartao@email.com",
   "password": "Senha123",
   "profileType": "PF",
   "profile": {
@@ -149,75 +143,41 @@ Content-Type: {{contentType}}
     "number": "977776666"
   },
   "card": {
-    "cardToken": "token_visa_salvar_67890",
     "saveCard": true,
     "lastFourDigits": "1234",
     "holderName": "PEDRO OLIVEIRA",
     "expirationMonth": "12",
     "expirationYear": "2030",
-    "brand": "Visa"
+    "brand": "Visa",
+    "isDefault": true
   }
 }
 
 ### ===========================================
-### NOVO USUÁRIO PJ
+### 2. CHECKOUT REGISTERED (USUÁRIO LOGADO)
 ### ===========================================
-### Resposta: { userId, profileId, addressId, phoneId, cardToken, accessToken }
+### Atualiza dados e retorna IDs
+### Resposta: { profileId, addressId, phoneId, cardId? }
+### IMPORTANTE: ProfileType NÃO é enviado - usa o do banco
 
-POST {{checkoutUrl}}
-Content-Type: {{contentType}}
-
-{
-  "isRegistered": false,
-  "email": "empresa@email.com",
-  "password": "Senha123",
-  "profileType": "PJ",
-  "profile": {
-    "companyName": "Empresa Exemplo LTDA",
-    "cnpj": "11.222.333/0001-81",
-    "tradingName": "Empresa Exemplo"
-  },
-  "address": {
-    "street": "Av. Paulista",
-    "number": "1000",
-    "complement": "Sala 101",
-    "neighborhood": "Bela Vista",
-    "city": "São Paulo",
-    "state": "SP",
-    "zipCode": "01310-100"
-  },
-  "phone": {
-    "ddd": "11",
-    "number": "32223333"
-  },
-  "card": {
-    "cardToken": "token_empresa_pj_abc123"
-  }
-}
-
-### ===========================================
-### USUÁRIO REGISTRADO - NOVO ENDEREÇO E TELEFONE
-### ===========================================
-### Requer: Authorization Bearer token
-### Resposta: { userId, profileId, addressId, phoneId, cardToken, accessToken }
-
-POST {{checkoutUrl}}
+POST {{checkoutUrl}}/registered
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 {
-  "isRegistered": true,
-  "profileType": "PF",
   "profile": {
-    "firstName": "João",
-    "lastName": "Silva Atualizado",
-    "cpf": "529.982.247-25",
-    "birthDate": "1990-05-15",
-    "gender": "M"
+    "pf": {
+      "firstName": "João",
+      "lastName": "Silva Atualizado",
+      "cpf": "529.982.247-25",
+      "birthDate": "1990-05-15",
+      "gender": "M"
+    }
   },
   "address": {
     "street": "Novo Endereço",
     "number": "999",
+    "complement": "Apto 10",
     "neighborhood": "Novo Bairro",
     "city": "Rio de Janeiro",
     "state": "RJ",
@@ -228,30 +188,23 @@ Authorization: Bearer {{token}}
     "ddd": "21",
     "number": "988889999",
     "isDefault": true
-  },
-  "card": {
-    "cardToken": "token_usuario_existente_xyz"
   }
 }
 
-### ===========================================
-### USUÁRIO REGISTRADO - USA ENDEREÇO/TELEFONE EXISTENTE
-### ===========================================
-### Requer: Authorization Bearer token
-### Resposta: { userId, profileId, addressId, phoneId, cardToken, accessToken }
+### REGISTERED - PESSOA JURÍDICA
 
-POST {{checkoutUrl}}
+POST {{checkoutUrl}}/registered
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 {
-  "isRegistered": true,
-  "profileType": "PF",
   "profile": {
-    "firstName": "João",
-    "lastName": "Silva",
-    "cpf": "529.982.247-25",
-    "birthDate": "1990-05-15"
+    "pj": {
+      "companyName": "Minha Empresa LTDA",
+      "cnpj": "11.222.333/0001-81",
+      "tradingName": "Minha Empresa",
+      "stateRegistration": "123456789"
+    }
   },
   "address": {
     "id": 1,
@@ -259,45 +212,31 @@ Authorization: Bearer {{token}}
   },
   "phone": {
     "id": 1
-  },
-  "card": {
-    "cardToken": "token_para_pagamento"
   }
 }
 
-### ===========================================
-### USUÁRIO REGISTRADO - SALVANDO NOVO CARTÃO
-### ===========================================
-### Requer: Authorization Bearer token
-### Resposta: { userId, profileId, addressId, phoneId, cardId, cardToken, accessToken }
+### REGISTERED - SALVAR NOVO CARTÃO
 
-POST {{checkoutUrl}}
+POST {{checkoutUrl}}/registered
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 {
-  "isRegistered": true,
-  "profileType": "PF",
   "profile": {
-    "firstName": "João",
-    "lastName": "Silva",
-    "cpf": "529.982.247-25",
-    "birthDate": "1990-05-15"
+    "pf": {
+      "firstName": "João",
+      "lastName": "Silva",
+      "cpf": "529.982.247-25",
+      "birthDate": "1990-05-15"
+    }
   },
   "address": {
-    "street": "Endereço de Entrega",
-    "number": "100",
-    "neighborhood": "Centro",
-    "city": "São Paulo",
-    "state": "SP",
-    "zipCode": "01000-000"
+    "id": 1
   },
   "phone": {
-    "ddd": "11",
-    "number": "999990000"
+    "id": 1
   },
   "card": {
-    "cardToken": "token_mastercard_salvar_123",
     "saveCard": true,
     "lastFourDigits": "5678",
     "holderName": "JOAO SILVA",
@@ -309,120 +248,284 @@ Authorization: Bearer {{token}}
 }
 
 ### ===========================================
-### ERROS DE VALIDAÇÃO
+### 3. CRIAR PEDIDO (ORDER)
 ### ===========================================
+### Cria pedido a partir do carrinho
+### Resposta: { orderId, partnerOrderId, status, itemsTotal, shippingTotal, discountTotal, grandTotal }
+### X-Idempotency-Key: UUID gerado pelo cliente (um por tentativa de criação)
 
-### Erro 401: Usuário registrado sem token
-### Resposta: { "message": "Token de autenticação obrigatório para usuários registrados", "error": "Unauthorized" }
-POST {{checkoutUrl}}
-Content-Type: {{contentType}}
-
-{
-  "isRegistered": true,
-  "profileType": "PF",
-  "profile": {
-    "firstName": "Teste",
-    "lastName": "Sem Token",
-    "cpf": "529.982.247-25",
-    "birthDate": "1990-05-15"
-  },
-  "address": {
-    "id": 1
-  },
-  "phone": {
-    "id": 1
-  }
-}
-
-### Usando ID inexistente (cria novo com os dados)
-### Se o ID não existir, cria novo endereço/telefone com isDefault=true
-POST {{checkoutUrl}}
+# @name createOrder
+POST {{checkoutUrl}}/order
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
+X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440001
 
 {
-  "isRegistered": true,
-  "profileType": "PF",
-  "profile": {
-    "firstName": "Teste",
-    "lastName": "ID Inexistente",
-    "cpf": "529.982.247-25",
-    "birthDate": "1990-05-15"
-  },
-  "address": {
-    "id": 99999,
-    "street": "Rua Criada Automaticamente",
+  "shippingAddressId": 1,
+  "shippingOptionCode": "PAC"
+}
+
+@orderId = {{createOrder.response.body.orderId}}
+
+### CREATE ORDER - COM ENDEREÇO OVERRIDE
+
+POST {{checkoutUrl}}/order
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440002
+
+{
+  "shippingAddressOverride": {
+    "street": "Rua Temporária",
     "number": "100",
     "neighborhood": "Centro",
     "city": "São Paulo",
     "state": "SP",
     "zipCode": "01000-000"
   },
-  "phone": {
-    "id": 99999,
-    "ddd": "11",
-    "number": "999999999"
-  },
-  "card": {
-    "cardToken": "token_teste"
+  "shippingOptionCode": "SEDEX"
+}
+
+### CREATE ORDER - IDEMPOTÊNCIA (mesma chave retorna order existente)
+
+POST {{checkoutUrl}}/order
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440001
+
+{
+  "shippingAddressId": 1,
+  "shippingOptionCode": "PAC"
+}
+
+### ===========================================
+### 4. PROCESSAR PAGAMENTO
+### ===========================================
+### X-Idempotency-Key: UUID gerado pelo cliente (um por tentativa de pagamento)
+### Tipos: credit-card, debit-card, pix
+### Gateways: mercado-pago, cielo
+
+### CONSULTAR GATEWAYS DISPONÍVEIS
+
+GET {{checkoutUrl}}/gateways
+Authorization: Bearer {{token}}
+
+### CONSULTAR INFO DOS GATEWAYS
+
+GET {{checkoutUrl}}/gateways/info
+Authorization: Bearer {{token}}
+
+### PAGAMENTO PIX - MERCADO PAGO
+
+POST {{checkoutUrl}}/payment/pix/gateway/mercado-pago
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+X-Idempotency-Key: 660e8400-e29b-41d4-a716-446655440001
+
+{
+  "orderId": {{orderId}},
+  "description": "Pagamento do pedido",
+  "payerIdentification": {
+    "type": "CPF",
+    "number": "52998224725"
   }
 }
 
-### Erro 400: saveCard=true sem dados do cartão
-### Resposta: { "message": ["Últimos 4 dígitos são obrigatórios para salvar o cartão", ...], "error": "Bad Request" }
-POST {{checkoutUrl}}
+### PAGAMENTO CARTÃO DE CRÉDITO - MERCADO PAGO
+
+POST {{checkoutUrl}}/payment/credit-card/gateway/mercado-pago
 Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+X-Idempotency-Key: 660e8400-e29b-41d4-a716-446655440002
 
 {
-  "isRegistered": false,
-  "email": "teste.erro@email.com",
-  "password": "Senha123",
-  "profileType": "PF",
-  "profile": {
-    "firstName": "Teste",
-    "lastName": "Erro",
-    "cpf": "529.982.247-25",
-    "birthDate": "1990-05-15"
-  },
-  "address": {
-    "street": "Rua Teste",
-    "number": "1",
-    "neighborhood": "Centro",
-    "city": "SP",
-    "state": "SP",
-    "zipCode": "01234-567"
-  },
-  "phone": {
-    "ddd": "11",
-    "number": "999999999"
-  },
+  "orderId": {{orderId}},
+  "description": "Pagamento do pedido",
   "card": {
-    "cardToken": "token_teste",
-    "saveCard": true
+    "token": "token_gerado_pelo_mp_frontend_sdk",
+    "brand": "visa"
+  },
+  "installments": 3,
+  "payerIdentification": {
+    "type": "CPF",
+    "number": "52998224725"
   }
 }
 
-### Erro 400: Novo endereço sem dados completos
-### Resposta: { "message": ["Rua é obrigatória", ...], "error": "Bad Request" }
-POST {{checkoutUrl}}
+### PAGAMENTO CARTÃO DE DÉBITO - MERCADO PAGO
+
+POST {{checkoutUrl}}/payment/debit-card/gateway/mercado-pago
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+X-Idempotency-Key: 660e8400-e29b-41d4-a716-446655440003
+
+{
+  "orderId": {{orderId}},
+  "card": {
+    "token": "token_debito_mp",
+    "brand": "visa"
+  }
+}
+
+### PAGAMENTO CARTÃO DE CRÉDITO - CIELO
+
+POST {{checkoutUrl}}/payment/credit-card/gateway/cielo
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+X-Idempotency-Key: 660e8400-e29b-41d4-a716-446655440004
+
+{
+  "orderId": {{orderId}},
+  "card": {
+    "token": "token_gerado_pelo_cielo_frontend_sdk",
+    "brand": "mastercard"
+  },
+  "installments": 6
+}
+
+### PAGAMENTO - IDEMPOTÊNCIA (mesma chave retorna transação existente)
+
+POST {{checkoutUrl}}/payment/credit-card/gateway/mercado-pago
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+X-Idempotency-Key: 660e8400-e29b-41d4-a716-446655440002
+
+{
+  "orderId": {{orderId}},
+  "card": {
+    "token": "token_gerado_pelo_mp_frontend_sdk",
+    "brand": "visa"
+  },
+  "installments": 3
+}
+
+### ===========================================
+### 5. WEBHOOKS (APENAS DOCUMENTAÇÃO)
+### ===========================================
+### Endpoint chamado automaticamente pelo gateway
+### NÃO executar manualmente - apenas para referência
+
+### WEBHOOK MERCADO PAGO (POST recebido do MP)
+### URL configurada no painel MP: https://seu-dominio.com/webhooks/mercadopago
+### Validação: Consulta API do MP com o paymentId recebido
+
+POST {{webhooksUrl}}/mercadopago
 Content-Type: {{contentType}}
 
 {
-  "isRegistered": false,
-  "email": "teste.endereco@email.com",
-  "password": "Senha123",
-  "profileType": "PF",
+  "id": 12345,
+  "live_mode": true,
+  "type": "payment",
+  "date_created": "2025-12-13T10:00:00.000Z",
+  "user_id": 123456,
+  "api_version": "v1",
+  "action": "payment.updated",
+  "data": {
+    "id": "1234567890"
+  }
+}
+
+### ===========================================
+### ERROS COMUNS
+### ===========================================
+
+### Erro 400: X-Idempotency-Key ausente no pagamento
+
+POST {{checkoutUrl}}/payment/pix/gateway/mercado-pago
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "orderId": 1
+}
+
+### Erro 400: ProfileType incompatível (PF enviando dados PJ)
+
+POST {{checkoutUrl}}/registered
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
   "profile": {
-    "firstName": "Teste",
-    "lastName": "Endereco",
-    "cpf": "529.982.247-25",
-    "birthDate": "1990-05-15"
+    "pf": {
+      "firstName": "João",
+      "lastName": "Silva",
+      "cpf": "529.982.247-25",
+      "birthDate": "1990-05-15"
+    },
+    "pj": {
+      "companyName": "Empresa",
+      "cnpj": "11.222.333/0001-81"
+    }
   },
   "address": {
-    "street": "Rua Incompleta"
+    "id": 1
   },
   "phone": {
-    "ddd": "11",
-    "number": "999999999"
+    "id": 1
+  }
+}
+
+### Erro 409: CPF/CNPJ já cadastrado em outro perfil
+
+POST {{checkoutUrl}}/registered
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "profile": {
+    "pf": {
+      "firstName": "João",
+      "lastName": "Silva",
+      "cpf": "111.111.111-11",
+      "birthDate": "1990-05-15"
+    }
+  },
+  "address": {
+    "id": 1
+  },
+  "phone": {
+    "id": 1
+  }
+}
+
+### Erro 409: Race condition - checkoutKey duplicada (retorna order existente)
+
+POST {{checkoutUrl}}/order
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440001
+
+{
+  "shippingAddressId": 1
+}
+
+### Erro 400: Order não está WAITING_PAYMENT
+
+POST {{checkoutUrl}}/payment/credit-card/gateway/mercado-pago
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+X-Idempotency-Key: 660e8400-e29b-41d4-a716-446655440099
+
+{
+  "orderId": 999,
+  "card": {
+    "token": "token",
+    "brand": "visa"
+  }
+}
+
+### Erro 403: Order não pertence ao usuário
+
+POST {{checkoutUrl}}/payment/credit-card/gateway/mercado-pago
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+X-Idempotency-Key: 660e8400-e29b-41d4-a716-446655440098
+
+{
+  "orderId": 1,
+  "card": {
+    "token": "token",
+    "brand": "visa"
   }
 }
