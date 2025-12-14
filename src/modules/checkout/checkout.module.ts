@@ -25,6 +25,7 @@ import { CartModule } from '../carts/cart.module';
 import { OrdersModule } from '../orders/orders.module';
 import { ProductsModule } from '../products/products.module';
 import { ShippingModule } from '../shipping/shipping.module';
+import { AnyMarketModule } from '../../shared/anymarket/any-market.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ShippingModule } from '../shipping/shipping.module';
     OrdersModule,
     ProductsModule,
     ShippingModule,
+    AnyMarketModule,
   ],
   controllers: [CheckoutController, WebhookController],
   providers: [

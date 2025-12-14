@@ -259,13 +259,13 @@ POST {{checkoutUrl}}/order
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 # obrigatório para criar o pedido, gere um UUID aleatório para cada tentativa de criação
-X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440001 
+X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440004 
 
 {
-  "shippingAddressId": 1,
+  "shippingAddressId": 3,
   "shippingOptionCode": "PAC"
 }
-
+### orderId é o id do pedido criado
 @orderId = {{createOrder.response.body.orderId}}
 
 ### CREATE ORDER - COM ENDEREÇO OVERRIDE

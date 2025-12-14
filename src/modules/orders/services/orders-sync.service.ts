@@ -39,7 +39,7 @@ export class OrdersSyncService {
   }
 
   private async resolveProfileIdFromOrder(anymarketOrder: any): Promise<number | null> {
-    if (!anymarketOrder.customer?.email) {
+    if (!anymarketOrder.buyer?.email) {
       return null;
     }
 
@@ -59,25 +59,24 @@ export class OrdersSyncService {
 
     const profileId = await this.resolveProfileIdFromOrder(anymarketOrder);
 
+    const firstPayment = anymarketOrder.payments?.[0];
+
     const orderData = {
       profileId,
       anymarketOrderId: anymarketOrder.id,
       partnerOrderId: anymarketOrder.partnerId,
-      marketplace: anymarketOrder.marketplace ?? 'ECOMMERCE',
-      marketplaceOrderId: anymarketOrder.marketplaceOrderId ?? null,
+      marketplace: anymarketOrder.marketPlace ?? 'ECOMMERCE',
+      marketplaceOrderId: anymarketOrder.marketPlaceId ?? null,
       status: anymarketOrder.status as any,
-      itemsTotal: anymarketOrder.itemsTotal.toString(),
-      shippingTotal: anymarketOrder.shipping.freightPrice.toString(),
-      discountTotal: (anymarketOrder.discountTotal ?? 0).toString(),
-      grandTotal: anymarketOrder.grandTotal.toString(),
-      paymentMethod: anymarketOrder.payment.paymentMethod,
-      installments: anymarketOrder.payment.installments ?? null,
-      shippingCarrier: anymarketOrder.shipping.carrierName ?? null,
-      shippingService: anymarketOrder.shipping.serviceName ?? null,
-      shippingEstimatedDeliveryDate:
-        anymarketOrder.shipping.estimatedDeliveryDate
-          ? new Date(anymarketOrder.shipping.estimatedDeliveryDate)
-          : null,
+      itemsTotal: (anymarketOrder.gross ?? 0).toString(),
+      shippingTotal: (anymarketOrder.freight ?? 0).toString(),
+      discountTotal: (anymarketOrder.discount ?? 0).toString(),
+      grandTotal: (anymarketOrder.total ?? 0).toString(),
+      paymentMethod: firstPayment?.method ?? 'PENDING',
+      installments: firstPayment?.installments ?? null,
+      shippingCarrier: null,
+      shippingService: null,
+      shippingEstimatedDeliveryDate: null,
       shippingTrackingCode: null,
       anymarketRawPayload: anymarketOrder,
       anymarketCreatedAt: anymarketOrder.createdAt
@@ -89,15 +88,14 @@ export class OrdersSyncService {
     };
 
     const itemsData = anymarketOrder.items.map((orderItem) => {
-      const lineTotal =
-        (orderItem.price - (orderItem.discount ?? 0)) * orderItem.quantity;
+      const lineTotal = orderItem.total ?? (orderItem.unit * orderItem.amount);
 
       return {
-        productId: 0, // TODO: mapear para id interno de produto se necessário
-        skuId: Number(orderItem.sku),
-        title: orderItem.title ?? '',
-        quantity: orderItem.quantity,
-        unitPrice: orderItem.price.toFixed(2),
+        productId: orderItem.product?.id ?? 0,
+        skuId: orderItem.sku?.id ?? Number(orderItem.sku?.partnerId) ?? 0,
+        title: orderItem.sku?.title ?? orderItem.product?.title ?? '',
+        quantity: orderItem.amount,
+        unitPrice: (orderItem.unit ?? 0).toFixed(2),
         discount: (orderItem.discount ?? 0).toFixed(2),
         total: lineTotal.toFixed(2),
       };

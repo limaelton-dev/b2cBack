@@ -6,6 +6,7 @@ export interface AnyMarketConfig {
   apiPrefix: string;
   gumgaToken: string;
   platform: string;
+  marketplaceName: string;
 }
 
 export interface AnyMarketHeaders {
@@ -26,7 +27,12 @@ export class AnyMarketConfigService {
       apiPrefix: '/v2',
       gumgaToken: this.configService.get<string>('ANYMARKET_GUMGA_TOKEN')!,
       platform: this.configService.get<string>('ANYMARKET_PLATFORM')!,
+      marketplaceName: this.configService.get<string>('ANYMARKET_MARKETPLACE_NAME') || 'ECOMMERCE',
     };
+  }
+
+  getMarketplaceName(): string {
+    return this.getConfig().marketplaceName;
   }
 
   getHeaders(): AnyMarketHeaders {

@@ -78,6 +78,8 @@ export class ProductsService {
         const price = sku.price ?? 0;
 
         skuMap.set(sku.id, {
+          id: sku.id,
+          productId: product.id,
           title: sku.title,
           price: roundPrice(price),
           _rawPrice: price,
@@ -86,6 +88,7 @@ export class ProductsService {
           stock: sku.amount ?? sku.quantity ?? 0,
           variations: sku.variations?.map((v: any) => ({ description: v.description })) ?? [],
           product: {
+            id: product.id,
             title: product.title,
             brand: product.brand ? { name: product.brand.name } : null,
             images: product.images?.map((img: any) => ({

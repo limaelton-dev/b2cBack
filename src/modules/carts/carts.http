@@ -19,8 +19,8 @@ POST {{baseUrl}}/auth/signin
 Content-Type: {{contentType}}
 
 {
-  "email": "pessoafisica@exemplo.com",
-  "password": "senha123"
+  "email": "novo.usuario@email.com",
+  "password": "Senha123"
 }
 
 ### Token salvo automaticamente da resposta do login

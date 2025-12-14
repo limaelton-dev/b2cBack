@@ -20,6 +20,7 @@ import { OrdersAnymarketRepository } from '../../orders/repositories/orders-anym
 import { ProductsService } from '../../products/services/products.service';
 import { ShippingService } from '../../shipping/services/shipping.service';
 import { calculateItemsTotal, calculateGrandTotal } from '../../../common/helpers/price.util';
+import { AnyMarketConfigService } from '../../../shared/anymarket/config/any-market.config.service';
 
 export interface GuestCheckoutResult {
   userId: number;
@@ -46,6 +47,7 @@ export class CheckoutService {
     private readonly ordersAnymarketRepository: OrdersAnymarketRepository,
     private readonly productsService: ProductsService,
     private readonly shippingService: ShippingService,
+    private readonly anyMarketConfigService: AnyMarketConfigService,
   ) {}
 
   async processGuestCheckout(dto: GuestCheckoutDto): Promise<GuestCheckoutResult> {
@@ -193,7 +195,7 @@ export class CheckoutService {
       profileId,
       checkoutKey: idempotencyKey || null,
       partnerOrderId,
-      marketplace: 'ECOMMERCE',
+      marketplace: this.anyMarketConfigService.getMarketplaceName(),
       status: 'PENDING',
       itemsTotal: itemsTotal.toFixed(2),
       shippingTotal: shippingTotal.toFixed(2),
@@ -363,15 +365,12 @@ export class CheckoutService {
     const profilePj = profile.profilePj;
     const user = profile.user;
 
-    const customerName = profilePf
+    const buyerName = profilePf
       ? `${profilePf.firstName} ${profilePf.lastName}`
       : profilePj?.companyName ?? '';
 
-    const document = profilePf
-      ? { documentType: 'CPF', documentNumber: profilePf.cpf }
-      : profilePj
-        ? { documentType: 'CNPJ', documentNumber: profilePj.cnpj }
-        : undefined;
+    const document = profilePf?.cpf ?? profilePj?.cnpj ?? '';
+    const documentType = profilePf ? 'CPF' : profilePj ? 'CNPJ' : '';
 
     const skuIds = items.map((i) => i.skuId);
     const skuDetailsMap = await this.productsService.findSkusForCart(skuIds);
@@ -379,49 +378,64 @@ export class CheckoutService {
     const orderItems = items.map((item) => {
       const sku = skuDetailsMap.get(item.skuId);
       const unitPrice = sku?._rawPrice ?? 0;
+      const total = unitPrice * item.quantity;
+
       return {
-        sku: sku?.partnerId ? String(sku.partnerId) : String(item.skuId),
-        title: sku?.title ?? item.sku?.title ?? '',
-        quantity: item.quantity,
-        price: unitPrice,
-        originalPrice: unitPrice,
+        product: {
+          id: sku?.productId ?? 0,
+          title: sku?.title ?? '',
+        },
+        sku: {
+          id: sku?.id ?? 0,
+          partnerId: sku?.partnerId ? String(sku.partnerId) : String(item.skuId),
+          title: sku?.title ?? item.sku?.title ?? '',
+        },
+        amount: item.quantity,
+        unit: unitPrice,
+        gross: total,
+        total: total,
         discount: 0,
       };
     });
 
+    const marketplaceName = this.anyMarketConfigService.getMarketplaceName();
+
     return {
       partnerId: partnerOrderId,
-      marketplace: 'ECOMMERCE',
-      customer: {
-        name: customerName,
+      marketPlaceId: partnerOrderId,
+      marketPlace: marketplaceName,
+      status: 'PENDING',
+      buyer: {
+        name: buyerName,
         email: user?.email ?? '',
+        document,
+        documentType,
         phone: undefined,
         cellPhone: undefined,
-        document,
-        shippingAddress: {
-          state: shippingAddress.state,
-          city: shippingAddress.city,
-          zipCode: shippingAddress.zipCode,
-          neighborhood: shippingAddress.neighborhood,
-          address: shippingAddress.street,
-          number: shippingAddress.number,
-          complement: shippingAddress.complement,
-          reference: undefined,
-        },
-      },
-      items: orderItems,
-      payment: {
-        paymentMethod: 'PENDING',
-        //installments deve ser informado pelo usuário, aqui está fixo(pode gerar bug, ou tem outro motivo?)
-        installments: 1,
-        totalPaid: grandTotal,
       },
       shipping: {
-        freightPrice: shippingTotal,
+        state: shippingAddress.state,
+        city: shippingAddress.city,
+        zipCode: shippingAddress.zipCode?.replace(/\D/g, ''),
+        neighborhood: shippingAddress.neighborhood,
+        street: shippingAddress.street,
+        number: shippingAddress.number,
+        comment: shippingAddress.complement,
+        receiverName: buyerName,
       },
-      discountTotal,
-      itemsTotal,
-      grandTotal,
+      items: orderItems,
+      payments: [
+        {
+          method: 'PENDING',
+          status: 'PENDING',
+          value: grandTotal,
+          installments: 1,
+        },
+      ],
+      discount: discountTotal,
+      freight: shippingTotal,
+      gross: itemsTotal,
+      total: grandTotal,
     };
   }
 
