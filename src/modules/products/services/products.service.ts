@@ -12,9 +12,6 @@ export class ProductsService {
     private readonly filterService: ProductsFilterService,
   ) {}
 
-  /**
-   * Lista produtos disponíveis com filtros e paginação.
-   */
   async findAll(filters: ProductsFiltersDto) {
     const { offset, limit } = normalizePagination({ 
       page: filters.page, 
@@ -34,30 +31,40 @@ export class ProductsService {
       limit,
     );
 
+    const enrichedItems = await this.repository.enrichProductsWithMarketplace(result.items);
+
     return {
       ...result,
-      items: addSlugsToProducts(result.items),
+      items: addSlugsToProducts(enrichedItems),
+      total: enrichedItems.length < result.items.length ? result.total - (result.items.length - enrichedItems.length) : result.total,
     };
   }
 
-  /**
-   * Busca produto disponível por ID.
-   */
   async findById(id: number) {
     const product = await this.repository.findById(id);
     if (!product) {
       throw new NotFoundException(`Produto ${id} não encontrado ou indisponível`);
     }
-    return product;
+
+    const [enriched] = await this.repository.enrichProductsWithMarketplace([product]);
+    if (!enriched) {
+      throw new NotFoundException(`Produto ${id} não disponível no canal atual`);
+    }
+
+    return enriched;
   }
 
-  /**
-   * Busca produto disponível por slug.
-   */
   async findBySlug(slug: string) {
     for await (const product of this.repository.streamAvailable()) {
       const [withSlug] = addSlugsToProducts([product]);
-      if (withSlug.slug === slug) return withSlug;
+      if (withSlug.slug !== slug) continue;
+
+      const [enriched] = await this.repository.enrichProductsWithMarketplace([product]);
+      if (!enriched) {
+        throw new NotFoundException(`Produto '${slug}' não disponível no canal atual`);
+      }
+
+      return addSlugsToProducts([enriched])[0];
     }
     throw new NotFoundException(`Produto '${slug}' não encontrado`);
   }
@@ -72,14 +79,19 @@ export class ProductsService {
       for (const sku of product.skus ?? []) {
         if (!skuIds.includes(sku.id)) continue;
 
-        const price = sku.marketplacePrice ?? sku.price ?? 0;
+        const originalPrice = sku.originalPrice ?? sku.price ?? 0;
+        const finalPrice = sku.finalPrice ?? sku.price ?? 0;
+        const hasDiscount = sku.hasDiscount ?? false;
 
         skuMap.set(sku.id, {
           id: sku.id,
           productId: product.id,
           title: sku.title,
-          price: roundPrice(price),
-          _rawPrice: price,
+          originalPrice: roundPrice(originalPrice),
+          finalPrice: roundPrice(finalPrice),
+          hasDiscount,
+          price: roundPrice(finalPrice),
+          _rawPrice: finalPrice,
           partnerId: sku.partnerId,
           marketplacePartnerId: sku.marketplacePartnerId,
           ean: sku.ean,
@@ -104,9 +116,6 @@ export class ProductsService {
     return skuMap;
   }
 
-  /**
-   * Valida disponibilidade de SKUs para carrinho/pedido.
-   */
   async validateSkuAvailability(
     items: Array<{ skuId: number; quantity: number }>,
   ): Promise<SkuValidationResult> {
@@ -115,7 +124,7 @@ export class ProductsService {
     }
 
     const skuIds = items.map(i => i.skuId);
-    const products = await this.repository.findBySkuIds(skuIds);
+    const products = await this.repository.findBySkuIdsWithMarketplace(skuIds);
     
     const skuMap = new Map<number, { sku: any; product: any }>();
     for (const product of products) {
@@ -137,13 +146,13 @@ export class ProductsService {
           skuId: item.skuId,
           requestedQuantity: item.quantity,
           reason: 'SKU_NOT_FOUND',
-          message: `SKU ${item.skuId} não encontrado ou indisponível`,
+          message: `SKU ${item.skuId} não encontrado ou sem anúncio ativo no canal`,
         });
         continue;
       }
 
       const { sku, product } = found;
-      const stock = sku.amount ?? sku.quantity ?? 0;
+      const stock = sku.marketplaceStock ?? sku.amount ?? sku.quantity ?? 0;
 
       if (stock < item.quantity) {
         invalid.push({
@@ -160,7 +169,7 @@ export class ProductsService {
         skuId: sku.id,
         requestedQuantity: item.quantity,
         availableStock: stock,
-        price: sku.price,
+        price: sku.finalPrice ?? sku.price,
         productTitle: product.title,
         skuTitle: sku.title,
       });

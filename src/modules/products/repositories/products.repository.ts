@@ -94,21 +94,60 @@ export class ProductsRepository {
     if (!skuIds?.length) return [];
 
     const products = await this.findBySkuIds(skuIds);
-    const marketplaceMap = await this.skuMarketplace.findBySkuIds(skuIds);
+    return this.enrichProductsWithMarketplace(products);
+  }
 
-    return products.map((product) => ({
-      ...product,
-      skus: product.skus?.map((sku: any) => {
-        const mpData = marketplaceMap.get(sku.id);
-        return {
-          ...sku,
-          marketplaceData: mpData ?? null,
-          marketplacePartnerId: mpData?.partnerId ?? null,
-          marketplacePrice: mpData?.price ?? sku.price,
-          marketplaceStock: mpData?.stock ?? sku.amount ?? sku.quantity ?? 0,
-        };
-      }) ?? [],
-    }));
+  async enrichProductsWithMarketplace(products: any[]): Promise<any[]> {
+    if (!products?.length) return [];
+
+    const allSkuIds = products.flatMap((p) => p.skus?.map((s: any) => s.id) ?? []);
+    if (!allSkuIds.length) return [];
+
+    const marketplaceMap = await this.skuMarketplace.findBySkuIds(allSkuIds);
+
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/dbd08ada-682b-46fd-85fa-ae2fab5ba5bf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.repository.ts:enrichProductsWithMarketplace',message:'marketplace map',data:{totalSkuIds:allSkuIds.length,foundInMarketplace:marketplaceMap.size,sampleData:allSkuIds.slice(0,3).map(id=>({skuId:id,found:marketplaceMap.has(id),data:marketplaceMap.get(id)}))},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v2',hypothesisId:'H1,H4'})}).catch(()=>{});
+    // #endregion
+
+    const enrichedProducts = products
+      .map((product) => {
+        const enrichedSkus = (product.skus ?? [])
+          .map((sku: any) => {
+            const mpData = marketplaceMap.get(sku.id);
+            const baseStock = sku.amount ?? sku.quantity ?? 0;
+            const effectiveStock = mpData?.stock > 0 ? mpData.stock : baseStock;
+
+            // #region agent log
+            if (!mpData || !mpData.isActive) {
+              fetch('http://127.0.0.1:7243/ingest/dbd08ada-682b-46fd-85fa-ae2fab5ba5bf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.repository.ts:enrichProductsWithMarketplace',message:'SKU filtered out',data:{skuId:sku.id,reason:!mpData?'NO_MARKETPLACE_DATA':'NOT_ACTIVE',mpData,baseStock},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v2',hypothesisId:'H2,H3,H4'})}).catch(()=>{});
+            }
+            // #endregion
+
+            if (!mpData || !mpData.isActive) return null;
+
+            return {
+              ...sku,
+              marketplaceData: mpData,
+              marketplacePartnerId: mpData.partnerId,
+              originalPrice: mpData.originalPrice,
+              finalPrice: mpData.finalPrice,
+              hasDiscount: mpData.hasDiscount,
+              marketplaceStock: effectiveStock,
+            };
+          })
+          .filter(Boolean);
+
+        if (enrichedSkus.length === 0) return null;
+
+        return { ...product, skus: enrichedSkus };
+      })
+      .filter(Boolean);
+
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/dbd08ada-682b-46fd-85fa-ae2fab5ba5bf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.repository.ts:enrichProductsWithMarketplace',message:'enrichment result',data:{inputProducts:products.length,outputProducts:enrichedProducts.length,sampleEnriched:enrichedProducts.slice(0,2).map(p=>({id:p.id,skus:p.skus?.map((s:any)=>({id:s.id,stock:s.marketplaceStock,price:s.finalPrice}))}))},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v2',hypothesisId:'H4'})}).catch(()=>{});
+    // #endregion
+
+    return enrichedProducts;
   }
 
   getSkuMarketplaceRepository(): SkuMarketplaceRepository {
