@@ -25,25 +25,13 @@ export class SkuMarketplaceRepository {
         `/skus/${skuId}/marketplaces`,
       );
 
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/dbd08ada-682b-46fd-85fa-ae2fab5ba5bf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sku-marketplace.repository.ts:findBySkuId',message:'listings received',data:{skuId,listingsCount:listings?.length,firstListing:listings?.[0]?{marketPlace:listings[0].marketPlace,publicationStatus:listings[0].publicationStatus,amount:listings[0].amount}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1,H2,H3'})}).catch(()=>{});
-      // #endregion
-
       if (!listings?.length) return null;
 
       const marketplace = this.config.getMarketplaceName();
 
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/dbd08ada-682b-46fd-85fa-ae2fab5ba5bf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sku-marketplace.repository.ts:findBySkuId',message:'marketplace config',data:{skuId,configuredMarketplace:marketplace,availableMarketplaces:listings.map(l=>l.marketPlace)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion
-
       const matching = listings.filter(
         (l) => l.marketPlace === marketplace && isListingActive(l),
       );
-
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/dbd08ada-682b-46fd-85fa-ae2fab5ba5bf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sku-marketplace.repository.ts:findBySkuId',message:'filter result',data:{skuId,matchingCount:matching.length,isActiveResults:listings.map(l=>({marketPlace:l.marketPlace,isActive:isListingActive(l),publicationStatus:l.publicationStatus}))},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H1,H2'})}).catch(()=>{});
-      // #endregion
 
       if (matching.length === 0) return null;
 
