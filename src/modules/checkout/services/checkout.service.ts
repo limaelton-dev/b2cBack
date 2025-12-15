@@ -243,6 +243,21 @@ export class CheckoutService {
         );
       } catch (anymarketError) {
         this.logger.error(`Falha na integração AnyMarket para order ${order.id}: ${anymarketError.message}`);
+        
+        // Mesmo com falha na integração AnyMarket, o pedido deve ir para WAITING_PAYMENT
+        // A integração pode ser retentada posteriormente via webhook ou job
+        await this.dataSource.getRepository(Order).update(order.id, {
+          status: 'WAITING_PAYMENT',
+        });
+        
+        order.status = 'WAITING_PAYMENT';
+        
+        await this.ordersRepository.updateOrderStatus(
+          order.id,
+          'WAITING_PAYMENT',
+          'SYSTEM',
+          'Pedido criado (integração AnyMarket pendente)',
+        );
       }
 
       return this.mapOrderToResult(order);

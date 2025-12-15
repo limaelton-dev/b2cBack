@@ -5,3 +5,4 @@ export * from './exceptions/any-market.exception';
 export * from './util/util';
 export * from './interfaces';
 export * from './repositories';
+export * from './services/marketplace-product-extractor.service';

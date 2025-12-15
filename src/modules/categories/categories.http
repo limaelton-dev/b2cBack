@@ -1,0 +1,235 @@
+### ===========================================
+### MÓDULO DE CATEGORIAS (CATEGORIES)
+### ===========================================
+### Base URL: http://localhost:3000/api/categories
+### Endpoints públicos (sem autenticação)
+### ===========================================
+###
+### IMPORTANTE - INTEGRAÇÃO ANYMARKET:
+### As categorias são extraídas dos produtos que possuem
+### anúncios ATIVOS no marketplace configurado no ambiente.
+###
+### REGRA DE NEGÓCIO:
+### Apenas categorias de produtos disponíveis no marketplace
+### (env: ANYMARKET_MARKETPLACE_NAME) são retornadas.
+### Isso garante que o frontend exiba apenas filtros úteis
+### e menus de navegação com conteúdo real.
+###
+### FLUXO:
+### 1. Itera sobre todos os produtos do AnyMarket
+### 2. Filtra apenas produtos com SKUs ativos no marketplace
+### 3. Extrai categorias únicas (incluindo categorias-pai)
+### 4. Constrói árvore hierárquica baseada nos paths
+### 5. Adiciona slugs para URLs amigáveis
+### ===========================================
+
+### Variáveis de ambiente
+@baseUrl = http://localhost:3000/api
+@categoriesUrl = {{baseUrl}}/categories
+
+### ===========================================
+### LISTAR CATEGORIAS RAIZ
+### ===========================================
+
+### Listar categorias de primeiro nível (sem hierarquia)
+### Retorna apenas categorias raiz, sem filhos
+GET {{categoriesUrl}}
+
+### ===========================================
+### LISTAR ÁRVORE DE CATEGORIAS
+### ===========================================
+
+### Listar todas as categorias em estrutura de árvore
+### Inclui hierarquia completa com children recursivo
+GET {{categoriesUrl}}/tree
+
+### ===========================================
+### ESTRUTURA DE RESPOSTA - RAIZ
+### ===========================================
+
+### GET /categories - Resposta:
+### [
+###   {
+###     "id": 1771102,
+###     "name": "Informática",
+###     "path": "Informática",
+###     "partnerId": "87",
+###     "slug": "informatica"
+###   },
+###   {
+###     "id": 1771150,
+###     "name": "Eletrônicos",
+###     "path": "Eletrônicos",
+###     "partnerId": "88",
+###     "slug": "eletronicos"
+###   }
+### ]
+
+### ===========================================
+### ESTRUTURA DE RESPOSTA - ÁRVORE
+### ===========================================
+
+### GET /categories/tree - Resposta:
+### [
+###   {
+###     "id": 1771102,
+###     "name": "Informática",
+###     "path": "Informática",
+###     "partnerId": "87",
+###     "slug": "informatica",
+###     "children": [
+###       {
+###         "id": 1771137,
+###         "name": "Periféricos",
+###         "path": "Informática/Periféricos",
+###         "partnerId": "371",
+###         "slug": "informatica-perifericos",
+###         "children": [
+###           {
+###             "id": 1771145,
+###             "name": "Mouses",
+###             "path": "Informática/Periféricos/Mouses",
+###             "partnerId": "425",
+###             "slug": "informatica-perifericos-mouses"
+###           },
+###           {
+###             "id": 1771146,
+###             "name": "Teclados",
+###             "path": "Informática/Periféricos/Teclados",
+###             "partnerId": "426",
+###             "slug": "informatica-perifericos-teclados"
+###           }
+###         ]
+###       },
+###       {
+###         "id": 1771140,
+###         "name": "Notebooks",
+###         "path": "Informática/Notebooks",
+###         "partnerId": "380",
+###         "slug": "informatica-notebooks"
+###       }
+###     ]
+###   },
+###   {
+###     "id": 1771150,
+###     "name": "Eletrônicos",
+###     "path": "Eletrônicos",
+###     "partnerId": "88",
+###     "slug": "eletronicos",
+###     "children": [
+###       {
+###         "id": 1771160,
+###         "name": "Smartphones",
+###         "path": "Eletrônicos/Smartphones",
+###         "partnerId": "500",
+###         "slug": "eletronicos-smartphones"
+###       }
+###     ]
+###   }
+### ]
+
+### ===========================================
+### CAMPOS DA RESPOSTA
+### ===========================================
+###
+### id: ID interno da categoria no AnyMarket
+###     Usar para filtrar produtos: GET /products?categories={id}
+###
+### name: Nome da categoria
+###     Exibir no frontend (menus, breadcrumbs, filtros)
+###
+### path: Caminho completo da categoria
+###     Ex: "Informática/Periféricos/Mouses"
+###     Usado para construir breadcrumbs
+###
+### partnerId: ID da categoria no sistema parceiro (opcional)
+###     Referência para integração com ERP/backoffice
+###
+### slug: URL amigável gerada automaticamente
+###     Ex: "informatica-perifericos-mouses"
+###     Usar em rotas do frontend: /categoria/{slug}
+###
+### children: Array de categorias filhas (apenas em /tree)
+###     Estrutura recursiva para menus multinível
+###
+### ===========================================
+
+### ===========================================
+### COMO USAR NO FRONTEND
+### ===========================================
+###
+### 1. MENU DE NAVEGAÇÃO:
+###    - Usar GET /categories/tree para menu multinível
+###    - Renderizar recursivamente children
+###    - Link para: /categoria/{slug}
+###
+### 2. FILTROS LATERAIS:
+###    - Usar GET /categories/tree ou /categories
+###    - Exibir checkbox/accordion com categorias
+###    - Ao selecionar: GET /products?categories={id}
+###    - Múltiplas: GET /products?categories={id1},{id2}
+###
+### 3. BREADCRUMB:
+###    - Usar campo path para montar breadcrumb
+###    - Split por "/" e linkar cada parte
+###    - Ex: Início > Informática > Periféricos > Mouses
+###
+### 4. PÁGINA DE CATEGORIA:
+###    - Buscar por slug na árvore
+###    - Título: category.name
+###    - Produtos: GET /products?categories={id}
+###    - Subcategorias: category.children
+###
+### 5. SEO:
+###    - Usar slug na URL: /categoria/informatica-perifericos
+###    - Title: {name} | Loja
+###    - Breadcrumb estruturado (JSON-LD)
+###
+### ===========================================
+
+### ===========================================
+### CENÁRIO: RESPOSTA VAZIA
+### ===========================================
+###
+### Se retornar array vazio []:
+### - Não há produtos com anúncios ativos no marketplace
+### - Verificar configuração ANYMARKET_MARKETPLACE_NAME
+### - Verificar se existem anúncios publicados no AnyMarket
+###
+### ===========================================
+
+### ===========================================
+### OBSERVAÇÕES TÉCNICAS
+### ===========================================
+###
+### Geração de Slugs:
+### - Baseado no path completo da categoria
+### - Normaliza acentos (NFD + remove diacríticos)
+### - Converte para minúsculas
+### - Substitui caracteres especiais por hífen
+### - Remove hífens duplicados e das pontas
+### Ex: "Informática/Periféricos" → "informatica-perifericos"
+###
+### Construção da Árvore:
+### - Categorias são extraídas dos paths dos produtos
+### - Paths intermediários são gerados automaticamente
+### - Ex: Se produto tem "A/B/C", cria A, A/B, e A/B/C
+### - Organiza hierarquia pelo número de segmentos
+###
+### Performance:
+### - Endpoint itera todos os produtos (streaming)
+### - Verifica SKUs ativos no marketplace (batch de 5)
+### - Extrai categorias únicas em memória
+### - Constrói árvore em uma passada
+###
+### Cache recomendado (frontend):
+### - TTL: 5-15 minutos
+### - Invalidar ao detectar mudança no catálogo
+###
+### Filtros aplicados automaticamente:
+### 1. isProductActive === true
+### 2. sku.amount > 0 (estoque base)
+### 3. Anúncio ACTIVE no marketplace configurado
+###
+### ===========================================
+

@@ -1,27 +1,16 @@
-import { Injectable } from "@nestjs/common";
-import { AnyMarketApiProvider } from "../../../shared/anymarket";
+import { Injectable } from '@nestjs/common';
+import { MarketplaceProductExtractorService, ExtractedCategory } from '../../../shared/anymarket';
 
 @Injectable()
 export class CategoriesRepository {
-  constructor(private readonly anyMarketApi: AnyMarketApiProvider) {}
+  constructor(private readonly extractor: MarketplaceProductExtractorService) {}
 
-  async findAll() {
-    try {
-      const data = await this.anyMarketApi.get("/categories/fullPath");
-      return data;
-    } catch (error) {
-      console.error("Erro ao buscar menu de categorias:", error);
-      throw error;
-    }
+  async findAll(): Promise<ExtractedCategory[]> {
+    return this.extractor.extractCategories();
   }
 
-  async findRootCategories() {
-    try {
-      const data = await this.anyMarketApi.get("/categories");
-      return data;
-    } catch (error) {
-      console.error("Erro ao buscar menu de categorias:", error);
-      throw error;
-    }
+  async findRootCategories(): Promise<ExtractedCategory[]> {
+    const tree = await this.findAll();
+    return tree.map(({ children, ...root }) => root);
   }
 }

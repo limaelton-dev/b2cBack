@@ -4,17 +4,24 @@ import { MercadoPagoConfig } from "./mercado-pago.config";
 import { MercadoPagoConfig as MPConfig, Payment } from 'mercadopago';
 import { PaymentMethod } from "src/common/enums";
 import { redact, safeStringify, buildPaymentLogMessage } from '../../../../common/helpers/payment-log.util';
+import { writeFileSync, existsSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class MercadoPagoGateway implements PaymentGateway {
   private readonly logger = new Logger(MercadoPagoGateway.name);
   private readonly client: MPConfig | null;
   private readonly payment: Payment | null;
+  private readonly debugMode: boolean;
+  private readonly logsBaseDir: string;
 
   constructor(
     @Inject('MercadoPagoConfig')
     private readonly config: MercadoPagoConfig | null
   ) {
+    this.debugMode = process.env.NODE_ENV !== 'production';
+    this.logsBaseDir = join(process.cwd(), 'logs', 'mercadopago');
+
     if (!config) {
       this.client = null;
       this.payment = null;
@@ -22,17 +29,113 @@ export class MercadoPagoGateway implements PaymentGateway {
     }
 
     this.logger.log(`Inicializando gateway Mercado Pago no ambiente ${config.environment}`);
-
     this.client = new MPConfig({
       accessToken: config.accessToken,
       options: {
         timeout: 10000,
-        ...(config.environment === 'production' ? {} : { platformId: 'mp' })
       }
     });
 
     this.payment = new Payment(this.client);
     this.logger.log('Gateway Mercado Pago inicializado com sucesso');
+  }
+
+  /**
+   * Gera comando curl equivalente para debug
+   */
+  private generateCurl(operation: string, body: any, token: string): string {
+    const url = 'https://api.mercadopago.com/v1/payments';
+    const headers = [
+      `-H "Authorization: Bearer ${this.config?.accessToken}"`,
+      `-H "Content-Type: application/json"`,
+      `-H "X-Idempotency-Key: ${body?.requestOptions?.idempotencyKey || 'none'}"`,
+    ];
+    
+    // Monta o body sem redactar o token para o curl funcionar
+    const curlBody = body?.body ? JSON.stringify(body.body) : '{}';
+    
+    return `curl -X POST "${url}" \\\n  ${headers.join(' \\\n  ')} \\\n  -d '${curlBody}'`;
+  }
+
+  /**
+   * Loga request/response do Mercado Pago em arquivo JSON (similar ao AnyMarket)
+   * Logs são salvos em: logs/mercadopago/{DD-MM-YYYY}/{timestamp}_{operation}_{status}.json
+   */
+  private logMercadoPago(operation: string, request?: any, response?: any, error?: any, duration?: number, originalToken?: string): void {
+    if (!this.debugMode) return;
+    
+    const now = new Date();
+    const dayFolder = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+    const dayPath = join(this.logsBaseDir, dayFolder);
+    
+    if (!existsSync(dayPath)) mkdirSync(dayPath, { recursive: true });
+    
+    const timestamp = now.toISOString().replace(/[:.]/g, '-');
+    const status = error ? 'ERROR' : 'OK';
+    const fileName = `${timestamp}_${operation}_${status}.json`;
+    
+    // Redacta token do cartão para segurança no request logado
+    const safeRequest = request ? JSON.parse(JSON.stringify(request)) : undefined;
+    if (safeRequest?.token) safeRequest.token = '[REDACTED]';
+    if (safeRequest?.body?.token) safeRequest.body.token = '[REDACTED]';
+    
+    // Gera curl com token original para facilitar debug manual
+    const curlRequest = request ? JSON.parse(JSON.stringify(request)) : undefined;
+    if (curlRequest?.body && originalToken) {
+      curlRequest.body.token = originalToken;
+    }
+    const curl = this.generateCurl(operation, curlRequest, originalToken || '');
+    
+    // Extrai resposta completa em texto
+    let textResponse = '';
+    if (response) {
+      textResponse = JSON.stringify(response, null, 2);
+    } else if (error) {
+      textResponse = JSON.stringify({
+        message: error.message,
+        status: error.status,
+        cause: error.cause,
+        errorCode: error.errorCode,
+        error: error.error,
+        stack: error.stack?.substring(0, 500),
+        response: error.response,
+        apiResponse: error.apiResponse,
+        // Captura todas as propriedades do erro
+        allKeys: Object.keys(error),
+        allValues: Object.fromEntries(
+          Object.keys(error).map(k => [k, typeof error[k] === 'object' ? JSON.stringify(error[k]) : error[k]])
+        ),
+      }, null, 2);
+    }
+    
+    const entry = {
+      timestamp: now.toISOString(),
+      operation,
+      environment: this.config?.environment,
+      accessTokenPrefix: this.config?.accessToken?.substring(0, 15),
+      curl,
+      request: safeRequest,
+      response,
+      textResponse,
+      error: error ? { 
+        message: error.message, 
+        status: error.status,
+        cause: error.cause,
+        errorCode: error.errorCode,
+        apiResponse: error.response?.data || error.apiResponse,
+        fullError: Object.fromEntries(
+          Object.keys(error).filter(k => k !== 'stack').map(k => [k, error[k]])
+        ),
+      } : undefined,
+      duration,
+    };
+    
+    try {
+      writeFileSync(join(dayPath, fileName), JSON.stringify(entry, null, 2));
+      this.logger.debug(`Log MP salvo: ${fileName}`);
+    } catch (logError) {
+      this.logger.warn(`Falha ao salvar log MP: ${logError.message}`);
+    }
   }
 
   async processPayment(request: PaymentGatewayRequest): Promise<PaymentGatewayResponse> {
@@ -83,27 +186,76 @@ export class MercadoPagoGateway implements PaymentGateway {
 
     const { firstName, lastName } = this.splitName(request.customer.name);
 
-    const paymentData = {
+    // Monta o payload base removendo campos undefined/vazios
+    // Mapeia nomes de bandeiras para IDs do Mercado Pago
+    const brandToPaymentMethodId: Record<string, string> = {
+      'mastercard': 'master',
+      'visa': 'visa',
+      'amex': 'amex',
+      'elo': 'elo',
+      'hipercard': 'hipercard',
+      'diners': 'diners',
+    };
+    const paymentMethodId = brandToPaymentMethodId[request.cardData.brand.toLowerCase()] || request.cardData.brand.toLowerCase();
+
+    const paymentData: Record<string, any> = {
       transaction_amount: Number(request.amount),
       token: request.cardData.token,
       description: request.description || 'Pagamento',
       installments: (request.metadata?.installments as number) || 1,
-      payment_method_id: request.cardData.brand.toLowerCase(),
+      payment_method_id: paymentMethodId,
       payer: {
         email: request.customer.email,
         first_name: firstName,
         last_name: lastName,
-        identification: request.metadata?.payer?.identification || undefined,
       },
-      notification_url: this.config.notificationUrl,
       metadata: {
-        ...request.metadata,
+        orderId: request.metadata?.orderId,
         customer_id: String(request.customer.id),
       },
-      statement_descriptor: request.metadata?.statement_descriptor as string | undefined,
     };
 
-    const response = await this.payment.create({ body: paymentData });
+    // Adiciona identification apenas se tiver dados válidos
+    const identification = request.metadata?.payer?.identification;
+    if (identification?.type && identification?.number) {
+      paymentData.payer.identification = identification;
+    }
+
+    // Adiciona notification_url apenas se configurado
+    if (this.config.notificationUrl) {
+      paymentData.notification_url = this.config.notificationUrl;
+    }
+
+    // Adiciona statement_descriptor apenas se definido
+    const statementDescriptor = request.metadata?.statement_descriptor as string | undefined;
+    if (statementDescriptor) {
+      paymentData.statement_descriptor = statementDescriptor;
+    }
+
+    // Gera idempotency key única para esta transação
+    const idempotencyKey = `${request.metadata?.orderId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+    // Log do request antes de enviar
+    const startTime = Date.now();
+    const createRequest = { 
+      body: paymentData,
+      requestOptions: { idempotencyKey }
+    };
+
+    // Guarda o token original para o curl
+    const originalToken = request.cardData.token;
+    
+    let response;
+    try {
+      response = await this.payment.create(createRequest);
+      
+      // Log de sucesso
+      this.logMercadoPago('payment_create', createRequest, response, undefined, Date.now() - startTime, originalToken);
+    } catch (mpError: any) {
+      // Log de erro detalhado em arquivo
+      this.logMercadoPago('payment_create', createRequest, undefined, mpError, Date.now() - startTime, originalToken);
+      throw mpError;
+    }
 
     this.logger.log(`Resposta MP: Status ${response.status}, ID ${response.id}`);
 

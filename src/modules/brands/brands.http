@@ -1,0 +1,131 @@
+### ===========================================
+### MÓDULO DE MARCAS (BRANDS)
+### ===========================================
+### Base URL: http://localhost:3000/api/brands
+### Endpoints públicos (sem autenticação)
+### ===========================================
+###
+### IMPORTANTE - INTEGRAÇÃO ANYMARKET:
+### As marcas são extraídas dos produtos que possuem anúncios
+### ATIVOS no marketplace configurado no ambiente.
+###
+### REGRA DE NEGÓCIO:
+### Apenas marcas de produtos disponíveis no marketplace
+### (env: ANYMARKET_MARKETPLACE_NAME) são retornadas.
+### Isso garante que o frontend exiba apenas filtros úteis.
+###
+### FLUXO:
+### 1. Itera sobre todos os produtos do AnyMarket
+### 2. Filtra apenas produtos com SKUs ativos no marketplace
+### 3. Extrai marcas únicas dos produtos filtrados
+### 4. Ordena alfabeticamente por nome
+### ===========================================
+
+### Variáveis de ambiente
+@baseUrl = http://localhost:3000/api
+@brandsUrl = {{baseUrl}}/brands
+
+### ===========================================
+### LISTAR MARCAS
+### ===========================================
+
+### Listar todas as marcas disponíveis no marketplace
+### Retorna apenas marcas de produtos com anúncio ATIVO
+GET {{brandsUrl}}
+
+### ===========================================
+### ESTRUTURA DE RESPOSTA
+### ===========================================
+
+### GET /brands - Resposta:
+### [
+###   {
+###     "id": 1234,
+###     "name": "C3Tech",
+###     "reducedName": "c3tech",
+###     "partnerId": "marca-001-c3tech"
+###   },
+###   {
+###     "id": 5678,
+###     "name": "Logitech",
+###     "reducedName": "logitech",
+###     "partnerId": "marca-002-logitech"
+###   },
+###   {
+###     "id": 9012,
+###     "name": "Razer",
+###     "reducedName": "razer",
+###     "partnerId": "marca-003-razer"
+###   }
+### ]
+
+### ===========================================
+### CAMPOS DA RESPOSTA
+### ===========================================
+###
+### id: ID interno da marca no AnyMarket
+###     Usar para filtrar produtos: GET /products?brands={id}
+###
+### name: Nome completo da marca
+###     Exibir no frontend (filtros, badges, etc)
+###
+### reducedName: Nome reduzido (opcional)
+###     Usado para URLs ou identificação curta
+###
+### partnerId: ID da marca no sistema parceiro (opcional)
+###     Referência para integração com ERP/backoffice
+###
+### ===========================================
+
+### ===========================================
+### COMO USAR NO FRONTEND
+### ===========================================
+###
+### 1. FILTROS DE CATÁLOGO:
+###    - Listar marcas: GET /brands
+###    - Exibir checkbox/select com name de cada marca
+###    - Ao selecionar, filtrar produtos: GET /products?brands={id}
+###    - Para múltiplas: GET /products?brands={id1},{id2},{id3}
+###
+### 2. PÁGINA DE MARCA:
+###    - Usar name como título da página
+###    - Listar produtos: GET /products?brands={id}
+###
+### 3. BADGE DE PRODUTO:
+###    - Exibir brand.name no card do produto
+###    - Link para filtro da marca
+###
+### ===========================================
+
+### ===========================================
+### CENÁRIO: RESPOSTA VAZIA
+### ===========================================
+###
+### Se retornar array vazio []:
+### - Não há produtos com anúncios ativos no marketplace
+### - Verificar configuração ANYMARKET_MARKETPLACE_NAME
+### - Verificar se existem anúncios publicados no AnyMarket
+###
+### ===========================================
+
+### ===========================================
+### OBSERVAÇÕES TÉCNICAS
+### ===========================================
+###
+### Performance:
+### - Endpoint itera todos os produtos (streaming)
+### - Verifica SKUs ativos no marketplace (batch de 5)
+### - Extrai marcas únicas em memória
+### - Ordena resultado alfabeticamente
+###
+### Cache recomendado (frontend):
+### - TTL: 5-15 minutos
+### - Invalidar ao detectar mudança no catálogo
+###
+### Filtros aplicados automaticamente:
+### 1. isProductActive === true
+### 2. sku.amount > 0 (estoque base)
+### 3. Anúncio ACTIVE no marketplace configurado
+###
+### ===========================================
+

@@ -1,0 +1,33 @@
+@baseUrl = http://localhost:3000/api
+# Token atualizado do usuário eltonteste@email.com
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImVsdG9udGVzdGVAZW1haWwuY29tIiwic3ViIjo3LCJwcm9maWxlSWQiOjcsInByb2ZpbGVUeXBlIjoiUEYiLCJpYXQiOjE3NjU3OTE1MDgsImV4cCI6MTc2NTg3NzkwOH0.QptrJHPZqwqsZ_dXEJ4IQ5prPX9vywxLntqprFgRAvQ
+
+### 1. Criar novo pedido (execute primeiro se não tiver pedido)
+# @name createOrder
+POST {{baseUrl}}/checkout/order
+Authorization: Bearer {{token}}
+Content-Type: application/json
+X-Idempotency-Key: {{$guid}}
+
+{}
+
+### 2. Processar pagamento com cartão de crédito - Mercado Pago
+# IMPORTANTE: Atualize o orderId e o card.token antes de executar
+POST {{baseUrl}}/checkout/payment/credit-card/gateway/mercado-pago
+Authorization: Bearer {{token}}
+Content-Type: application/json
+X-Idempotency-Key: {{$guid}}
+
+{
+    "orderId": 11,
+    "description": "Pagamento do pedido",
+    "card": {
+        "token": "7fd61c8f1bcf191227d339d7c623ef0b",
+        "brand": "mastercard"
+    },
+    "installments": 1,
+    "payerIdentification": {
+        "type": "CPF",
+        "number": "32136509004"
+    }
+}
