@@ -203,7 +203,7 @@ export class MercadoPagoGateway implements PaymentGateway {
       token: request.cardData.token,
       description: request.description || 'Pagamento',
       installments: (request.metadata?.installments as number) || 1,
-      payment_method_id: paymentMethodId,
+      payment_method_id: 'master', //TODO: temporário, remover ao fazer deploy
       payer: {
         email: request.customer.email,
         first_name: firstName,

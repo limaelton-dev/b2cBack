@@ -1,6 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { AnyMarketApiProvider, SkuMarketplaceRepository, SkuMarketplaceData } from '../../../shared/anymarket';
 import { PaginationHelperService } from 'src/shared/anymarket/pagination/pagination-helper.service';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+
+const DEFAULT_TTL_MS = 3600000; // 1hr em milissegundos (cache-manager v5 usa ms)
 
 export function isSkuAvailable(sku: any): boolean {
   if (!sku) return false;
@@ -30,6 +34,8 @@ export class ProductsRepository {
     private readonly api: AnyMarketApiProvider,
     private readonly pager: PaginationHelperService,
     private readonly skuMarketplace: SkuMarketplaceRepository,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache
   ) {}
 
   /**
@@ -39,12 +45,26 @@ export class ProductsRepository {
    * @future Adicionar cache Redis aqui
    */
   async *streamAvailable(): AsyncGenerator<any, void, void> {
+    const cacheKey = 'products:available';
+    const cached = await this.cacheManager.get<any[]>(cacheKey);
+    if(Array.isArray(cached) && cached.length) {
+      for (const product of cached) {
+        yield product;
+      }
+      return;
+    }
+
+    const available: any[] = [];
     const url = `${this.endpoint}?offset=0&limit=${this.defaultLimit}`;
     
     for await (const product of this.pager.iterateItems<any>(url)) {
       if (!isProductAvailable(product)) continue;
-      yield filterAvailableSkus(product);
+      const filtered = filterAvailableSkus(product);
+      available.push(filtered);
+      yield filtered;
     }
+
+    await this.cacheManager.set(cacheKey, available, DEFAULT_TTL_MS)
   }
 
   /**
@@ -54,10 +74,18 @@ export class ProductsRepository {
    * @future Adicionar cache Redis aqui
    */
   async findById(id: number): Promise<any | null> {
+    const cacheKey = `products:${id}`;
+    const cached = await this.cacheManager.get<any>(cacheKey);
+    if(cached) {
+      return cached;
+    }
+
     try {
       const product = await this.api.get<any>(`${this.endpoint}/${id}`);
       if (!isProductAvailable(product)) return null;
-      return filterAvailableSkus(product);
+      const filtered = filterAvailableSkus(product);
+      await this.cacheManager.set(cacheKey, filtered, DEFAULT_TTL_MS);
+      return filtered;
     } catch {
       return null;
     }
@@ -66,10 +94,15 @@ export class ProductsRepository {
   /**
    * Busca produtos que contêm SKUs específicos.
    * Otimizado: para de iterar quando encontra todos.
-   * 
-   * @future Adicionar cache Redis aqui
    */
   async findBySkuIds(skuIds: number[]): Promise<any[]> {
+    const sorted = [...skuIds].sort((a, b) => a - b);
+    const cacheKey = `products:skuIds:${sorted.join(',')}`;
+    const cached = await this.cacheManager.get<any[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     if (!skuIds?.length) return [];
 
     const pending = new Set(skuIds);
@@ -79,7 +112,7 @@ export class ProductsRepository {
       const matchingSkuIds = product.skus
         ?.filter((s: any) => pending.has(s.id))
         .map((s: any) => s.id) ?? [];
-
+  
       if (matchingSkuIds.length > 0) {
         results.push(product);
         matchingSkuIds.forEach((id: number) => pending.delete(id));
@@ -87,6 +120,7 @@ export class ProductsRepository {
       }
     }
 
+    await this.cacheManager.set(cacheKey, results, DEFAULT_TTL_MS);
     return results;
   }
 
@@ -147,10 +181,18 @@ export class ProductsRepository {
    * @future Adicionar cache Redis aqui
    */
   async findSkuById(skuId: number): Promise<{ product: any; sku: any } | null> {
+    const cacheKey = `sku:${skuId}`;
+    const cached = await this.cacheManager.get<{ product: any; sku: any }>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+  
     for await (const product of this.streamAvailable()) {
       const sku = product.skus?.find((s: any) => s.id === skuId);
       if (sku) {
-        return { product, sku };
+        const result = { product, sku };
+        await this.cacheManager.set(cacheKey, result, DEFAULT_TTL_MS);
+        return result;
       }
     }
     return null;

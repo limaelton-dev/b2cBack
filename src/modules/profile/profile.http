@@ -273,7 +273,3 @@ Content-Type: {{contentType}}
 {
   "firstName": "Tentativa"
 }
-
-### Erro: Remover perfil de outro usuário (retorna 403 Forbidden)
-DELETE {{profileUrl}}/999
-Authorization: Bearer {{token}}
